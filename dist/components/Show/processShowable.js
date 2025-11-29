@@ -8,17 +8,37 @@ function isShowable(child) {
 }
 /**
  * Showable 패턴을 처리하는 공통 함수
+ *
+ * Forrable과 동일한 패턴:
+ * - Showable을 찾아서 when 값을 기반으로 조건부 렌더링
+ * - 다른 children은 그대로 유지
+ * - Showable 위치에 렌더링 결과 삽입
  */
 export function processShowable(children, when, fallback) {
     const childrenArray = Children.toArray(children);
+    const showable = childrenArray.find(isShowable);
     const shouldRender = Array.isArray(when) ? when.every(Boolean) : !!when;
+    // Showable이 없으면 children 그대로 반환 (일반 children들)
+    if (!showable) {
+        return children;
+    }
+    // Showable을 찾아서 조건부 렌더링 처리
+    const showableChildren = showable.props.children;
+    const showableFallback = showable.props.fallback ?? fallback;
+    // when 조건에 따라 Showable의 content 결정
+    let showableContent;
+    if (typeof showableChildren === "function") {
+        // 함수인 경우: when 값을 전달하고 조건부 렌더링
+        showableContent = shouldRender ? showableChildren(when) : showableFallback;
+    }
+    else {
+        // ReactNode인 경우: 조건부 렌더링
+        showableContent = shouldRender ? showableChildren : showableFallback;
+    }
+    // children 배열에서 Showable만 교체
     return childrenArray.map((child) => {
-        if (isShowable(child)) {
-            const showableChildren = child.props.children;
-            const showableFallback = child.props.fallback ?? fallback;
-            if (typeof showableChildren === "function") {
-                return shouldRender ? showableChildren(when) : showableFallback;
-            }
+        if (child === showable) {
+            return showableContent;
         }
         return child;
     });
