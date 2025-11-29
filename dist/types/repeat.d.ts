@@ -1,99 +1,24 @@
 import { ComponentPropsWithRef } from "react";
-import { Fallback } from ".";
+import { Fallback, HtmlTagHelpers } from ".";
+/**
+ * Repeat 컴포넌트의 props 타입
+ * times만큼 children을 반복 렌더링
+ */
 export interface RepeatProps extends Fallback {
     times: number;
     children: (index: number) => React.ReactNode;
 }
+/**
+ * 특정 HTML 태그를 위한 Repeat 헬퍼 타입
+ */
 type RepeatTagHelper<K extends keyof JSX.IntrinsicElements> = {
     (props: RepeatProps & Omit<ComponentPropsWithRef<K>, "children">): React.ReactNode;
 };
-export interface RepeatType {
+/**
+ * Repeat 컴포넌트의 전체 타입
+ * 기본 사용과 HTML 태그별 헬퍼를 모두 포함
+ */
+export interface RepeatType extends HtmlTagHelpers<RepeatTagHelper<any>> {
     (props: RepeatProps): React.ReactNode;
-    a: RepeatTagHelper<"a">;
-    abbr: RepeatTagHelper<"abbr">;
-    address: RepeatTagHelper<"address">;
-    article: RepeatTagHelper<"article">;
-    aside: RepeatTagHelper<"aside">;
-    b: RepeatTagHelper<"b">;
-    bdi: RepeatTagHelper<"bdi">;
-    bdo: RepeatTagHelper<"bdo">;
-    blockquote: RepeatTagHelper<"blockquote">;
-    button: RepeatTagHelper<"button">;
-    canvas: RepeatTagHelper<"canvas">;
-    cite: RepeatTagHelper<"cite">;
-    code: RepeatTagHelper<"code">;
-    data: RepeatTagHelper<"data">;
-    datalist: RepeatTagHelper<"datalist">;
-    dd: RepeatTagHelper<"dd">;
-    del: RepeatTagHelper<"del">;
-    details: RepeatTagHelper<"details">;
-    dfn: RepeatTagHelper<"dfn">;
-    dialog: RepeatTagHelper<"dialog">;
-    div: RepeatTagHelper<"div">;
-    dl: RepeatTagHelper<"dl">;
-    dt: RepeatTagHelper<"dt">;
-    em: RepeatTagHelper<"em">;
-    fieldset: RepeatTagHelper<"fieldset">;
-    figcaption: RepeatTagHelper<"figcaption">;
-    figure: RepeatTagHelper<"figure">;
-    footer: RepeatTagHelper<"footer">;
-    form: RepeatTagHelper<"form">;
-    h1: RepeatTagHelper<"h1">;
-    h2: RepeatTagHelper<"h2">;
-    h3: RepeatTagHelper<"h3">;
-    h4: RepeatTagHelper<"h4">;
-    h5: RepeatTagHelper<"h5">;
-    h6: RepeatTagHelper<"h6">;
-    header: RepeatTagHelper<"header">;
-    hr: RepeatTagHelper<"hr">;
-    i: RepeatTagHelper<"i">;
-    img: RepeatTagHelper<"img">;
-    input: RepeatTagHelper<"input">;
-    ins: RepeatTagHelper<"ins">;
-    kbd: RepeatTagHelper<"kbd">;
-    label: RepeatTagHelper<"label">;
-    legend: RepeatTagHelper<"legend">;
-    li: RepeatTagHelper<"li">;
-    main: RepeatTagHelper<"main">;
-    map: RepeatTagHelper<"map">;
-    mark: RepeatTagHelper<"mark">;
-    menu: RepeatTagHelper<"menu">;
-    meter: RepeatTagHelper<"meter">;
-    nav: RepeatTagHelper<"nav">;
-    ol: RepeatTagHelper<"ol">;
-    option: RepeatTagHelper<"option">;
-    output: RepeatTagHelper<"output">;
-    p: RepeatTagHelper<"p">;
-    picture: RepeatTagHelper<"picture">;
-    pre: RepeatTagHelper<"pre">;
-    progress: RepeatTagHelper<"progress">;
-    q: RepeatTagHelper<"q">;
-    rp: RepeatTagHelper<"rp">;
-    rt: RepeatTagHelper<"rt">;
-    ruby: RepeatTagHelper<"ruby">;
-    s: RepeatTagHelper<"s">;
-    samp: RepeatTagHelper<"samp">;
-    section: RepeatTagHelper<"section">;
-    select: RepeatTagHelper<"select">;
-    small: RepeatTagHelper<"small">;
-    span: RepeatTagHelper<"span">;
-    strong: RepeatTagHelper<"strong">;
-    sub: RepeatTagHelper<"sub">;
-    summary: RepeatTagHelper<"summary">;
-    sup: RepeatTagHelper<"sup">;
-    table: RepeatTagHelper<"table">;
-    tbody: RepeatTagHelper<"tbody">;
-    td: RepeatTagHelper<"td">;
-    textarea: RepeatTagHelper<"textarea">;
-    tfoot: RepeatTagHelper<"tfoot">;
-    th: RepeatTagHelper<"th">;
-    thead: RepeatTagHelper<"thead">;
-    time: RepeatTagHelper<"time">;
-    tr: RepeatTagHelper<"tr">;
-    u: RepeatTagHelper<"u">;
-    ul: RepeatTagHelper<"ul">;
-    var: RepeatTagHelper<"var">;
-    video: RepeatTagHelper<"video">;
-    [x: string]: RepeatTagHelper<any>;
 }
 export {};

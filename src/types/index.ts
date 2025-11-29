@@ -1,10 +1,24 @@
 import type { ReactElement } from "react";
+import type { HtmlTag } from "../constants/htmlTags";
 
 export interface Fallback {
   fallback?: React.ReactNode;
 }
+
 export type NonNullableElements<T extends readonly any[]> = {
   -readonly [P in keyof T]: NonNullable<T[P]>;
+};
+
+/**
+ * HTML 태그별 헬퍼 타입을 자동 생성하는 유틸리티
+ * @template Helper - 각 태그에 대한 헬퍼 타입
+ */
+export type HtmlTagHelpers<Helper> = {
+  [K in HtmlTag]: Helper extends { tag: infer _T } 
+    ? Helper 
+    : Helper;
+} & {
+  [x: string]: Helper; // 임의의 태그도 허용
 };
 
 export interface OptionalWrapperProps {

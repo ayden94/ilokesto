@@ -1,105 +1,35 @@
 import { ComponentPropsWithRef } from "react";
-import { Fallback, NonNullableElements } from "./";
+import { Fallback, HtmlTagHelpers, NonNullableElements } from "./";
+/**
+ * Show 컴포넌트의 배열 props 타입
+ * when이 배열인 경우 모든 요소가 truthy여야 렌더링
+ */
 export interface ShowPropsArray<T extends unknown[]> extends Fallback {
     when: T;
     children: React.ReactNode | ((item: NonNullableElements<T>) => React.ReactNode);
 }
+/**
+ * Show 컴포넌트의 기본 props 타입
+ * when이 truthy일 때 children 렌더링
+ */
 export interface ShowProps<T = unknown> extends Fallback {
     when: T;
     children: React.ReactNode | ((item: NonNullable<T>) => React.ReactNode);
 }
+/**
+ * 특정 HTML 태그를 위한 Show 헬퍼 타입
+ * 배열과 단일 값 모두 지원
+ */
 type ShowTagHelper<K extends keyof JSX.IntrinsicElements> = {
     <T extends unknown[]>(props: Omit<ComponentPropsWithRef<K>, "children"> & ShowPropsArray<T>): React.ReactNode;
     <T extends unknown>(props: Omit<ComponentPropsWithRef<K>, "children"> & ShowProps<T>): React.ReactNode;
 };
-export interface ShowType {
+/**
+ * Show 컴포넌트의 전체 타입
+ * 기본 사용과 HTML 태그별 헬퍼를 모두 포함
+ */
+export interface ShowType extends HtmlTagHelpers<ShowTagHelper<any>> {
     <T extends unknown[]>(props: ShowPropsArray<T>): React.ReactNode;
     <T extends unknown>(props: ShowProps<T>): React.ReactNode;
-    a: ShowTagHelper<"a">;
-    abbr: ShowTagHelper<"abbr">;
-    address: ShowTagHelper<"address">;
-    article: ShowTagHelper<"article">;
-    aside: ShowTagHelper<"aside">;
-    b: ShowTagHelper<"b">;
-    bdi: ShowTagHelper<"bdi">;
-    bdo: ShowTagHelper<"bdo">;
-    blockquote: ShowTagHelper<"blockquote">;
-    button: ShowTagHelper<"button">;
-    canvas: ShowTagHelper<"canvas">;
-    cite: ShowTagHelper<"cite">;
-    code: ShowTagHelper<"code">;
-    data: ShowTagHelper<"data">;
-    datalist: ShowTagHelper<"datalist">;
-    dd: ShowTagHelper<"dd">;
-    del: ShowTagHelper<"del">;
-    details: ShowTagHelper<"details">;
-    dfn: ShowTagHelper<"dfn">;
-    dialog: ShowTagHelper<"dialog">;
-    div: ShowTagHelper<"div">;
-    dl: ShowTagHelper<"dl">;
-    dt: ShowTagHelper<"dt">;
-    em: ShowTagHelper<"em">;
-    fieldset: ShowTagHelper<"fieldset">;
-    figcaption: ShowTagHelper<"figcaption">;
-    figure: ShowTagHelper<"figure">;
-    footer: ShowTagHelper<"footer">;
-    form: ShowTagHelper<"form">;
-    h1: ShowTagHelper<"h1">;
-    h2: ShowTagHelper<"h2">;
-    h3: ShowTagHelper<"h3">;
-    h4: ShowTagHelper<"h4">;
-    h5: ShowTagHelper<"h5">;
-    h6: ShowTagHelper<"h6">;
-    header: ShowTagHelper<"header">;
-    hr: ShowTagHelper<"hr">;
-    i: ShowTagHelper<"i">;
-    img: ShowTagHelper<"img">;
-    input: ShowTagHelper<"input">;
-    ins: ShowTagHelper<"ins">;
-    kbd: ShowTagHelper<"kbd">;
-    label: ShowTagHelper<"label">;
-    legend: ShowTagHelper<"legend">;
-    li: ShowTagHelper<"li">;
-    main: ShowTagHelper<"main">;
-    map: ShowTagHelper<"map">;
-    mark: ShowTagHelper<"mark">;
-    menu: ShowTagHelper<"menu">;
-    meter: ShowTagHelper<"meter">;
-    nav: ShowTagHelper<"nav">;
-    ol: ShowTagHelper<"ol">;
-    option: ShowTagHelper<"option">;
-    output: ShowTagHelper<"output">;
-    p: ShowTagHelper<"p">;
-    picture: ShowTagHelper<"picture">;
-    pre: ShowTagHelper<"pre">;
-    progress: ShowTagHelper<"progress">;
-    q: ShowTagHelper<"q">;
-    rp: ShowTagHelper<"rp">;
-    rt: ShowTagHelper<"rt">;
-    ruby: ShowTagHelper<"ruby">;
-    s: ShowTagHelper<"s">;
-    samp: ShowTagHelper<"samp">;
-    section: ShowTagHelper<"section">;
-    select: ShowTagHelper<"select">;
-    small: ShowTagHelper<"small">;
-    span: ShowTagHelper<"span">;
-    strong: ShowTagHelper<"strong">;
-    sub: ShowTagHelper<"sub">;
-    summary: ShowTagHelper<"summary">;
-    sup: ShowTagHelper<"sup">;
-    table: ShowTagHelper<"table">;
-    tbody: ShowTagHelper<"tbody">;
-    td: ShowTagHelper<"td">;
-    textarea: ShowTagHelper<"textarea">;
-    tfoot: ShowTagHelper<"tfoot">;
-    th: ShowTagHelper<"th">;
-    thead: ShowTagHelper<"thead">;
-    time: ShowTagHelper<"time">;
-    tr: ShowTagHelper<"tr">;
-    u: ShowTagHelper<"u">;
-    ul: ShowTagHelper<"ul">;
-    var: ShowTagHelper<"var">;
-    video: ShowTagHelper<"video">;
-    [x: string]: ShowTagHelper<any>;
 }
 export {};
