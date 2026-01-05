@@ -6,8 +6,8 @@ export * from './components/OptionalWrapper';
 export * from './components/Repeat';
 export * from './components/Show';
 export * from './components/Slacker';
-export * from './components/Slot/Slot';
-export * from './components/Switch/Switch';
+export * from './components/Slot';
+export * from './components/Switch';
 
 // export hooks
 export * from './hooks/useIntersectionObserver';
