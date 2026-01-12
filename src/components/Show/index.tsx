@@ -24,4 +24,3 @@ const renderForTag =
   });
 
 export const Show: ShowType = createProxy(BaseShow, renderForTag, "show");
-
