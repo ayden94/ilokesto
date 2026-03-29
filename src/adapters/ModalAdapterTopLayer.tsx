@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback, useId } from 'react';
-import type { ModalAdapterProps, ModalPosition } from './types';
+import type { ModalAdapterProps, ModalPosition } from '../shared/types';
 
 function getDialogPositionStyles(pos?: ModalPosition): React.CSSProperties {
   switch (pos) {

@@ -1,9 +1,9 @@
 import React, { useMemo, useEffect } from 'react';
 import { OverlayProvider } from '@ilokesto/overlay';
 import type { OverlayStoreApi } from '@ilokesto/overlay';
-import { ModalAdapter } from './ModalAdapter';
-import { globalStyles } from './styles';
-import { globalModalStore } from './modalFacade';
+import { ModalAdapter } from '../adapters/ModalAdapter';
+import { globalStyles } from '../shared/styles';
+import { globalModalStore } from '../facade/modalFacade';
 
 export interface ModalProviderProps {
   children: React.ReactNode;

@@ -14,7 +14,8 @@
     "checkJs": true,
     "esModuleInterop": true,
     "removeComments": true,
-    "types": ["node"]
+    "types": ["node", "react", "react-dom"],
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["src"]
 }

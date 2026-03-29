@@ -1,5 +1,5 @@
 import { createOverlayStore } from '@ilokesto/overlay';
-import type { ModalProps } from './types';
+import type { ModalProps } from '../shared/types';
 
 export const globalModalStore = createOverlayStore();
 

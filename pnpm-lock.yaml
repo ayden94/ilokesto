@@ -8,14 +8,11 @@ importers:
 
   .:
     dependencies:
-      '@ilokesto/store':
-        specifier: 1.1.1
-        version: 1.1.1
-      immer:
-        specifier: ^9.0.12
-        version: 9.0.21
+      '@ilokesto/overlay':
+        specifier: 1.0.1
+        version: 1.0.1(react@18.2.0)
       react:
-        specifier: 18.2.0
+        specifier: 18.2.0 || ^19.0.0
         version: 18.2.0
     devDependencies:
       '@types/node':
@@ -25,10 +22,15 @@ importers:
         specifier: ^19.1.6
         version: 19.2.14
       typescript:
-        specifier: ^6.0.2
-        version: 6.0.2
+        specifier: ^5.0.0
+        version: 5.9.3
 
 packages:
+
+  '@ilokesto/overlay@1.0.1':
+    resolution: {integrity: sha512-lBAT3NAhr0tPKOAy814Aus4jH4egeK/qi7TImd+LU2iofQMPwMJsxQyu6WTbgUvtvPq5zymqcucKvyoRWpdC4Q==}
+    peerDependencies:
+      react: 18.2.0
 
   '@ilokesto/store@1.1.1':
     resolution: {integrity: sha512-fcotz5vU2TLzAywMsNRu7P6hmdVy6aBdhfrvx6NBjWKPIYwaLhaLANj7lLaxJEzujTB1zMPoDAp14t8E0frHfg==}
@@ -42,9 +44,6 @@ packages:
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
-  immer@9.0.21:
-    resolution: {integrity: sha512-bc4NBHqOqSfRW7POMkHd51LvClaeMXpm8dx0e8oE2GORbq5aRK7Bxl4FyzVLdGtLmvLKL7BTDBG5ACQm4HWjTA==}
-
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
@@ -56,8 +55,8 @@ packages:
     resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
     engines: {node: '>=0.10.0'}
 
-  typescript@6.0.2:
-    resolution: {integrity: sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ==}
+  typescript@5.9.3:
+    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -65,6 +64,11 @@ packages:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
 snapshots:
+
+  '@ilokesto/overlay@1.0.1(react@18.2.0)':
+    dependencies:
+      '@ilokesto/store': 1.1.1
+      react: 18.2.0
 
   '@ilokesto/store@1.1.1': {}
 
@@ -78,8 +82,6 @@ snapshots:
 
   csstype@3.2.3: {}
 
-  immer@9.0.21: {}
-
   js-tokens@4.0.0: {}
 
   loose-envify@1.4.0:
@@ -90,6 +92,6 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
-  typescript@6.0.2: {}
+  typescript@5.9.3: {}
 
   undici-types@6.21.0: {}

@@ -1,8 +1,9 @@
-import type { ModalAdapterProps } from './types';
+import type { JSX } from 'react';
+import type { ModalAdapterProps } from '../shared/types';
 import { ModalAdapterInline } from './ModalAdapterInline';
 import { ModalAdapterTopLayer } from './ModalAdapterTopLayer';
 
-export function ModalAdapter<TResult>(props: ModalAdapterProps<TResult>) {
+export function ModalAdapter<TResult>(props: ModalAdapterProps<TResult>): JSX.Element {
   const { transport = 'inline' } = props;
 
   if (transport === 'top-layer') {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
-import type { ModalAdapterProps, ModalPosition } from './types';
+import type { ModalAdapterProps, ModalPosition } from '../shared/types';
 
 function getPositionStyles(pos?: ModalPosition): React.CSSProperties {
   switch (pos) {
@@ -89,11 +89,11 @@ export function ModalAdapterInline<TResult>({
           close();
         }
       } else if (e.key === 'Tab' && containerRef.current) {
-        const focusables = Array.from(
-          containerRef.current.querySelectorAll<HTMLElement>(
+        const focusables = [
+          ...containerRef.current.querySelectorAll<HTMLElement>(
             'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-          )
-        ).filter(el => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true');
+          ),
+        ].filter((el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true');
 
         if (focusables.length === 0) {
           e.preventDefault();
