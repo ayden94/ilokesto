@@ -58,8 +58,6 @@ export function createOverlayStore(): OverlayStoreApi {
   }
 
   function close(id: OverlayId, result?: unknown): void {
-    let shouldResolve = false;
-
     store.setState((prev) => ({
       ...prev,
       items: prev.items.map((item) => {
@@ -67,18 +65,13 @@ export function createOverlayStore(): OverlayStoreApi {
           return item;
         }
 
-        shouldResolve = true;
-
         return {
           ...item,
           status: "closing",
+          closeResult: result,
         };
       }),
     }));
-
-    if (shouldResolve) {
-      settle(id, result);
-    }
   }
 
   function remove(id?: OverlayId): void {
@@ -94,9 +87,8 @@ export function createOverlayStore(): OverlayStoreApi {
       return;
     }
 
-    if (targetItem.status !== "closing") {
-      settle(targetId, undefined);
-    }
+    // Resolve with closeResult if it was set during close(), or undefined if removed abruptly
+    settle(targetId, targetItem.closeResult);
 
     store.setState((prev) => ({
       ...prev,
@@ -106,7 +98,9 @@ export function createOverlayStore(): OverlayStoreApi {
 
   function clear(): void {
     for (const item of store.getState().items) {
-      settle(item.id, undefined);
+      // For clear, we might want to resolve with undefined or closeResult if it was closing.
+      // Usually clear means abrupt termination.
+      settle(item.id, item.closeResult);
     }
 
     store.setState((prev) => ({

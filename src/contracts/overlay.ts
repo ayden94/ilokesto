@@ -11,6 +11,7 @@ export interface OverlayItem {
   readonly props: Readonly<Record<string, unknown>>;
   readonly status: OverlayStatus;
   readonly createdAt: number;
+  readonly closeResult?: unknown;
 }
 
 export interface OverlayState {
