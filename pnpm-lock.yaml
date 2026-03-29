@@ -9,10 +9,10 @@ importers:
   .:
     dependencies:
       '@ilokesto/store':
-        specifier: 1.1.1
+        specifier: ^1.1.1
         version: 1.1.1
       react:
-        specifier: 18.2.0
+        specifier: ^18.0.0 || ^19.0.0
         version: 18.2.0
     devDependencies:
       '@types/node':
