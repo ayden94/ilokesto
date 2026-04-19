@@ -10,36 +10,53 @@
     "url": "git+https://github.com/ilokesto/state"
   },
   "homepage": "https://ilokesto.ayden94.com/en/state",
+  "type": "module",
   "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
   "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
     "./react": {
       "import": "./dist/core/React/index.js",
+      "default": "./dist/core/React/index.js",
       "types": "./dist/core/React/index.d.ts"
     },
     "./vue": {
       "import": "./dist/core/Vue/index.js",
+      "default": "./dist/core/Vue/index.js",
       "types": "./dist/core/Vue/index.d.ts"
     },
     "./angular": {
       "import": "./dist/core/Angular/index.js",
+      "default": "./dist/core/Angular/index.js",
       "types": "./dist/core/Angular/index.d.ts"
     },
     "./svelte": {
       "import": "./dist/core/Svelte/index.js",
+      "default": "./dist/core/Svelte/index.js",
       "types": "./dist/core/Svelte/index.d.ts"
     },
     "./solid": {
       "import": "./dist/core/Solid/index.js",
+      "default": "./dist/core/Solid/index.js",
       "types": "./dist/core/Solid/index.d.ts"
     },
     "./middleware": {
       "import": "./dist/middleware/index.js",
+      "default": "./dist/middleware/index.js",
       "types": "./dist/middleware/index.d.ts"
     },
     "./utils": {
       "import": "./dist/utils/index.js",
+      "default": "./dist/utils/index.js",
       "types": "./dist/utils/index.d.ts"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"
