@@ -32,6 +32,7 @@ test('useRegister binds text input changes through DOM events', () => {
 
   fireEvent.change(screen.getByLabelText('email'), { target: { value: 'ada@example.com' } });
 
+  expect((screen.getByLabelText('email') as HTMLInputElement).type).toBe('text');
   expect(form.getValue('email')).toBe('ada@example.com');
   expect(form.getFieldState('email').dirty).toBe(true);
   expect(form.getFieldState('email').modified).toBe(true);
@@ -79,13 +80,13 @@ test('useRegister returns map-friendly bindings for an options array', () => {
 
   function Example() {
     const { useRegister } = useForm(form);
-    const [bio, agreed, red, blue, role] = useRegister([
-      { name: 'bio', type: 'textarea' },
+    const [bio] = useRegister<HTMLTextAreaElement>([{ name: 'bio' }]);
+    const [agreed, red, blue] = useRegister([
       { name: 'agreed', type: 'checkbox' },
       { name: 'color', type: 'radio', value: 'red' },
       { name: 'color', type: 'radio', value: 'blue' },
-      { name: 'role', type: 'select' },
     ]);
+    const role = useRegister<HTMLSelectElement>({ name: 'role' });
 
     return (
       <>
@@ -136,6 +137,7 @@ test('useRegister returns a binding array for rest arguments', () => {
 
   render(<Example />);
 
+  expect((screen.getByLabelText('red') as HTMLInputElement).type).toBe('radio');
   fireEvent.click(screen.getByLabelText('blue'));
 
   expect(form.getValue('color')).toBe('blue');
@@ -150,7 +152,7 @@ test('multiple select receives array value from restored container values on fir
 
   function Example() {
     const { useField } = useForm(form);
-    const topics = useField({ name: 'topics', type: 'select' });
+    const topics = useField<HTMLSelectElement>({ name: 'topics' });
 
     return (
       <>

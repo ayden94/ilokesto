@@ -1,22 +1,22 @@
 import { useMemo } from 'react';
 import type { Form } from '../core/index';
-import type { RegisterOptions, RegisterProps, RegisterPropsFor, RegisterPropsList } from './types';
+import type { RegisterElement, RegisterOptions, RegisterPropsForElement, RegisterPropsList } from './types';
 import { getFieldState } from './FieldValue';
 import { createRegisterProps, fieldPathToDomName } from './RegisterBinding';
 import { useFieldSchemaRegistrations } from './useFieldSchemaRegistration';
 import { useFormSnapshot } from './useFormSnapshot';
 
-export function useRegisterWithForm<TValues, TOptions extends RegisterOptions>(form: Form<TValues>, options: TOptions): RegisterPropsFor<TOptions>;
-export function useRegisterWithForm<TValues, TOptions extends readonly RegisterOptions[]>(form: Form<TValues>, options: TOptions): RegisterPropsList<TOptions>;
-export function useRegisterWithForm<TValues, TOptions extends readonly RegisterOptions[]>(form: Form<TValues>, ...options: TOptions): RegisterPropsList<TOptions>;
-export function useRegisterWithForm<TValues>(form: Form<TValues>, first: RegisterOptions | readonly RegisterOptions[], ...rest: readonly RegisterOptions[]): RegisterProps | RegisterProps[];
+export function useRegisterWithForm<TValues, TElement extends RegisterElement = HTMLInputElement>(form: Form<TValues>, options: RegisterOptions): RegisterPropsForElement<TElement>;
+export function useRegisterWithForm<TValues, TElement extends RegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(form: Form<TValues>, options: TOptions): RegisterPropsList<TElement, TOptions>;
+export function useRegisterWithForm<TValues, TElement extends RegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(form: Form<TValues>, ...options: TOptions): RegisterPropsList<TElement, TOptions>;
+export function useRegisterWithForm<TValues>(form: Form<TValues>, first: RegisterOptions | readonly RegisterOptions[], ...rest: readonly RegisterOptions[]): RegisterPropsForElement<RegisterElement> | RegisterPropsForElement<RegisterElement>[];
 
 /** 단일 또는 여러 field의 DOM binding props를 만든다. */
 export function useRegisterWithForm<TValues>(
   form: Form<TValues>,
   first: RegisterOptions | readonly RegisterOptions[],
   ...rest: readonly RegisterOptions[]
-): RegisterProps | RegisterProps[] {
+): RegisterPropsForElement<RegisterElement> | RegisterPropsForElement<RegisterElement>[] {
   const shouldReturnList = Array.isArray(first) || rest.length > 0;
   const options = normalizeRegisterOptions(first, rest);
 

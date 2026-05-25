@@ -8,6 +8,7 @@ import type {
 import type { FieldPathInput, Form, FormError, FormState, StandardSchemaV1 } from '../core/index';
 
 type InputValue = InputHTMLAttributes<HTMLInputElement>['value'];
+type InputType = InputHTMLAttributes<HTMLInputElement>['type'];
 type SelectValue = SelectHTMLAttributes<HTMLSelectElement>['value'];
 type TextareaValue = TextareaHTMLAttributes<HTMLTextAreaElement>['value'];
 
@@ -21,16 +22,16 @@ export type FieldHookOptions = {
   schemaOptions?: StandardSchemaV1.Options;
 };
 
-/** DOM control 종류별 binding 보정 옵션이다. */
+/** DOM binding 보정 옵션이다. `type`은 input type으로만 쓰며 기본값은 `text`다. */
 export type RegisterOptions = FieldHookOptions & {
+  /** input type이다. checkbox/radio는 checked 처리에 사용하고, 생략 시 text로 반환한다. */
+  type?: InputType;
   /** radio/checkbox처럼 DOM value와 form value를 구분해야 할 때 사용한다. */
   value?: unknown;
   /** checkbox가 check될 때 쓸 값이다. 생략하면 boolean checkbox로 동작한다. */
   checkedValue?: unknown;
   /** checkbox가 uncheck될 때 쓸 값이다. 생략하면 false로 동작한다. */
   uncheckedValue?: unknown;
-  /** DOM type을 명시해야 하는 radio/checkbox/custom control에서 사용한다. */
-  type?: 'checkbox' | 'radio' | 'select' | 'textarea' | 'custom' | (string & {});
 };
 
 type BindingHandlers<TElement extends HTMLElement> = {
@@ -39,46 +40,48 @@ type BindingHandlers<TElement extends HTMLElement> = {
   onFocus: FocusEventHandler<TElement>;
 };
 
-/** `<input {...useRegister(...)}/>`에 바로 spread할 수 있는 binding props다. */
+/** `<input {...useRegister(...)}/>`에 바로 spread할 수 있는 기본 binding props다. */
 export type InputRegisterProps = BindingHandlers<HTMLInputElement> & {
   name: string;
+  type: InputType;
   value?: InputValue;
   checked?: boolean;
 };
 
-/** `<select {...useRegister({ type: 'select', ... })}/>`에 바로 spread할 수 있는 binding props다. */
+/** `useRegister<HTMLSelectElement>(...)`로 좁혀 `<select>`에 spread할 수 있는 binding props다. */
 export type SelectRegisterProps = BindingHandlers<HTMLSelectElement> & {
   name: string;
   value?: SelectValue;
 };
 
-/** `<textarea {...useRegister({ type: 'textarea', ... })}/>`에 바로 spread할 수 있는 binding props다. */
+/** `useRegister<HTMLTextAreaElement>(...)`로 좁혀 `<textarea>`에 spread할 수 있는 binding props다. */
 export type TextareaRegisterProps = BindingHandlers<HTMLTextAreaElement> & {
   name: string;
   value?: TextareaValue;
 };
 
 /** DOM-compatible custom component용 escape-hatch binding props다. */
-export type CustomRegisterProps = BindingHandlers<HTMLElement> & {
+export type CustomRegisterProps<TElement extends HTMLElement = HTMLElement> = BindingHandlers<TElement> & {
   name: string;
   value?: unknown;
   checked?: boolean;
 };
 
-/** DOM-event-compatible field binding props다. */
-export type RegisterProps = InputRegisterProps | SelectRegisterProps | TextareaRegisterProps | CustomRegisterProps;
+export type RegisterElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | HTMLElement;
 
-/** register options의 control kind에 맞춘 binding props다. */
-export type RegisterPropsFor<TOptions extends RegisterOptions> = TOptions extends { type: 'select' }
+/** element generic에 맞춘 DOM-event-compatible field binding props다. */
+export type RegisterPropsForElement<TElement extends RegisterElement> = TElement extends HTMLSelectElement
   ? SelectRegisterProps
-  : TOptions extends { type: 'textarea' }
+  : TElement extends HTMLTextAreaElement
     ? TextareaRegisterProps
-    : TOptions extends { type: 'custom' }
-      ? CustomRegisterProps
-      : InputRegisterProps;
+    : TElement extends HTMLInputElement
+      ? InputRegisterProps
+      : CustomRegisterProps<TElement>;
+
+export type RegisterProps = RegisterPropsForElement<RegisterElement>;
 
 /** 한 field의 binding, value, meta, setter를 함께 제공한다. */
-export type UseFieldReturn<TProps extends RegisterProps = RegisterProps> = {
+export type UseFieldReturn<TProps extends RegisterProps = InputRegisterProps> = {
   props: TProps;
   value: unknown;
   setValue: (value: unknown) => void;
@@ -99,16 +102,16 @@ export type UseFormStateReturn<TValues> = {
   submitCount: number;
 };
 
-export type RegisterPropsList<TOptions extends readonly RegisterOptions[]> = {
-  [Index in keyof TOptions]: TOptions[Index] extends RegisterOptions ? RegisterPropsFor<TOptions[Index]> : never;
+export type RegisterPropsList<TElement extends RegisterElement, TOptions extends readonly RegisterOptions[]> = {
+  [Index in keyof TOptions]: TOptions[Index] extends RegisterOptions ? RegisterPropsForElement<TElement> : never;
 };
 
 /** `useForm(form)`이 반환하는 form-bound hook 모음이다. */
 export type ReactForm<TValues> = {
   form: Form<TValues>;
-  useRegister<TOptions extends RegisterOptions>(options: TOptions): RegisterPropsFor<TOptions>;
-  useRegister<TOptions extends readonly RegisterOptions[]>(options: TOptions): RegisterPropsList<TOptions>;
-  useRegister<TOptions extends readonly RegisterOptions[]>(...options: TOptions): RegisterPropsList<TOptions>;
-  useField<TOptions extends RegisterOptions>(options: TOptions): UseFieldReturn<RegisterPropsFor<TOptions>>;
+  useRegister<TElement extends RegisterElement = HTMLInputElement>(options: RegisterOptions): RegisterPropsForElement<TElement>;
+  useRegister<TElement extends RegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(options: TOptions): RegisterPropsList<TElement, TOptions>;
+  useRegister<TElement extends RegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(...options: TOptions): RegisterPropsList<TElement, TOptions>;
+  useField<TElement extends RegisterElement = HTMLInputElement>(options: RegisterOptions): UseFieldReturn<RegisterPropsForElement<TElement>>;
   useFormState(): UseFormStateReturn<TValues>;
 };

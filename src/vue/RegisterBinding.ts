@@ -1,6 +1,5 @@
-import type { ChangeEvent } from 'react';
 import type { FieldPathInput, FieldState, Form } from '../core/index';
-import type { RegisterElement, RegisterOptions, RegisterPropsForElement } from './types';
+import type { RegisterOptions, VueRegisterElement, VueRegisterPropsForElement } from './types';
 
 type FieldEventTarget = HTMLElement & {
   type?: string;
@@ -15,26 +14,34 @@ const SKIP_CHANGE = Symbol('skip change');
 type ChangeValue = unknown | typeof SKIP_CHANGE;
 type DomValue = string | number | readonly string[];
 
-/** binding props를 생성한다. 이벤트 handler는 DOM event에서 값을 읽어 core form에 전달한다. */
-export function createRegisterProps<TValues, TElement extends RegisterElement>(
+/** Vue v-bind용 binding props를 생성한다. */
+export function createRegisterProps<TValues, TElement extends VueRegisterElement>(
   form: Form<TValues>,
   options: RegisterOptions,
-  field: Readonly<FieldState>,
+  getField: () => Readonly<FieldState>,
   domName: string,
-): RegisterPropsForElement<TElement> {
+): VueRegisterPropsForElement<TElement> {
   const inputType = options.type ?? 'text';
-  const optionValue = getOptionValue(options);
   const props = {
     name: domName,
     type: inputType,
-    value: getBoundValue(inputType, field.value, optionValue),
-    checked: getBoundChecked(inputType, field.value, optionValue),
-    onChange: (event: ChangeEvent<HTMLElement>) => {
-      const nextValue = getEventValue(event.currentTarget as FieldEventTarget, options, field.value);
+    get value() {
+      return getBoundValue(inputType, getField().value, getOptionValue(options));
+    },
+    get checked() {
+      return getBoundChecked(inputType, getField().value, getOptionValue(options));
+    },
+    onInput: (event: Event & { currentTarget: HTMLElement }) => {
+      const target = event.currentTarget as FieldEventTarget;
 
-      if (nextValue !== SKIP_CHANGE) {
-        form.setValue(options.name, nextValue, { source: 'user' });
+      if (shouldIgnoreInputEvent(target, options)) {
+        return;
       }
+
+      commitEventValue(form, options, getField().value, target);
+    },
+    onChange: (event: Event & { currentTarget: HTMLElement }) => {
+      commitEventValue(form, options, getField().value, event.currentTarget as FieldEventTarget);
     },
     onBlur: () => {
       void form.blur(options.name);
@@ -44,7 +51,7 @@ export function createRegisterProps<TValues, TElement extends RegisterElement>(
     },
   };
 
-  return props as unknown as RegisterPropsForElement<TElement>;
+  return props as unknown as VueRegisterPropsForElement<TElement>;
 }
 
 /** core path를 DOM name 문자열로 표현한다. */
@@ -52,12 +59,24 @@ export function fieldPathToDomName(name: FieldPathInput): string {
   return typeof name === 'string' ? name : JSON.stringify(name);
 }
 
-/** radio/checkbox의 DOM option value를 결정한다. */
+function commitEventValue<TValues>(form: Form<TValues>, options: RegisterOptions, currentValue: unknown, target: FieldEventTarget): void {
+  const nextValue = getEventValue(target, options, currentValue);
+
+  if (nextValue !== SKIP_CHANGE) {
+    form.setValue(options.name, nextValue, { source: 'user' });
+  }
+}
+
+function shouldIgnoreInputEvent(target: FieldEventTarget, options: RegisterOptions): boolean {
+  const type = options.type ?? target.type;
+
+  return type === 'checkbox' || type === 'radio' || Boolean(target.multiple);
+}
+
 function getOptionValue(options: RegisterOptions): unknown {
   return options.value ?? options.checkedValue;
 }
 
-/** React controlled component에 넘길 value prop을 계산한다. */
 function getBoundValue(kind: string | undefined, fieldValue: unknown, optionValue: unknown): DomValue | undefined {
   if (kind === 'checkbox') {
     return toDomValue(optionValue);
@@ -70,7 +89,6 @@ function getBoundValue(kind: string | undefined, fieldValue: unknown, optionValu
   return toDomValue(fieldValue) ?? '';
 }
 
-/** React controlled component에 넘길 checked prop을 계산한다. */
 function getBoundChecked(kind: string | undefined, fieldValue: unknown, optionValue: unknown): boolean | undefined {
   if (kind === 'checkbox') {
     if (optionValue !== undefined && Array.isArray(fieldValue)) {
@@ -91,7 +109,6 @@ function getBoundChecked(kind: string | undefined, fieldValue: unknown, optionVa
   return undefined;
 }
 
-/** DOM event target에서 form에 쓸 값을 추출한다. */
 function getEventValue(target: FieldEventTarget, options: RegisterOptions, currentValue: unknown): ChangeValue {
   const type = options.type ?? target.type;
 
@@ -114,7 +131,6 @@ function getEventValue(target: FieldEventTarget, options: RegisterOptions, curre
   return target.value;
 }
 
-/** checkbox는 boolean, single option, option array를 모두 지원한다. */
 function getCheckboxEventValue(target: FieldEventTarget, options: RegisterOptions, currentValue: unknown): unknown {
   if (options.checkedValue === undefined && options.value === undefined) {
     return Boolean(target.checked);

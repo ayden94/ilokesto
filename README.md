@@ -17,6 +17,7 @@ The package is designed around five ideas:
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [React adapter](#react-adapter)
+- [Vue adapter](#vue-adapter)
 - [Core concepts](#core-concepts)
 - [API guide](#api-guide)
 - [Runtime flows](#runtime-flows)
@@ -106,7 +107,7 @@ function LoginForm() {
 
   const email = useField({ name: 'email', schema: emailSchema });
   const remember = useRegister({ name: 'remember', type: 'checkbox' });
-  const [role] = useRegister([{ name: 'role', type: 'select' }]);
+  const [role] = useRegister<HTMLSelectElement>([{ name: 'role' }]);
   const state = useFormState();
 
   return (
@@ -136,8 +137,8 @@ The React adapter has three first-version hooks. `useRegister` is overloaded for
 
 | Hook | Purpose |
 | --- | --- |
-| `useRegister(options)` | Returns DOM-event-compatible binding props for one field: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
-| `useRegister(options[])` | Returns multiple binding props in input order for map-friendly rendering. |
+| `useRegister(options)` | Returns input binding props for one field: `name`, `type`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. Default input `type` is `text`. |
+| `useRegister<TElement>(options[])` | Returns multiple binding props in input order for map-friendly rendering. Use `HTMLSelectElement` or `HTMLTextAreaElement` as the generic when spreading into select/textarea. |
 | `useRegister(optionA, optionB)` | Rest-argument form for multiple bindings; internally handled like an options array. |
 | `useField(options)` | Returns `{ props, value, setValue, errors, dirty, touched }` for one field. It intentionally does not expose `field.register`. |
 | `useFormState()` | Returns whole-form aggregate state such as `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, and `submitCount`. |
@@ -152,6 +153,72 @@ const email = useField({
 ```
 
 The event model is DOM-event centered. Custom components can use `useRegister` when they pass through DOM-compatible `value`, `checked`, `onChange`, `onBlur`, and `onFocus` props.
+
+
+## Vue adapter
+
+Vue bindings are exposed through the `./vue` subpath. They use the same `useForm(form)` shape as the React adapter, but return Vue-friendly `v-bind` props with `onInput`, `onChange`, `onBlur`, and `onFocus` handlers.
+
+```vue
+<script setup lang="ts">
+import { CreateForm } from '@ilokesto/form';
+import { useForm } from '@ilokesto/form/vue';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    remember: false,
+    role: 'user',
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+const {
+  useRegister,
+  useField,
+  useFormState,
+} = useForm(form);
+
+const email = useField({ name: 'email', schema: emailSchema });
+const remember = useRegister({ name: 'remember', type: 'checkbox' });
+const [role] = useRegister<HTMLSelectElement>([{ name: 'role' }]);
+const state = useFormState();
+</script>
+
+<template>
+  <form>
+    <input v-bind="email.props" />
+    <p v-for="error in email.errors" :key="error.message">
+      {{ error.message }}
+    </p>
+
+    <label>
+      <input type="checkbox" v-bind="remember" />
+      Remember me
+    </label>
+
+    <select v-bind="role">
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button :disabled="!state.isDirty || !state.isValid">
+      Submit
+    </button>
+  </form>
+</template>
+```
+
+The Vue adapter exposes the same three concepts:
+
+| Composable | Purpose |
+| --- | --- |
+| `useRegister(options)` | Returns one input-oriented `v-bind` binding object. It includes `type` and defaults to `text`; text inputs update on `input`; checkbox/radio update on `change`. Use a generic for select/textarea binding types. |
+| `useRegister(options[])` / `useRegister(optionA, optionB)` | Returns multiple binding objects for map-friendly rendering. |
+| `useField(options)` | Returns `{ props, value, setValue, errors, dirty, touched }` with getter-backed reactive reads. |
+| `useFormState()` | Returns form-wide aggregate getters such as `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, and `submitCount`. |
+
+Field-local schemas work the same way as React and are cleaned up with the current Vue effect scope.
 
 ## Core concepts
 
@@ -688,6 +755,15 @@ src/index.ts
      -> useFieldSchemaRegistration.ts
      -> RegisterBinding.ts
      -> types.ts
+  -> src/vue/index.ts
+     -> useForm.ts
+     -> useRegister.ts
+     -> useField.ts
+     -> useFormState.ts
+     -> useFormSnapshot.ts
+     -> useFieldSchemaRegistration.ts
+     -> RegisterBinding.ts
+     -> types.ts
 ```
 
 Responsibility summary:
@@ -701,6 +777,7 @@ Responsibility summary:
 | `validation/` | Standard Schema execution and error normalization. |
 | `array/` | Array item key management, mutation planning, and child field metadata rebasing. |
 | `react/` | React hook adapter around the public `Form` interface. |
+| `vue/` | Vue composable adapter around the public `Form` interface. |
 | `types.ts` | Public and internal TypeScript contracts. |
 
 ## Core walkthrough
@@ -1106,6 +1183,7 @@ The existing tests cover:
 2. Standard Schema validation on blur, manual trigger, and submit.
 3. Array value/key/metadata rebasing when moving and removing items.
 4. React adapter bindings for text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, and field-local schema precedence.
+5. Vue adapter bindings for text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, and field-local schema cleanup.
 
 ### Suggested future documentation/tests
 

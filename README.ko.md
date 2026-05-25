@@ -17,6 +17,7 @@
 - [Installation](#installation)
 - [Quick start](#quick-start)
 - [React adapter](#react-adapter)
+- [Vue adapter](#vue-adapter)
 - [Core concepts](#core-concepts)
 - [API guide](#api-guide)
 - [Runtime flows](#runtime-flows)
@@ -106,7 +107,7 @@ function LoginForm() {
 
   const email = useField({ name: 'email', schema: emailSchema });
   const remember = useRegister({ name: 'remember', type: 'checkbox' });
-  const [role] = useRegister([{ name: 'role', type: 'select' }]);
+  const [role] = useRegister<HTMLSelectElement>([{ name: 'role' }]);
   const state = useFormState();
 
   return (
@@ -136,8 +137,8 @@ React adapter의 첫 버전 hook은 세 가지다. `useRegister`는 단일, 배�
 
 | Hook | Purpose |
 | --- | --- |
-| `useRegister(options)` | 단일 field의 DOM-event-compatible binding props를 반환한다: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
-| `useRegister(options[])` | map-friendly rendering을 위해 여러 binding props를 입력 순서대로 반환한다. |
+| `useRegister(options)` | 단일 field의 input binding props를 반환한다: `name`, `type`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. 기본 input `type`은 `text`다. |
+| `useRegister<TElement>(options[])` | map-friendly rendering을 위해 여러 binding props를 입력 순서대로 반환한다. select/textarea에 spread할 때는 `HTMLSelectElement` 또는 `HTMLTextAreaElement` generic으로 좁힌다. |
 | `useRegister(optionA, optionB)` | 여러 binding을 rest arguments로 받는다. 내부적으로 options array처럼 처리한다. |
 | `useField(options)` | 한 field에 대해 `{ props, value, setValue, errors, dirty, touched }`를 반환한다. `field.register`는 의도적으로 노출하지 않는다. |
 | `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate state를 반환한다. |
@@ -152,6 +153,72 @@ const email = useField({
 ```
 
 Event model은 DOM event 중심이다. Custom component도 DOM-compatible `value`, `checked`, `onChange`, `onBlur`, `onFocus` props를 그대로 전달한다면 `useRegister`를 사용할 수 있다.
+
+
+## Vue adapter
+
+Vue binding은 `./vue` subpath로 노출된다. React adapter와 같은 `useForm(form)` 형태를 쓰지만, Vue template의 `v-bind`에 바로 전달할 수 있도록 `onInput`, `onChange`, `onBlur`, `onFocus` handler를 가진 props를 반환한다.
+
+```vue
+<script setup lang="ts">
+import { CreateForm } from '@ilokesto/form';
+import { useForm } from '@ilokesto/form/vue';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    remember: false,
+    role: 'user',
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+const {
+  useRegister,
+  useField,
+  useFormState,
+} = useForm(form);
+
+const email = useField({ name: 'email', schema: emailSchema });
+const remember = useRegister({ name: 'remember', type: 'checkbox' });
+const [role] = useRegister<HTMLSelectElement>([{ name: 'role' }]);
+const state = useFormState();
+</script>
+
+<template>
+  <form>
+    <input v-bind="email.props" />
+    <p v-for="error in email.errors" :key="error.message">
+      {{ error.message }}
+    </p>
+
+    <label>
+      <input type="checkbox" v-bind="remember" />
+      Remember me
+    </label>
+
+    <select v-bind="role">
+      <option value="user">User</option>
+      <option value="admin">Admin</option>
+    </select>
+
+    <button :disabled="!state.isDirty || !state.isValid">
+      Submit
+    </button>
+  </form>
+</template>
+```
+
+Vue adapter도 같은 세 가지 개념을 노출한다.
+
+| Composable | Purpose |
+| --- | --- |
+| `useRegister(options)` | 하나의 input 중심 `v-bind` binding object를 반환한다. `type`이 포함되고 기본값은 `text`다. Text input은 `input` event에서, checkbox/radio는 `change` event에서 값을 갱신한다. select/textarea 타입은 generic으로 좁힌다. |
+| `useRegister(options[])` / `useRegister(optionA, optionB)` | map-friendly rendering을 위해 여러 binding object를 반환한다. |
+| `useField(options)` | getter 기반 reactive read를 가진 `{ props, value, setValue, errors, dirty, touched }`를 반환한다. |
+| `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate getter를 반환한다. |
+
+Field-local schema는 React와 같은 방식으로 동작하고 현재 Vue effect scope가 정리될 때 함께 cleanup된다.
 
 ## Core concepts
 
@@ -687,6 +754,15 @@ src/index.ts
      -> useFieldSchemaRegistration.ts
      -> RegisterBinding.ts
      -> types.ts
+  -> src/vue/index.ts
+     -> useForm.ts
+     -> useRegister.ts
+     -> useField.ts
+     -> useFormState.ts
+     -> useFormSnapshot.ts
+     -> useFieldSchemaRegistration.ts
+     -> RegisterBinding.ts
+     -> types.ts
 ```
 
 Responsibility summary:
@@ -700,6 +776,7 @@ Responsibility summary:
 | `validation/` | Standard Schema execution and error normalization. |
 | `array/` | Array item key management, mutation planning, and child field metadata rebasing. |
 | `react/` | Public `Form` interface를 감싸는 React hook adapter. |
+| `vue/` | Public `Form` interface를 감싸는 Vue composable adapter. |
 | `types.ts` | Public and internal TypeScript contracts. |
 
 ## Core walkthrough
@@ -1105,6 +1182,7 @@ Existing tests는 다음을 cover한다.
 2. Blur, manual trigger, submit에서의 Standard Schema validation.
 3. Move와 remove 시 array value/key/metadata rebasing.
 4. React adapter의 text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, field-local schema precedence.
+5. Vue adapter의 text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, field-local schema cleanup.
 
 ### Suggested future documentation/tests
 
