@@ -2,9 +2,7 @@
 export { CreateForm } from './form/index';
 export type {
   CreateFormOptions,
-  FieldPath,
   FieldPathInput,
-  FieldPathSegment,
   FieldState,
   Form,
   FormArray,

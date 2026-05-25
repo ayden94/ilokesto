@@ -608,7 +608,7 @@ This file re-exports `CreateForm` and public types from `types.ts`. It is the bo
 
 `types.ts` defines the core vocabulary:
 
-- path types: `FieldPathSegment`, `FieldPath`, `FieldPathInput`, `PathKey`
+- public path type: `FieldPathInput`; internal path concepts: `FieldPathSegment`, `FieldPath`, `PathKey`
 - validation types: `FormError`, `ValidationTrigger`, `StandardSchemaV1`
 - state types: `FieldState`, `ArrayKeys`, `FormState`
 - public API types: `CreateFormOptions`, `Form`, `FormArray`, `SetValueOptions`

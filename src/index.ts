@@ -4,9 +4,7 @@ export {
 } from './core/index';
 export type {
   CreateFormOptions,
-  FieldPath,
   FieldPathInput,
-  FieldPathSegment,
   FormArray,
   FieldState,
   Form,

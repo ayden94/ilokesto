@@ -608,7 +608,7 @@ export type { Form, FormState, FieldState } from './core/index';
 
 `types.ts`는 core vocabulary를 정의한다.
 
-- path types: `FieldPathSegment`, `FieldPath`, `FieldPathInput`, `PathKey`
+- public path type: `FieldPathInput`; internal path concepts: `FieldPathSegment`, `FieldPath`, `PathKey`
 - validation types: `FormError`, `ValidationTrigger`, `StandardSchemaV1`
 - state types: `FieldState`, `ArrayKeys`, `FormState`
 - public API types: `CreateFormOptions`, `Form`, `FormArray`, `SetValueOptions`
