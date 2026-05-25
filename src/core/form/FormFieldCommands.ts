@@ -1,7 +1,7 @@
-import { FormPath } from '../path/index.js';
-import type { FormStateStore } from '../state/index.js';
-import type { ValidationEngine } from '../validation/index.js';
-import type { FieldPathInput, FormError, PathKey, SetValueOptions } from '../types.js';
+import { FormPath } from '../path/index';
+import type { FormStateStore } from '../state/index';
+import type { ValidationEngine } from '../validation/index';
+import type { FieldPathInput, FormError, PathKey, SetValueOptions } from '../types';
 
 /**
  * 필드 단위 명령을 모아 둔 서비스 클래스다.

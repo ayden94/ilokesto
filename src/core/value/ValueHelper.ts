@@ -1,5 +1,5 @@
-import { FormPath } from '../path/index.js';
-import type { FieldPath, FormState, PathKey } from '../types.js';
+import { FormPath } from '../path/index';
+import type { FieldPath, FormState, PathKey } from '../types';
 
 /**
  * nested values를 읽고 쓰고 복원하는 helper다.

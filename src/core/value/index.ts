@@ -1,1 +1,1 @@
-export { ValueHelper } from './ValueHelper.js';
+export { ValueHelper } from './ValueHelper';

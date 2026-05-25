@@ -1,1 +1,1 @@
-export { ValidationEngine } from './ValidationEngine.js';
+export { ValidationEngine } from './ValidationEngine';

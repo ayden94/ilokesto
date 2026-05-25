@@ -1,4 +1,4 @@
-import type { FieldState } from '../types.js';
+import type { FieldState } from '../types';
 
 /**
  * FieldState 생성 규칙을 한 곳에 모아 둔다.

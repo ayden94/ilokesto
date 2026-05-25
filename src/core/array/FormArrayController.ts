@@ -1,9 +1,9 @@
-import { ArrayKeyGenerator } from './ArrayKeyGenerator.js';
-import { FormArrayMutationPlanner, type FormArrayMutation } from './FormArrayMutationPlanner.js';
-import { FormPath } from '../path/index.js';
-import { FormStateStore } from '../state/index.js';
-import { FormArrayRebaser, type IndexMapper } from './FormArrayRebaser.js';
-import type { FieldPath, FormArray } from '../types.js';
+import { ArrayKeyGenerator } from './ArrayKeyGenerator';
+import { FormArrayMutationPlanner, type FormArrayMutation } from './FormArrayMutationPlanner';
+import { FormPath } from '../path/index';
+import { FormStateStore } from '../state/index';
+import { FormArrayRebaser, type IndexMapper } from './FormArrayRebaser';
+import type { FieldPath, FormArray } from '../types';
 
 /**
  * 한 배열 field에 대한 public 명령 객체다.

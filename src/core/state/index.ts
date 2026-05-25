@@ -1,1 +1,1 @@
-export { FormStateStore } from './FormStateStore.js';
+export { FormStateStore } from './FormStateStore';

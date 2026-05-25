@@ -1,1 +1,1 @@
-export { FormArrayFactory } from './FormArrayFactory.js';
+export { FormArrayFactory } from './FormArrayFactory';

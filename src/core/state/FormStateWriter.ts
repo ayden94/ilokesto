@@ -1,11 +1,11 @@
 import type { Store } from '@ilokesto/store';
 import { produce } from 'immer';
 
-import { FieldStateFactory } from './FieldStateFactory.js';
-import { FormStateInitializer } from './FormStateInitializer.js';
-import { FormPath } from '../path/index.js';
-import { ValueHelper } from '../value/index.js';
-import type { FieldPath, FormError, FormState, PathKey, SetValueOptions } from '../types.js';
+import { FieldStateFactory } from './FieldStateFactory';
+import { FormStateInitializer } from './FormStateInitializer';
+import { FormPath } from '../path/index';
+import { ValueHelper } from '../value/index';
+import type { FieldPath, FormError, FormState, PathKey, SetValueOptions } from '../types';
 
 type WritableFormStore<TValues> = Pick<Store<FormState<TValues>>, 'getState' | 'setState'>;
 

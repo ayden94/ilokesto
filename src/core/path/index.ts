@@ -1,1 +1,1 @@
-export { FormPath } from './FormPath.js';
+export { FormPath } from './FormPath';

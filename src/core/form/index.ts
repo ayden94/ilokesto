@@ -1,1 +1,1 @@
-export { CreateForm } from './CreateForm.js';
+export { CreateForm } from './CreateForm';

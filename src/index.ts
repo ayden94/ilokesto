@@ -1,7 +1,7 @@
 // package root: framework-agnostic core만 노출한다.
 export {
   CreateForm,
-} from './core/index.js';
+} from './core/index';
 export type {
   CreateFormOptions,
   FieldPath,
@@ -15,4 +15,4 @@ export type {
   SetValueOptions,
   StandardSchemaV1,
   ValidationTrigger,
-} from './core/index.js';
+} from './core/index';

@@ -1,6 +1,6 @@
-import type { FormStateStore } from '../state/index.js';
-import type { ValidationEngine } from '../validation/index.js';
-import type { FieldState, PathKey } from '../types.js';
+import type { FormStateStore } from '../state/index';
+import type { ValidationEngine } from '../validation/index';
+import type { FieldState, PathKey } from '../types';
 
 /**
  * submit 전용 흐름을 담당한다.

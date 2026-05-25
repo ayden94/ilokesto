@@ -1,7 +1,7 @@
-import { ArrayKeyGenerator } from './ArrayKeyGenerator.js';
-import { FormArrayController } from './FormArrayController.js';
-import { FormStateStore } from '../state/index.js';
-import type { FieldPath, FormArray } from '../types.js';
+import { ArrayKeyGenerator } from './ArrayKeyGenerator';
+import { FormArrayController } from './FormArrayController';
+import { FormStateStore } from '../state/index';
+import type { FieldPath, FormArray } from '../types';
 
 /**
  * 배열 field controller를 생성하는 factory다.

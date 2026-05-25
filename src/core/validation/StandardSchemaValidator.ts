@@ -1,5 +1,5 @@
-import { FormPath } from '../path/index.js';
-import type { FieldPath, FieldPathSegment, FormError, PathKey, StandardSchemaV1 } from '../types.js';
+import { FormPath } from '../path/index';
+import type { FieldPath, FieldPathSegment, FormError, PathKey, StandardSchemaV1 } from '../types';
 
 /**
  * Standard Schema v1 compatible schema를 core validation 결과로 변환한다.

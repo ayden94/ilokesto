@@ -1,4 +1,4 @@
-import type { FieldPath, FieldPathInput, PathKey } from '../types.js';
+import type { FieldPath, FieldPathInput, PathKey } from '../types';
 
 /**
  * public path input과 내부 PathKey 사이의 변환 규칙을 담당한다.

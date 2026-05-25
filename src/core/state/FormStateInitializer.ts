@@ -1,6 +1,6 @@
-import { FieldStateFactory } from './FieldStateFactory.js';
-import { FormPath } from '../path/index.js';
-import type { ArrayKeys, FieldPath, FieldState, FormState } from '../types.js';
+import { FieldStateFactory } from './FieldStateFactory';
+import { FormPath } from '../path/index';
+import type { ArrayKeys, FieldPath, FieldState, FormState } from '../types';
 
 /**
  * initialValues를 내부 FormState로 변환한다.

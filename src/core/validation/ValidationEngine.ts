@@ -1,6 +1,6 @@
-import { StandardSchemaValidator, type StandardSchemaValidationResult } from './StandardSchemaValidator.js';
-import type { FormStateStore } from '../state/index.js';
-import type { CreateFormOptions, FormError, PathKey, ValidationTrigger } from '../types.js';
+import { StandardSchemaValidator, type StandardSchemaValidationResult } from './StandardSchemaValidator';
+import type { FormStateStore } from '../state/index';
+import type { CreateFormOptions, FormError, PathKey, ValidationTrigger } from '../types';
 
 /**
  * Standard Schema validation 실행을 담당하는 엔진이다.

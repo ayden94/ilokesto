@@ -1,4 +1,4 @@
-import { ArrayItemReorder, type IndexMapper } from './ArrayItemReorder.js';
+import { ArrayItemReorder, type IndexMapper } from './ArrayItemReorder';
 
 /**
  * 배열 조작 결과를 표현한다.

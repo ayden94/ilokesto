@@ -1,7 +1,7 @@
-import { FieldStateFactory } from './FieldStateFactory.js';
-import { FormPath } from '../path/index.js';
-import { ValueHelper } from '../value/index.js';
-import type { FieldPath, FieldPathInput, FieldState, FormState, PathKey } from '../types.js';
+import { FieldStateFactory } from './FieldStateFactory';
+import { FormPath } from '../path/index';
+import { ValueHelper } from '../value/index';
+import type { FieldPath, FieldPathInput, FieldState, FormState, PathKey } from '../types';
 
 /**
  * FormState의 읽기 전용 파생값을 담당한다.

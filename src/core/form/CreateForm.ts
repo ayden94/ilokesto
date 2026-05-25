@@ -1,10 +1,10 @@
-import { FormArrayFactory } from '../array/index.js';
-import { FormFieldCommands } from './FormFieldCommands.js';
-import { FormSubmitter } from './FormSubmitter.js';
-import { FormStateStore } from '../state/index.js';
-import { FormPath } from '../path/index.js';
-import { ValidationEngine } from '../validation/index.js';
-import type { CreateFormOptions, FieldPathInput, FieldState, Form, FormArray, FormError, FormState, PathKey, SetValueOptions } from '../types.js';
+import { FormArrayFactory } from '../array/index';
+import { FormFieldCommands } from './FormFieldCommands';
+import { FormSubmitter } from './FormSubmitter';
+import { FormStateStore } from '../state/index';
+import { FormPath } from '../path/index';
+import { ValidationEngine } from '../validation/index';
+import type { CreateFormOptions, FieldPathInput, FieldState, Form, FormArray, FormError, FormState, PathKey, SetValueOptions } from '../types';
 
 /**
  * 프레임워크와 무관한 form의 최상위 진입점이다.

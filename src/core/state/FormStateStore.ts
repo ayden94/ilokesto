@@ -1,10 +1,10 @@
 import { Store } from '@ilokesto/store';
 
-import { FieldStateFactory } from './FieldStateFactory.js';
-import { FormStateReader } from './FormStateReader.js';
-import { FormStateWriter } from './FormStateWriter.js';
-import { FormStateInitializer } from './FormStateInitializer.js';
-import type { FieldPath, FieldPathInput, FieldState, FormError, FormState, PathKey, SetValueOptions } from '../types.js';
+import { FieldStateFactory } from './FieldStateFactory';
+import { FormStateReader } from './FormStateReader';
+import { FormStateWriter } from './FormStateWriter';
+import { FormStateInitializer } from './FormStateInitializer';
+import type { FieldPath, FieldPathInput, FieldState, FormError, FormState, PathKey, SetValueOptions } from '../types';
 
 /**
  * core 상태 저장소의 facade다.

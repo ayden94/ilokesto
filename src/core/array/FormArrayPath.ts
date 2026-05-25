@@ -1,4 +1,4 @@
-import type { FieldPath } from '../types.js';
+import type { FieldPath } from '../types';
 
 /**
  * 배열 field path 판별과 변환을 담당하는 helper다.

@@ -1,12 +1,12 @@
-import type { IndexMapper } from './ArrayItemReorder.js';
-import { FormArrayPath } from './FormArrayPath.js';
-import { FormStateInitializer } from '../state/FormStateInitializer.js';
-import { FormPath } from '../path/index.js';
-import { ValueHelper } from '../value/index.js';
-import { FormStateStore } from '../state/index.js';
-import type { FieldPath, FormState } from '../types.js';
+import type { IndexMapper } from './ArrayItemReorder';
+import { FormArrayPath } from './FormArrayPath';
+import { FormStateInitializer } from '../state/FormStateInitializer';
+import { FormPath } from '../path/index';
+import { ValueHelper } from '../value/index';
+import { FormStateStore } from '../state/index';
+import type { FieldPath, FormState } from '../types';
 
-export type { IndexMapper } from './ArrayItemReorder.js';
+export type { IndexMapper } from './ArrayItemReorder';
 
 /**
  * 배열 변경 이후 FormState 전체를 다시 맞추는 rebase 담당 클래스다.
