@@ -99,7 +99,7 @@ export type UseFormStateReturn<TValues> = {
   submitCount: number;
 };
 
-type RegisterPropsList<TOptions extends readonly RegisterOptions[]> = {
+export type RegisterPropsList<TOptions extends readonly RegisterOptions[]> = {
   [Index in keyof TOptions]: TOptions[Index] extends RegisterOptions ? RegisterPropsFor<TOptions[Index]> : never;
 };
 
@@ -107,7 +107,8 @@ type RegisterPropsList<TOptions extends readonly RegisterOptions[]> = {
 export type ReactForm<TValues> = {
   form: Form<TValues>;
   useRegister<TOptions extends RegisterOptions>(options: TOptions): RegisterPropsFor<TOptions>;
-  useRegisters<TOptions extends readonly RegisterOptions[]>(options: TOptions): RegisterPropsList<TOptions>;
+  useRegister<TOptions extends readonly RegisterOptions[]>(options: TOptions): RegisterPropsList<TOptions>;
+  useRegister<TOptions extends readonly RegisterOptions[]>(...options: TOptions): RegisterPropsList<TOptions>;
   useField<TOptions extends RegisterOptions>(options: TOptions): UseFieldReturn<RegisterPropsFor<TOptions>>;
   useFormState(): UseFormStateReturn<TValues>;
 };

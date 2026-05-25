@@ -100,14 +100,13 @@ const form = new CreateForm({
 function LoginForm() {
   const {
     useRegister,
-    useRegisters,
     useField,
     useFormState,
   } = useForm(form);
 
   const email = useField({ name: 'email', schema: emailSchema });
   const remember = useRegister({ name: 'remember', type: 'checkbox' });
-  const [role] = useRegisters([{ name: 'role', type: 'select' }]);
+  const [role] = useRegister([{ name: 'role', type: 'select' }]);
   const state = useFormState();
 
   return (
@@ -133,16 +132,17 @@ function LoginForm() {
 }
 ```
 
-React adapter의 첫 버전 hook은 네 가지다.
+React adapter의 첫 버전 hook은 세 가지다. `useRegister`는 단일, 배열, rest-argument 등록을 모두 처리하도록 overload되어 있다.
 
 | Hook | Purpose |
 | --- | --- |
-| `useRegister(options)` | DOM-event-compatible binding props만 반환한다: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
-| `useRegisters(options[])` | map-friendly rendering을 위해 여러 개의 `useRegister` 스타일 binding props를 입력 순서대로 반환한다. |
+| `useRegister(options)` | 단일 field의 DOM-event-compatible binding props를 반환한다: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
+| `useRegister(options[])` | map-friendly rendering을 위해 여러 binding props를 입력 순서대로 반환한다. |
+| `useRegister(optionA, optionB)` | 여러 binding을 rest arguments로 받는다. 내부적으로 options array처럼 처리한다. |
 | `useField(options)` | 한 field에 대해 `{ props, value, setValue, errors, dirty, touched }`를 반환한다. `field.register`는 의도적으로 노출하지 않는다. |
 | `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate state를 반환한다. |
 
-Field-local schema는 `useRegister`, `useRegisters`, `useField`에 전달할 수 있다. 해당 field에 대해서는 field-local schema가 form-level schema보다 우선한다.
+Field-local schema는 `useRegister` 또는 `useField`에 전달할 수 있다. 해당 field에 대해서는 field-local schema가 form-level schema보다 우선한다.
 
 ```tsx
 const email = useField({
@@ -1104,7 +1104,7 @@ Existing tests는 다음을 cover한다.
 1. Tuple paths와 literal string names의 차이.
 2. Blur, manual trigger, submit에서의 Standard Schema validation.
 3. Move와 remove 시 array value/key/metadata rebasing.
-4. React adapter의 text input, textarea, checkbox, radio, select, `useField`, `useRegisters`, `useFormState`, field-local schema precedence.
+4. React adapter의 text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, field-local schema precedence.
 
 ### Suggested future documentation/tests
 

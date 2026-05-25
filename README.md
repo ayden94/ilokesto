@@ -100,14 +100,13 @@ const form = new CreateForm({
 function LoginForm() {
   const {
     useRegister,
-    useRegisters,
     useField,
     useFormState,
   } = useForm(form);
 
   const email = useField({ name: 'email', schema: emailSchema });
   const remember = useRegister({ name: 'remember', type: 'checkbox' });
-  const [role] = useRegisters([{ name: 'role', type: 'select' }]);
+  const [role] = useRegister([{ name: 'role', type: 'select' }]);
   const state = useFormState();
 
   return (
@@ -133,16 +132,17 @@ function LoginForm() {
 }
 ```
 
-The React adapter has four first-version hooks:
+The React adapter has three first-version hooks. `useRegister` is overloaded for single, array, and rest-argument registration:
 
 | Hook | Purpose |
 | --- | --- |
-| `useRegister(options)` | Returns DOM-event-compatible binding props only: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
-| `useRegisters(options[])` | Returns multiple `useRegister`-style binding props in input order for map-friendly rendering. |
+| `useRegister(options)` | Returns DOM-event-compatible binding props for one field: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
+| `useRegister(options[])` | Returns multiple binding props in input order for map-friendly rendering. |
+| `useRegister(optionA, optionB)` | Rest-argument form for multiple bindings; internally handled like an options array. |
 | `useField(options)` | Returns `{ props, value, setValue, errors, dirty, touched }` for one field. It intentionally does not expose `field.register`. |
 | `useFormState()` | Returns whole-form aggregate state such as `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, and `submitCount`. |
 
-Field-local schemas can be passed to `useRegister`, `useRegisters`, or `useField`. For that field, the field-local schema takes precedence over the form-level schema.
+Field-local schemas can be passed to `useRegister` or `useField`. For that field, the field-local schema takes precedence over the form-level schema.
 
 ```tsx
 const email = useField({
@@ -1105,7 +1105,7 @@ The existing tests cover:
 1. Tuple paths versus literal string names.
 2. Standard Schema validation on blur, manual trigger, and submit.
 3. Array value/key/metadata rebasing when moving and removing items.
-4. React adapter bindings for text input, textarea, checkbox, radio, select, `useField`, `useRegisters`, `useFormState`, and field-local schema precedence.
+4. React adapter bindings for text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, and field-local schema precedence.
 
 ### Suggested future documentation/tests
 

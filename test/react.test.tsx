@@ -67,7 +67,7 @@ test('useField returns props, field state, and setter without nested register', 
   await waitFor(() => expect(screen.getByLabelText('touched').textContent).toBe('true'));
 });
 
-test('useRegisters returns map-friendly bindings for textarea, checkbox, radio, and select', () => {
+test('useRegister returns map-friendly bindings for an options array', () => {
   const form = new CreateForm({
     initialValues: {
       bio: '',
@@ -78,8 +78,8 @@ test('useRegisters returns map-friendly bindings for textarea, checkbox, radio, 
   });
 
   function Example() {
-    const { useRegisters } = useForm(form);
-    const [bio, agreed, red, blue, role] = useRegisters([
+    const { useRegister } = useForm(form);
+    const [bio, agreed, red, blue, role] = useRegister([
       { name: 'bio', type: 'textarea' },
       { name: 'agreed', type: 'checkbox' },
       { name: 'color', type: 'radio', value: 'red' },
@@ -114,6 +114,31 @@ test('useRegisters returns map-friendly bindings for textarea, checkbox, radio, 
     color: 'blue',
     role: 'admin',
   });
+});
+
+test('useRegister returns a binding array for rest arguments', () => {
+  const form = new CreateForm({ initialValues: { color: 'red' } });
+
+  function Example() {
+    const { useRegister } = useForm(form);
+    const [red, blue] = useRegister(
+      { name: 'color', type: 'radio', value: 'red' },
+      { name: 'color', type: 'radio', value: 'blue' },
+    );
+
+    return (
+      <>
+        <input aria-label="red" type="radio" {...red} />
+        <input aria-label="blue" type="radio" {...blue} />
+      </>
+    );
+  }
+
+  render(<Example />);
+
+  fireEvent.click(screen.getByLabelText('blue'));
+
+  expect(form.getValue('color')).toBe('blue');
 });
 
 test('multiple select receives array value from restored container values on first render', () => {
