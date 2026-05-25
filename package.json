@@ -1,0 +1,44 @@
+{
+  "name": "@ilokesto/form",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm build && node --test test/*.test.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilokesto/form"
+  },
+  "homepage": "https://ilokesto.ayden94.com/en/form",
+  "sideEffects": false,
+  "keywords": [
+    "form",
+    "validation"
+  ],
+  "author": "Jeong Jinho <wpfekdml@me.com>",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@ilokesto/store": "1.1.1",
+    "immer": "^11.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.1",
+    "typescript": "^6.0.2"
+  }
+}
