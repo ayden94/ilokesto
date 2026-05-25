@@ -1,16 +1,16 @@
 import type { Form } from '../core/index';
 import { createFormStateSummary } from '../adapters/FormStateSummary';
-import type { VueFormStateReturn } from './types';
+import type { SolidFormStateReturn } from './types';
 import { useFormSnapshot } from './useFormSnapshot';
 
-/** form 전체 상태에서 Vue UI가 자주 쓰는 aggregate state를 반환한다. */
-export function useFormStateWithForm<TValues>(form: Form<TValues>): VueFormStateReturn<TValues> {
+/** form 전체 상태에서 Solid UI가 자주 쓰는 aggregate state를 반환한다. */
+export function useFormStateWithForm<TValues>(form: Form<TValues>): SolidFormStateReturn<TValues> {
   const snapshot = useFormSnapshot(form);
-  const getSummary = () => createFormStateSummary(snapshot.value);
+  const getSummary = () => createFormStateSummary(snapshot());
 
   return {
     get state() {
-      return snapshot.value;
+      return snapshot();
     },
     get errors() {
       return getSummary().errors;

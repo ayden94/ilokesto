@@ -1,4 +1,4 @@
-import type { FieldPathInput, FieldState, Form, FormState } from '../core/index';
+import type { FieldPathInput, FieldState, Form, FormState } from '../../core/index';
 
 /** 최신 snapshot을 읽은 뒤 field state를 가져온다. container field는 복원된 values에서 값을 보강한다. */
 export function getFieldState<TValues>(form: Form<TValues>, state: Readonly<FormState<TValues>>, name: FieldPathInput): Readonly<FieldState> {

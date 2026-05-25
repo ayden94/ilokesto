@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Form } from '../core/index';
 import type { RegisterElement, RegisterOptions, RegisterPropsForElement, RegisterPropsList } from './types';
-import { getFieldState } from './FieldValue';
+import { getFieldState } from '../adapters/dom';
 import { createRegisterProps, fieldPathToDomName } from './RegisterBinding';
 import { useFieldSchemaRegistrations } from './useFieldSchemaRegistration';
 import { useFormSnapshot } from './useFormSnapshot';

@@ -1,5 +1,5 @@
 import type { Form } from '../core/index';
-import { getFieldState } from './FieldValue';
+import { getFieldState } from '../adapters/dom';
 import { createRegisterProps, fieldPathToDomName } from './RegisterBinding';
 import type { RegisterOptions, VueRegisterElement, VueRegisterPropsForElement, VueRegisterPropsList } from './types';
 import { useFieldSchemaRegistrations } from './useFieldSchemaRegistration';

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import type { Form } from '../core/index';
 import type { RegisterElement, RegisterOptions, RegisterPropsForElement, UseFieldReturn } from './types';
 import { createRegisterProps, fieldPathToDomName } from './RegisterBinding';
-import { getFieldState } from './FieldValue';
+import { getFieldState } from '../adapters/dom';
 import { useFieldSchemaRegistration } from './useFieldSchemaRegistration';
 import { useFormSnapshot } from './useFormSnapshot';
 

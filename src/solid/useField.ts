@@ -1,16 +1,16 @@
 import type { Form } from '../core/index';
 import { getFieldState } from '../adapters/dom';
 import { createRegisterProps, fieldPathToDomName } from './RegisterBinding';
-import type { RegisterOptions, VueFieldReturn, VueRegisterElement, VueRegisterPropsForElement } from './types';
+import type { RegisterOptions, SolidFieldReturn, SolidRegisterElement, SolidRegisterPropsForElement } from './types';
 import { useFieldSchemaRegistrations } from './useFieldSchemaRegistration';
 import { useFormSnapshot } from './useFormSnapshot';
 
 /** 한 field의 binding, value, meta, setter를 함께 반환한다. */
-export function useFieldWithForm<TValues, TElement extends VueRegisterElement = HTMLInputElement>(form: Form<TValues>, options: RegisterOptions): VueFieldReturn<VueRegisterPropsForElement<TElement>> {
+export function useFieldWithForm<TValues, TElement extends SolidRegisterElement = HTMLInputElement>(form: Form<TValues>, options: RegisterOptions): SolidFieldReturn<SolidRegisterPropsForElement<TElement>> {
   useFieldSchemaRegistrations(form, [options]);
 
   const snapshot = useFormSnapshot(form);
-  const getField = () => getFieldState(form, snapshot.value, options.name);
+  const getField = () => getFieldState(form, snapshot(), options.name);
   const props = createRegisterProps<TValues, TElement>(form, options, getField, fieldPathToDomName(options.name));
 
   return {

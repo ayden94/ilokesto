@@ -18,6 +18,8 @@ The package is designed around five ideas:
 - [Quick start](#quick-start)
 - [React adapter](#react-adapter)
 - [Vue adapter](#vue-adapter)
+- [Solid adapter](#solid-adapter)
+- [Svelte adapter](#svelte-adapter)
 - [Core concepts](#core-concepts)
 - [API guide](#api-guide)
 - [Runtime flows](#runtime-flows)
@@ -219,6 +221,87 @@ The Vue adapter exposes the same three concepts:
 | `useFormState()` | Returns form-wide aggregate getters such as `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, and `submitCount`. |
 
 Field-local schemas work the same way as React and are cleaned up with the current Vue effect scope.
+
+## Solid adapter
+
+Solid bindings are exposed through the `./solid` subpath. They keep the same `useForm(form)` shape as React and Vue, but use Solid owner cleanup and getter-backed props.
+
+```tsx
+import { CreateForm } from '@ilokesto/form';
+import { useForm } from '@ilokesto/form/solid';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    remember: false,
+    role: 'user',
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+function LoginForm() {
+  const { useRegister, useField, useFormState } = useForm(form);
+  const email = useField({ name: 'email', schema: emailSchema });
+  const remember = useRegister({ name: 'remember', type: 'checkbox' });
+  const role = useRegister<HTMLSelectElement>({ name: 'role' });
+  const state = useFormState();
+
+  return (
+    <form>
+      <input {...email.props} />
+      {email.errors.map(error => <p>{error.message}</p>)}
+
+      <input type="checkbox" {...remember} />
+
+      <select {...role}>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <button disabled={!state.isDirty || !state.isValid}>Submit</button>
+    </form>
+  );
+}
+```
+
+The Solid adapter exposes `useRegister`, `useField`, and `useFormState` with the same semantics as Vue: text inputs update on `input`, checkbox/radio/multiple select update on `change`, and field-local schemas are disposed with the current Solid owner.
+
+## Svelte adapter
+
+Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use hook-style rendering, so the adapter exposes a `register` action and a Svelte readable form-state store.
+
+```svelte
+<script lang="ts">
+  import { CreateForm } from '@ilokesto/form';
+  import { useForm } from '@ilokesto/form/svelte';
+
+  const form = new CreateForm({
+    initialValues: {
+      email: '',
+      remember: false,
+      role: 'user',
+    },
+    validateOn: ['blur', 'submit'],
+  });
+
+  const { register, useFormState } = useForm(form);
+  const state = useFormState();
+</script>
+
+<form>
+  <input use:register={{ name: 'email', schema: emailSchema }} />
+  <input type="checkbox" use:register={{ name: 'remember', type: 'checkbox' }} />
+
+  <select use:register={{ name: 'role' }}>
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <button disabled={!$state.isDirty || !$state.isValid}>Submit</button>
+</form>
+```
+
+The Svelte action owns DOM synchronization directly: it sets the DOM `name`, keeps `value`/`checked` in sync from form state, writes user changes back to the core form, and cleans up field-local schemas when the action is destroyed.
 
 ## Core concepts
 
@@ -746,24 +829,18 @@ src/index.ts
     -> path/FormPath.ts
     -> value/ValueHelper.ts
     -> types.ts
+  -> src/adapters/
+     -> dom/FieldValue.ts
+     -> dom/RegisterBinding.ts
+     -> FormStateSummary.ts
   -> src/react/index.ts
-     -> useForm.ts
-     -> useRegister.ts
-     -> useField.ts
-     -> useFormState.ts
-     -> useFormSnapshot.ts
-     -> useFieldSchemaRegistration.ts
-     -> RegisterBinding.ts
-     -> types.ts
+     -> React hook adapter over shared adapter logic
   -> src/vue/index.ts
-     -> useForm.ts
-     -> useRegister.ts
-     -> useField.ts
-     -> useFormState.ts
-     -> useFormSnapshot.ts
-     -> useFieldSchemaRegistration.ts
-     -> RegisterBinding.ts
-     -> types.ts
+     -> Vue composable adapter over shared adapter logic
+  -> src/solid/index.ts
+     -> Solid helper adapter over shared adapter logic
+  -> src/svelte/index.ts
+     -> Svelte action adapter over shared adapter logic
 ```
 
 Responsibility summary:
@@ -776,8 +853,11 @@ Responsibility summary:
 | `value/` | Immutable nested get/set and reconstruction of values from field states. |
 | `validation/` | Standard Schema execution and error normalization. |
 | `array/` | Array item key management, mutation planning, and child field metadata rebasing. |
+| `adapters/` | Internal shared adapter logic: DOM value extraction/binding and form-state aggregation. |
 | `react/` | React hook adapter around the public `Form` interface. |
 | `vue/` | Vue composable adapter around the public `Form` interface. |
+| `solid/` | Solid helper adapter around the public `Form` interface. |
+| `svelte/` | Svelte action adapter around the public `Form` interface. |
 | `types.ts` | Public and internal TypeScript contracts. |
 
 ## Core walkthrough
@@ -1171,7 +1251,7 @@ pnpm typecheck
 pnpm test
 ```
 
-`pnpm build` emits declaration files with TypeScript, rewrites only declaration-file relative specifiers for NodeNext compatibility, and bundles ESM JavaScript with Vite so source imports can stay extensionless while `dist/index.js` and `dist/react/index.js` remain directly importable by ESM runtimes.
+`pnpm build` emits declaration files with TypeScript, rewrites only declaration-file relative specifiers for NodeNext compatibility, and bundles ESM JavaScript with Vite so source imports can stay extensionless while `dist/index.js` and adapter subpaths such as `dist/react/index.js`, `dist/vue/index.js`, `dist/solid/index.js`, and `dist/svelte/index.js` remain directly importable by ESM runtimes.
 
 `pnpm test` runs the Vitest suite.
 
@@ -1184,6 +1264,8 @@ The existing tests cover:
 3. Array value/key/metadata rebasing when moving and removing items.
 4. React adapter bindings for text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, and field-local schema precedence.
 5. Vue adapter bindings for text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, and field-local schema cleanup.
+6. Solid adapter bindings for text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, and field-local schema cleanup.
+7. Svelte register action bindings for text input, checkbox, radio, select, multiple select, readable `useFormState`, and field-local schema cleanup.
 
 ### Suggested future documentation/tests
 
@@ -1192,4 +1274,4 @@ Good additions would be:
 - A test for `insert()` index bounding.
 - A test for `replace()` intentionally dropping child metadata.
 - A test for root-level schema errors.
-- More React adapter examples for custom DOM-event-compatible components.
+- More adapter examples for custom DOM-event-compatible components.

@@ -18,6 +18,8 @@
 - [Quick start](#quick-start)
 - [React adapter](#react-adapter)
 - [Vue adapter](#vue-adapter)
+- [Solid adapter](#solid-adapter)
+- [Svelte adapter](#svelte-adapter)
 - [Core concepts](#core-concepts)
 - [API guide](#api-guide)
 - [Runtime flows](#runtime-flows)
@@ -219,6 +221,87 @@ Vue adapter도 같은 세 가지 개념을 노출한다.
 | `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate getter를 반환한다. |
 
 Field-local schema는 React와 같은 방식으로 동작하고 현재 Vue effect scope가 정리될 때 함께 cleanup된다.
+
+## Solid adapter
+
+Solid binding은 `./solid` subpath로 노출된다. React/Vue와 같은 `useForm(form)` 형태를 유지하되, Solid owner cleanup과 getter 기반 props를 사용한다.
+
+```tsx
+import { CreateForm } from '@ilokesto/form';
+import { useForm } from '@ilokesto/form/solid';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    remember: false,
+    role: 'user',
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+function LoginForm() {
+  const { useRegister, useField, useFormState } = useForm(form);
+  const email = useField({ name: 'email', schema: emailSchema });
+  const remember = useRegister({ name: 'remember', type: 'checkbox' });
+  const role = useRegister<HTMLSelectElement>({ name: 'role' });
+  const state = useFormState();
+
+  return (
+    <form>
+      <input {...email.props} />
+      {email.errors.map(error => <p>{error.message}</p>)}
+
+      <input type="checkbox" {...remember} />
+
+      <select {...role}>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <button disabled={!state.isDirty || !state.isValid}>Submit</button>
+    </form>
+  );
+}
+```
+
+Solid adapter는 Vue와 같은 의미의 `useRegister`, `useField`, `useFormState`를 제공한다. Text input은 `input` event에서, checkbox/radio/multiple select는 `change` event에서 갱신하고, field-local schema는 현재 Solid owner와 함께 dispose된다.
+
+## Svelte adapter
+
+Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rendering을 쓰지 않으므로 adapter는 `register` action과 Svelte readable form-state store를 제공한다.
+
+```svelte
+<script lang="ts">
+  import { CreateForm } from '@ilokesto/form';
+  import { useForm } from '@ilokesto/form/svelte';
+
+  const form = new CreateForm({
+    initialValues: {
+      email: '',
+      remember: false,
+      role: 'user',
+    },
+    validateOn: ['blur', 'submit'],
+  });
+
+  const { register, useFormState } = useForm(form);
+  const state = useFormState();
+</script>
+
+<form>
+  <input use:register={{ name: 'email', schema: emailSchema }} />
+  <input type="checkbox" use:register={{ name: 'remember', type: 'checkbox' }} />
+
+  <select use:register={{ name: 'role' }}>
+    <option value="user">User</option>
+    <option value="admin">Admin</option>
+  </select>
+
+  <button disabled={!$state.isDirty || !$state.isValid}>Submit</button>
+</form>
+```
+
+Svelte action은 DOM synchronization을 직접 담당한다. DOM `name`을 설정하고, form state에서 `value`/`checked`를 sync하고, user change를 core form에 쓰며, action이 destroy될 때 field-local schema를 cleanup한다.
 
 ## Core concepts
 
@@ -745,24 +828,18 @@ src/index.ts
     -> path/FormPath.ts
     -> value/ValueHelper.ts
     -> types.ts
+  -> src/adapters/
+     -> dom/FieldValue.ts
+     -> dom/RegisterBinding.ts
+     -> FormStateSummary.ts
   -> src/react/index.ts
-     -> useForm.ts
-     -> useRegister.ts
-     -> useField.ts
-     -> useFormState.ts
-     -> useFormSnapshot.ts
-     -> useFieldSchemaRegistration.ts
-     -> RegisterBinding.ts
-     -> types.ts
+     -> shared adapter logic 위의 React hook adapter
   -> src/vue/index.ts
-     -> useForm.ts
-     -> useRegister.ts
-     -> useField.ts
-     -> useFormState.ts
-     -> useFormSnapshot.ts
-     -> useFieldSchemaRegistration.ts
-     -> RegisterBinding.ts
-     -> types.ts
+     -> shared adapter logic 위의 Vue composable adapter
+  -> src/solid/index.ts
+     -> shared adapter logic 위의 Solid helper adapter
+  -> src/svelte/index.ts
+     -> shared adapter logic 위의 Svelte action adapter
 ```
 
 Responsibility summary:
@@ -775,8 +852,11 @@ Responsibility summary:
 | `value/` | Immutable nested get/set and reconstruction of values from field states. |
 | `validation/` | Standard Schema execution and error normalization. |
 | `array/` | Array item key management, mutation planning, and child field metadata rebasing. |
+| `adapters/` | 내부 shared adapter logic: DOM value extraction/binding, form-state aggregation. |
 | `react/` | Public `Form` interface를 감싸는 React hook adapter. |
 | `vue/` | Public `Form` interface를 감싸는 Vue composable adapter. |
+| `solid/` | Public `Form` interface를 감싸는 Solid helper adapter. |
+| `svelte/` | Public `Form` interface를 감싸는 Svelte action adapter. |
 | `types.ts` | Public and internal TypeScript contracts. |
 
 ## Core walkthrough
@@ -1170,7 +1250,7 @@ pnpm typecheck
 pnpm test
 ```
 
-`pnpm build`는 TypeScript로 declaration files를 emit하고, NodeNext 호환성을 위해 declaration-file relative specifier만 보정한 뒤, Vite로 ESM JavaScript를 bundle한다. 그래서 source import는 extensionless로 유지하면서도 `dist/index.js`와 `dist/react/index.js`는 ESM runtime에서 직접 import할 수 있다.
+`pnpm build`는 TypeScript로 declaration files를 emit하고, NodeNext 호환성을 위해 declaration-file relative specifier만 보정한 뒤, Vite로 ESM JavaScript를 bundle한다. 그래서 source import는 extensionless로 유지하면서도 `dist/index.js`, `dist/react/index.js`, `dist/vue/index.js`, `dist/solid/index.js`, `dist/svelte/index.js` 같은 adapter subpath는 ESM runtime에서 직접 import할 수 있다.
 
 `pnpm test`는 Vitest suite를 실행한다.
 
@@ -1183,6 +1263,8 @@ Existing tests는 다음을 cover한다.
 3. Move와 remove 시 array value/key/metadata rebasing.
 4. React adapter의 text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, field-local schema precedence.
 5. Vue adapter의 text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, field-local schema cleanup.
+6. Solid adapter의 text input, textarea, checkbox, radio, select, `useField`, overloaded `useRegister`, `useFormState`, field-local schema cleanup.
+7. Svelte register action의 text input, checkbox, radio, select, multiple select, readable `useFormState`, field-local schema cleanup.
 
 ### Suggested future documentation/tests
 
@@ -1191,4 +1273,4 @@ Existing tests는 다음을 cover한다.
 - `insert()` index bounding test.
 - `replace()`가 child metadata를 의도적으로 drop하는지에 대한 test.
 - Root-level schema errors test.
-- Custom DOM-event-compatible component를 위한 React adapter examples.
+- Custom DOM-event-compatible component를 위한 adapter examples.
