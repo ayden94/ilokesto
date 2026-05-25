@@ -5,3 +5,4 @@ src/
 vite.config.ts
 tsconfig.json
 stats.html
+.omx

@@ -1,7 +1,6 @@
 {
   "name": "@ilokesto/form",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "scripts": {
     "build": "rm -rf dist && tsc --emitDeclarationOnly && node scripts/fix-dts-imports.mjs && vite build",
@@ -87,5 +86,8 @@
     "svelte": {
       "optional": true
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
