@@ -1,11 +1,10 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
+import { test, expect } from 'vitest';
 
-import { CreateForm } from '../dist/index.js';
+import { CreateForm } from '../src/index';
 
-const standardSchema = validate => ({
+const standardSchema = (validate: (value: any) => any) => ({
   '~standard': {
-    version: 1,
+    version: 1 as const,
     vendor: 'test',
     validate,
   },
@@ -23,16 +22,16 @@ test('reads and writes tuple paths without treating string names as dot paths', 
   form.setValue(['user', 'name'], 'Grace', { source: 'user' });
   form.setValue('user.name', 'literal changed');
 
-  assert.equal(form.getValue(['user', 'name']), 'Grace');
-  assert.equal(form.getValue('user.name'), 'literal changed');
-  assert.deepEqual(form.getValues(), {
+  expect(form.getValue(['user', 'name'])).toBe('Grace');
+  expect(form.getValue('user.name')).toBe('literal changed');
+  expect(form.getValues()).toEqual({
     email: '',
     user: { name: 'Grace' },
     'user.name': 'literal changed',
   });
-  assert.equal(form.getFieldState(['user', 'name']).dirty, true);
-  assert.equal(form.getFieldState(['user', 'name']).modified, true);
-  assert.equal(form.getFieldState('user.name').modified, false);
+  expect(form.getFieldState(['user', 'name']).dirty).toBe(true);
+  expect(form.getFieldState(['user', 'name']).modified).toBe(true);
+  expect(form.getFieldState('user.name').modified).toBe(false);
 });
 
 test('runs standard schema validation for blur, manual trigger, and submit', async () => {
@@ -55,22 +54,22 @@ test('runs standard schema validation for blur, manual trigger, and submit', asy
     }),
   });
 
-  assert.equal(await form.blur('email'), false);
-  assert.equal(form.getFieldState('email').touched, true);
-  assert.deepEqual(form.getFieldState('email').errors, [
+  expect(await form.blur('email')).toBe(false);
+  expect(form.getFieldState('email').touched).toBe(true);
+  expect(form.getFieldState('email').errors).toEqual([
     { type: 'standard_schema', message: 'Email is invalid' },
   ]);
 
   form.setValue('email', 'ada@example.com');
-  assert.equal(await form.trigger('email'), true);
-  assert.deepEqual(form.getFieldState('email').errors, []);
+  expect(await form.trigger('email')).toBe(true);
+  expect(form.getFieldState('email').errors).toEqual([]);
 
   const submitResult = await form.submit(values => values.email);
-  assert.equal(submitResult, 'ada@example.com');
-  assert.equal(form.getState().submitCount, 1);
+  expect(submitResult).toBe('ada@example.com');
+  expect(form.getState().submitCount).toBe(1);
 });
 
-test('rebases array values, keys, and field metadata together', () => {
+test('rebases array values, keys, and field metadata together', async () => {
   const form = new CreateForm({
     initialValues: {
       items: [{ name: 'a' }, { name: 'b' }, { name: 'c' }],
@@ -78,24 +77,24 @@ test('rebases array values, keys, and field metadata together', () => {
   });
   const array = form.array('items');
 
-  form.blur(['items', 1, 'name']);
+  await form.blur(['items', 1, 'name']);
   form.setErrors(['items', 1, 'name'], [{ message: 'Keep me' }]);
   form.setValue(['items', 1, 'name'], 'B', { source: 'user' });
 
   const initialKeys = [...array.keys()];
   array.move(1, 0);
 
-  assert.deepEqual(form.getValues(), {
+  expect(form.getValues()).toEqual({
     items: [{ name: 'B' }, { name: 'a' }, { name: 'c' }],
   });
-  assert.deepEqual(array.keys(), [initialKeys[1], initialKeys[0], initialKeys[2]]);
-  assert.deepEqual(form.getFieldState(['items', 0, 'name']).errors, [{ message: 'Keep me' }]);
-  assert.equal(form.getFieldState(['items', 0, 'name']).touched, true);
-  assert.equal(form.getFieldState(['items', 0, 'name']).modified, true);
+  expect(array.keys()).toEqual([initialKeys[1], initialKeys[0], initialKeys[2]]);
+  expect(form.getFieldState(['items', 0, 'name']).errors).toEqual([{ message: 'Keep me' }]);
+  expect(form.getFieldState(['items', 0, 'name']).touched).toBe(true);
+  expect(form.getFieldState(['items', 0, 'name']).modified).toBe(true);
 
   array.remove(0);
-  assert.deepEqual(form.getValues(), {
+  expect(form.getValues()).toEqual({
     items: [{ name: 'a' }, { name: 'c' }],
   });
-  assert.deepEqual(array.keys(), [initialKeys[0], initialKeys[2]]);
+  expect(array.keys()).toEqual([initialKeys[0], initialKeys[2]]);
 });
