@@ -147,6 +147,14 @@ export type CreateFormOptions<TValues> = {
   validateOn?: readonly ValidationTrigger[];
 };
 
+/** 특정 field에 form-level schema보다 우선 적용할 validation schema 설정이다. */
+export type FieldSchemaOptions = {
+  /** field value 하나를 검증할 Standard Schema compatible schema다. */
+  schema: StandardSchemaV1<unknown, unknown>;
+  /** 이 field schema validate 함수에 넘길 옵션이다. */
+  schemaOptions?: StandardSchemaV1.Options;
+};
+
 /**
  * 외부 store를 기반으로 동작하는 최소 form 인스턴스 API다.
  *
@@ -158,6 +166,8 @@ export type Form<TValues> = {
   getState(): Readonly<FormState<TValues>>;
   /** form store 변경을 구독한다. */
   subscribe(listener: () => void): () => void;
+  /** 특정 field에 form-level schema보다 우선하는 field-local schema를 등록한다. */
+  registerFieldSchema(path: FieldPathInput, options: FieldSchemaOptions): () => void;
   /** field state 하나를 반환한다. 존재하지 않으면 읽기용 기본 shape을 반환한다. */
   getFieldState(path: FieldPathInput): Readonly<FieldState>;
   /** field value 하나를 반환한다. */

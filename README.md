@@ -16,6 +16,7 @@ The package is designed around five ideas:
 
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [React adapter](#react-adapter)
 - [Core concepts](#core-concepts)
 - [API guide](#api-guide)
 - [Runtime flows](#runtime-flows)
@@ -79,6 +80,78 @@ form.setValue('profile.name', 'literal field');
 ```
 
 These are different fields. `['profile', 'name']` means the nested `profile.name` value. `'profile.name'` means a top-level field whose actual key contains a dot.
+
+## React adapter
+
+React bindings are exposed through the `./react` subpath so the root package stays framework-agnostic.
+
+```tsx
+import { CreateForm } from '@ilokesto/form';
+import { useForm } from '@ilokesto/form/react';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    remember: false,
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+function LoginForm() {
+  const {
+    useRegister,
+    useRegisters,
+    useField,
+    useFormState,
+  } = useForm(form);
+
+  const email = useField({ name: 'email', schema: emailSchema });
+  const remember = useRegister({ name: 'remember', type: 'checkbox' });
+  const [role] = useRegisters([{ name: 'role', type: 'select' }]);
+  const state = useFormState();
+
+  return (
+    <form>
+      <input {...email.props} />
+      {email.errors.map(error => <p key={error.message}>{error.message}</p>)}
+
+      <label>
+        <input type="checkbox" {...remember} />
+        Remember me
+      </label>
+
+      <select {...role}>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <button disabled={!state.isDirty || !state.isValid}>
+        Submit
+      </button>
+    </form>
+  );
+}
+```
+
+The React adapter has four first-version hooks:
+
+| Hook | Purpose |
+| --- | --- |
+| `useRegister(options)` | Returns DOM-event-compatible binding props only: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
+| `useRegisters(options[])` | Returns multiple `useRegister`-style binding props in input order for map-friendly rendering. |
+| `useField(options)` | Returns `{ props, value, setValue, errors, dirty, touched }` for one field. It intentionally does not expose `field.register`. |
+| `useFormState()` | Returns whole-form aggregate state such as `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, and `submitCount`. |
+
+Field-local schemas can be passed to `useRegister`, `useRegisters`, or `useField`. For that field, the field-local schema takes precedence over the form-level schema.
+
+```tsx
+const email = useField({
+  name: 'email',
+  schema: emailSchema,
+});
+```
+
+The event model is DOM-event centered. Custom components can use `useRegister` when they pass through DOM-compatible `value`, `checked`, `onChange`, `onBlur`, and `onFocus` props.
 
 ## Core concepts
 
@@ -245,6 +318,24 @@ const schema = {
 
 On failure, `validate()` returns `issues`. Each issue path is converted into a `FieldPath`, then into a `PathKey`, then written to the corresponding `FieldState.errors`.
 
+### Field-local schemas
+
+Framework adapters can register a schema for a single field.
+
+```ts
+const cleanup = form.registerFieldSchema('email', {
+  schema: emailSchema,
+});
+```
+
+When a field-local schema exists, that field uses it instead of the form-level schema:
+
+```txt
+field-local schema > form-level schema
+```
+
+The cleanup function removes the schema registration if it is still the latest registration for that field.
+
 ### `ArrayKeys`
 
 Array item identity is stored separately from array values.
@@ -300,6 +391,20 @@ unsubscribe();
 ```
 
 Framework adapters use this method to connect the core store to reactive rendering.
+
+### `registerFieldSchema(path, options)`
+
+Registers a field-local schema and returns a cleanup function.
+
+```ts
+const cleanup = form.registerFieldSchema('email', {
+  schema: emailSchema,
+});
+
+cleanup();
+```
+
+This is mostly intended for framework adapters. A field-local schema overrides the form-level schema for that field during `blur()`, `trigger()`, and `submit()`.
 
 ### `getFieldState(path)`
 
@@ -510,12 +615,13 @@ form.blur(path)
 form.trigger(...paths)
   -> no paths: validateRegisteredFields('manual')
   -> with paths: validateFields(keys, 'manual')
-  -> StandardSchemaValidator.validate(values)
+  -> field-local schema exists: validate that field value and replace that field's errors
+  -> otherwise: StandardSchemaValidator.validate(values)
   -> issue paths become PathKeys
   -> selected field errors are replaced
 ```
 
-Field-level validation still runs the whole schema, then applies only the target field errors. This keeps the schema adapter simple and schema-library independent.
+Without a field-local schema, field-level validation still runs the whole form schema, then applies only the target field errors. This keeps the schema adapter simple and schema-library independent. With a field-local schema, that schema overrides form-level errors for the same field.
 
 ### Submit flow
 
@@ -573,6 +679,15 @@ src/index.ts
     -> path/FormPath.ts
     -> value/ValueHelper.ts
     -> types.ts
+  -> src/react/index.ts
+     -> useForm.ts
+     -> useRegister.ts
+     -> useField.ts
+     -> useFormState.ts
+     -> useFormSnapshot.ts
+     -> useFieldSchemaRegistration.ts
+     -> RegisterBinding.ts
+     -> types.ts
 ```
 
 Responsibility summary:
@@ -585,20 +700,27 @@ Responsibility summary:
 | `value/` | Immutable nested get/set and reconstruction of values from field states. |
 | `validation/` | Standard Schema execution and error normalization. |
 | `array/` | Array item key management, mutation planning, and child field metadata rebasing. |
+| `react/` | React hook adapter around the public `Form` interface. |
 | `types.ts` | Public and internal TypeScript contracts. |
 
 ## Core walkthrough
 
 ### `src/index.ts`
 
-The package root exports only the framework-agnostic core surface:
+The package root exports only the stable framework-agnostic surface:
 
 ```ts
 export { CreateForm } from './core/index';
-export type { Form, FormState, FieldState } from './core/index';
+export type {
+  CreateFormOptions,
+  FieldPathInput,
+  Form,
+  FormError,
+  StandardSchemaV1,
+} from './core/index';
 ```
 
-This keeps package consumers away from internal file layout. Framework adapters can import the same public contracts without depending on private classes.
+Internal state and command helper types stay out of the package root. They are documented here to explain the implementation, but consumers should interact through `Form`, `CreateForm`, field paths, errors, and Standard Schema contracts.
 
 ### `src/core/index.ts`
 
@@ -609,9 +731,9 @@ This file re-exports `CreateForm` and public types from `types.ts`. It is the bo
 `types.ts` defines the core vocabulary:
 
 - public path type: `FieldPathInput`; internal path concepts: `FieldPathSegment`, `FieldPath`, `PathKey`
-- validation types: `FormError`, `ValidationTrigger`, `StandardSchemaV1`
-- state types: `FieldState`, `ArrayKeys`, `FormState`
-- public API types: `CreateFormOptions`, `Form`, `FormArray`, `SetValueOptions`
+- exported validation types: `FormError`, `StandardSchemaV1`; internal validation trigger type: `ValidationTrigger`
+- internal state types: `FieldState`, `ArrayKeys`, `FormState`
+- public API types: `CreateFormOptions`, `Form`; internal command helper types: `FormArray`, `SetValueOptions`
 
 The most important design in this file is that public string paths are literal field names. Nested fields require tuple paths.
 
@@ -972,7 +1094,9 @@ pnpm typecheck
 pnpm test
 ```
 
-`pnpm test` builds the package and runs Node's test runner against `test/*.test.mjs`.
+`pnpm build` emits declaration files with TypeScript, rewrites only declaration-file relative specifiers for NodeNext compatibility, and bundles ESM JavaScript with Vite so source imports can stay extensionless while `dist/index.js` and `dist/react/index.js` remain directly importable by ESM runtimes.
+
+`pnpm test` runs the Vitest suite.
 
 ### Current test coverage themes
 
@@ -981,6 +1105,7 @@ The existing tests cover:
 1. Tuple paths versus literal string names.
 2. Standard Schema validation on blur, manual trigger, and submit.
 3. Array value/key/metadata rebasing when moving and removing items.
+4. React adapter bindings for text input, textarea, checkbox, radio, select, `useField`, `useRegisters`, `useFormState`, and field-local schema precedence.
 
 ### Suggested future documentation/tests
 
@@ -989,4 +1114,4 @@ Good additions would be:
 - A test for `insert()` index bounding.
 - A test for `replace()` intentionally dropping child metadata.
 - A test for root-level schema errors.
-- Framework adapter examples once adapters exist.
+- More React adapter examples for custom DOM-event-compatible components.

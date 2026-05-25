@@ -53,6 +53,25 @@ export class StandardSchemaValidator<TValues> {
   }
 
   /**
+   * field-local schema처럼 하나의 field value만 검증할 때 사용한다.
+   *
+   * @param value - 검증할 field value.
+   * @returns path와 무관하게 해당 field에 붙일 error 목록.
+   */
+  public async validateValue(value: unknown): Promise<FormError[]> {
+    const result = await this.schema['~standard'].validate(value, this.options);
+
+    if (!result.issues) {
+      return [];
+    }
+
+    return result.issues.map(issue => ({
+      type: 'standard_schema',
+      message: issue.message,
+    }));
+  }
+
+  /**
    * Standard Schema issue path를 core FieldPath로 변환한다.
    *
    * @remarks

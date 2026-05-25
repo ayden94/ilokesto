@@ -1,6 +1,6 @@
 import { StandardSchemaValidator, type StandardSchemaValidationResult } from './StandardSchemaValidator';
 import type { FormStateStore } from '../state/index';
-import type { CreateFormOptions, FormError, PathKey, ValidationTrigger } from '../types';
+import type { CreateFormOptions, FieldSchemaOptions, FormError, PathKey, ValidationTrigger } from '../types';
 
 /**
  * Standard Schema validation 실행을 담당하는 엔진이다.
@@ -18,8 +18,12 @@ export class ValidationEngine<TValues> {
   private readonly store: FormStateStore<TValues>;
   /** Standard Schema compatible schema를 실행하고 issue를 field errors로 바꾸는 adapter다. */
   private readonly schema?: StandardSchemaValidator<TValues>;
+  /** field별로 form-level schema보다 우선 적용할 schema validator다. */
+  private readonly fieldSchemas = new Map<PathKey, RegisteredFieldSchema>();
   /** 어떤 trigger에서 자동 validation을 실행할지 나타내는 설정이다. */
   private readonly validateOn: readonly ValidationTrigger[];
+  /** field schema cleanup이 최신 등록만 제거하도록 구분하는 증가 id다. */
+  private nextFieldSchemaId = 0;
 
   /**
    * validation engine을 만든다.
@@ -44,6 +48,28 @@ export class ValidationEngine<TValues> {
   }
 
   /**
+   * field-local schema를 등록한다.
+   *
+   * @remarks
+   * 같은 field에 새 schema가 등록되면 마지막 등록이 우선한다.
+   * 반환된 cleanup은 자신이 등록한 schema가 여전히 최신일 때만 제거한다.
+   */
+  public registerFieldSchema(fieldKey: PathKey, options: FieldSchemaOptions): () => void {
+    const id = ++this.nextFieldSchemaId;
+
+    this.fieldSchemas.set(fieldKey, {
+      id,
+      validator: new StandardSchemaValidator(options.schema, options.schemaOptions),
+    });
+
+    return () => {
+      if (this.fieldSchemas.get(fieldKey)?.id === id) {
+        this.fieldSchemas.delete(fieldKey);
+      }
+    };
+  }
+
+  /**
    * 전체 schema를 실행한 뒤 한 field의 error만 갱신한다.
    *
    * @param fieldKey - 검증할 field의 내부 PathKey.
@@ -51,6 +77,13 @@ export class ValidationEngine<TValues> {
    * @returns 해당 field에 errors가 하나도 없으면 true.
    */
   public async validateField(fieldKey: PathKey, _trigger: ValidationTrigger): Promise<boolean> {
+    const fieldSchemaErrors = await this.validateFieldSchema(fieldKey);
+
+    if (fieldSchemaErrors) {
+      this.applyErrors([fieldKey], { [fieldKey]: fieldSchemaErrors });
+      return fieldSchemaErrors.length === 0;
+    }
+
     const schemaResult = await this.validateSchema();
     this.applyErrors([fieldKey], schemaResult.errorsByKey);
     return (schemaResult.errorsByKey[fieldKey] ?? []).length === 0;
@@ -70,10 +103,16 @@ export class ValidationEngine<TValues> {
       return this.validateRegisteredFields('manual');
     }
 
-    const schemaResult = await this.validateSchema();
-    this.applyErrors(targetFieldKeys, schemaResult.errorsByKey);
+    const localErrorsByKey = await this.validateFieldSchemas(targetFieldKeys);
+    const formSchemaFieldKeys = targetFieldKeys.filter(fieldKey => !this.fieldSchemas.has(fieldKey));
+    const schemaResult = formSchemaFieldKeys.length > 0
+      ? await this.validateSchema()
+      : ValidationEngine.createValidSchemaResult();
+    const errorsByKey = this.mergeErrorsByKey(schemaResult.errorsByKey, localErrorsByKey);
 
-    return targetFieldKeys.every(fieldKey => (schemaResult.errorsByKey[fieldKey] ?? []).length === 0);
+    this.applyErrors([...formSchemaFieldKeys, ...Object.keys(localErrorsByKey)], errorsByKey);
+
+    return targetFieldKeys.every(fieldKey => (errorsByKey[fieldKey] ?? []).length === 0);
   }
 
   /**
@@ -84,11 +123,13 @@ export class ValidationEngine<TValues> {
    */
   public async validateRegisteredFields(_trigger: ValidationTrigger): Promise<boolean> {
     const schemaResult = await this.validateSchema();
-    const keysToWrite = this.getValidationWriteKeys(schemaResult.errorsByKey);
+    const localErrorsByKey = await this.validateRegisteredFieldSchemas();
+    const errorsByKey = this.mergeErrorsByKey(schemaResult.errorsByKey, localErrorsByKey);
+    const keysToWrite = this.getValidationWriteKeys(errorsByKey);
 
-    this.applyErrors(keysToWrite, schemaResult.errorsByKey);
+    this.applyErrors(keysToWrite, errorsByKey);
 
-    return schemaResult.valid;
+    return keysToWrite.every(fieldKey => (errorsByKey[fieldKey] ?? []).length === 0);
   }
 
   /**
@@ -98,10 +139,7 @@ export class ValidationEngine<TValues> {
    */
   private validateSchema(): Promise<StandardSchemaValidationResult> {
     if (!this.schema) {
-      return Promise.resolve({
-        valid: true,
-        errorsByKey: {},
-      });
+      return Promise.resolve(ValidationEngine.createValidSchemaResult());
     }
 
     return this.schema.validate(this.store.getValues());
@@ -117,6 +155,62 @@ export class ValidationEngine<TValues> {
     fieldKeys.forEach(fieldKey => {
       this.store.setErrorsByKey(fieldKey, errorsByKey[fieldKey] ?? []);
     });
+  }
+
+  /** field-local schema가 있으면 해당 field value를 검증한다. */
+  private async validateFieldSchema(fieldKey: PathKey): Promise<FormError[] | undefined> {
+    const fieldSchema = this.fieldSchemas.get(fieldKey);
+
+    if (!fieldSchema) {
+      return undefined;
+    }
+
+    return fieldSchema.validator.validateValue(this.store.getFieldStateByKey(fieldKey).value);
+  }
+
+  /** 지정된 field들 중 field-local schema가 등록된 field만 검증한다. */
+  private async validateFieldSchemas(fieldKeys: readonly PathKey[]): Promise<Record<PathKey, FormError[]>> {
+    const errorsByKey: Record<PathKey, FormError[]> = {};
+
+    await Promise.all(fieldKeys.map(async fieldKey => {
+      const errors = await this.validateFieldSchema(fieldKey);
+
+      if (errors) {
+        errorsByKey[fieldKey] = errors;
+      }
+    }));
+
+    return errorsByKey;
+  }
+
+  /** 등록된 모든 field-local schema를 검증한다. */
+  private validateRegisteredFieldSchemas(): Promise<Record<PathKey, FormError[]>> {
+    return this.validateFieldSchemas([...this.fieldSchemas.keys()]);
+  }
+
+  /**
+   * form-level schema 결과에 field-local schema 결과를 덮어쓴다.
+   *
+   * @remarks
+   * field-local schema가 등록된 field는 valid 결과([])까지도 form-level error보다 우선한다.
+   */
+  private mergeErrorsByKey(
+    formErrorsByKey: Readonly<Record<PathKey, readonly FormError[]>>,
+    fieldErrorsByKey: Readonly<Record<PathKey, readonly FormError[]>>,
+  ): Record<PathKey, FormError[]> {
+    const merged = Object.entries(formErrorsByKey).reduce<Record<PathKey, FormError[]>>((errorsByKey, [fieldKey, errors]) => {
+      if (!this.fieldSchemas.has(fieldKey)) {
+        errorsByKey[fieldKey] = [...errors];
+      }
+
+      return errorsByKey;
+    }, {});
+
+    Object.entries(fieldErrorsByKey).forEach(([fieldKey, errors]) => {
+      merged[fieldKey] = [...errors];
+    });
+
+    return merged;
   }
 
   /**
@@ -143,4 +237,17 @@ export class ValidationEngine<TValues> {
   private static unique(fieldKeys: readonly PathKey[]): PathKey[] {
     return [...new Set(fieldKeys)];
   }
+
+  /** schema가 없거나 실행할 필요가 없을 때 쓰는 빈 성공 결과다. */
+  private static createValidSchemaResult(): StandardSchemaValidationResult {
+    return {
+      valid: true,
+      errorsByKey: {},
+    };
+  }
 }
+
+type RegisteredFieldSchema = {
+  id: number;
+  validator: StandardSchemaValidator<unknown>;
+};

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rm -rf dist && tsc",
+    "build": "rm -rf dist && tsc --emitDeclarationOnly && node scripts/fix-dts-imports.mjs && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
@@ -28,6 +28,10 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./react": {
+      "import": "./dist/react/index.js",
+      "types": "./dist/react/index.d.ts"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -38,8 +42,18 @@
     "immer": "^11.1.8"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.19.1",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^27.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.2.6",
     "typescript": "^6.0.2",
+    "vite": "^7.3.3",
     "vitest": "^4.1.7"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
   }
 }

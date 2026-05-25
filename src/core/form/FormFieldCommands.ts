@@ -1,7 +1,7 @@
 import { FormPath } from '../path/index';
 import type { FormStateStore } from '../state/index';
 import type { ValidationEngine } from '../validation/index';
-import type { FieldPathInput, FormError, PathKey, SetValueOptions } from '../types';
+import type { FieldPathInput, FieldSchemaOptions, FormError, PathKey, SetValueOptions } from '../types';
 
 /**
  * 필드 단위 명령을 모아 둔 서비스 클래스다.
@@ -31,6 +31,11 @@ export class FormFieldCommands<TValues> {
     if (options.validate || this.validation.shouldValidateOn('change')) {
       void this.validation.validateField(fieldKey, 'change');
     }
+  }
+
+  /** field-local schema를 등록한다. 등록된 schema는 해당 field에서 form-level schema보다 우선한다. */
+  public registerFieldSchema(path: FieldPathInput, options: FieldSchemaOptions): () => void {
+    return this.validation.registerFieldSchema(FormPath.pathInputToKey(path), options);
   }
 
   /**

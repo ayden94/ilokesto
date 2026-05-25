@@ -16,6 +16,7 @@
 
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [React adapter](#react-adapter)
 - [Core concepts](#core-concepts)
 - [API guide](#api-guide)
 - [Runtime flows](#runtime-flows)
@@ -79,6 +80,78 @@ form.setValue('profile.name', 'literal field');
 ```
 
 이 둘은 서로 다른 field다. `['profile', 'name']`은 nested `profile.name` value를 의미한다. `'profile.name'`은 실제 key에 dot이 들어간 top-level field를 의미한다.
+
+## React adapter
+
+React binding은 `./react` subpath로 노출된다. 그래서 package root는 framework-agnostic core만 유지한다.
+
+```tsx
+import { CreateForm } from '@ilokesto/form';
+import { useForm } from '@ilokesto/form/react';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    remember: false,
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+function LoginForm() {
+  const {
+    useRegister,
+    useRegisters,
+    useField,
+    useFormState,
+  } = useForm(form);
+
+  const email = useField({ name: 'email', schema: emailSchema });
+  const remember = useRegister({ name: 'remember', type: 'checkbox' });
+  const [role] = useRegisters([{ name: 'role', type: 'select' }]);
+  const state = useFormState();
+
+  return (
+    <form>
+      <input {...email.props} />
+      {email.errors.map(error => <p key={error.message}>{error.message}</p>)}
+
+      <label>
+        <input type="checkbox" {...remember} />
+        Remember me
+      </label>
+
+      <select {...role}>
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <button disabled={!state.isDirty || !state.isValid}>
+        Submit
+      </button>
+    </form>
+  );
+}
+```
+
+React adapter의 첫 버전 hook은 네 가지다.
+
+| Hook | Purpose |
+| --- | --- |
+| `useRegister(options)` | DOM-event-compatible binding props만 반환한다: `name`, `value`, `checked`, `onChange`, `onBlur`, `onFocus`. |
+| `useRegisters(options[])` | map-friendly rendering을 위해 여러 개의 `useRegister` 스타일 binding props를 입력 순서대로 반환한다. |
+| `useField(options)` | 한 field에 대해 `{ props, value, setValue, errors, dirty, touched }`를 반환한다. `field.register`는 의도적으로 노출하지 않는다. |
+| `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate state를 반환한다. |
+
+Field-local schema는 `useRegister`, `useRegisters`, `useField`에 전달할 수 있다. 해당 field에 대해서는 field-local schema가 form-level schema보다 우선한다.
+
+```tsx
+const email = useField({
+  name: 'email',
+  schema: emailSchema,
+});
+```
+
+Event model은 DOM event 중심이다. Custom component도 DOM-compatible `value`, `checked`, `onChange`, `onBlur`, `onFocus` props를 그대로 전달한다면 `useRegister`를 사용할 수 있다.
 
 ## Core concepts
 
@@ -245,6 +318,24 @@ const schema = {
 
 실패 시 `validate()`는 `issues`를 반환한다. 각 issue path는 `FieldPath`로 변환되고, 다시 `PathKey`로 변환된 뒤 해당 `FieldState.errors`에 기록된다.
 
+### Field-local schemas
+
+Framework adapter는 single field에 대한 schema를 등록할 수 있다.
+
+```ts
+const cleanup = form.registerFieldSchema('email', {
+  schema: emailSchema,
+});
+```
+
+Field-local schema가 있으면 해당 field는 form-level schema 대신 그 schema를 사용한다.
+
+```txt
+field-local schema > form-level schema
+```
+
+Cleanup function은 자신이 등록한 schema가 여전히 해당 field의 최신 registration일 때만 제거한다.
+
 ### `ArrayKeys`
 
 Array item identity는 array values와 별도로 저장된다.
@@ -300,6 +391,20 @@ unsubscribe();
 ```
 
 Framework adapter는 이 method를 사용해 core store와 reactive rendering을 연결한다.
+
+### `registerFieldSchema(path, options)`
+
+Field-local schema를 등록하고 cleanup function을 반환한다.
+
+```ts
+const cleanup = form.registerFieldSchema('email', {
+  schema: emailSchema,
+});
+
+cleanup();
+```
+
+이 API는 주로 framework adapter를 위한 것이다. Field-local schema는 `blur()`, `trigger()`, `submit()` 동안 해당 field에서 form-level schema보다 우선한다.
 
 ### `getFieldState(path)`
 
@@ -573,6 +678,15 @@ src/index.ts
     -> path/FormPath.ts
     -> value/ValueHelper.ts
     -> types.ts
+  -> src/react/index.ts
+     -> useForm.ts
+     -> useRegister.ts
+     -> useField.ts
+     -> useFormState.ts
+     -> useFormSnapshot.ts
+     -> useFieldSchemaRegistration.ts
+     -> RegisterBinding.ts
+     -> types.ts
 ```
 
 Responsibility summary:
@@ -585,20 +699,27 @@ Responsibility summary:
 | `value/` | Immutable nested get/set and reconstruction of values from field states. |
 | `validation/` | Standard Schema execution and error normalization. |
 | `array/` | Array item key management, mutation planning, and child field metadata rebasing. |
+| `react/` | Public `Form` interface를 감싸는 React hook adapter. |
 | `types.ts` | Public and internal TypeScript contracts. |
 
 ## Core walkthrough
 
 ### `src/index.ts`
 
-Package root는 framework-agnostic core surface만 export한다.
+Package root는 안정적인 framework-agnostic surface만 export한다.
 
 ```ts
 export { CreateForm } from './core/index';
-export type { Form, FormState, FieldState } from './core/index';
+export type {
+  CreateFormOptions,
+  FieldPathInput,
+  Form,
+  FormError,
+  StandardSchemaV1,
+} from './core/index';
 ```
 
-이렇게 package consumer가 internal file layout에 의존하지 않게 한다. Framework adapter도 private class에 의존하지 않고 같은 public contracts를 import할 수 있다.
+Internal state와 command helper 타입은 package root에서 내보내지 않는다. 이 문서에서는 구현 설명을 위해 다루지만, consumer는 `Form`, `CreateForm`, field path, errors, Standard Schema contract를 통해 사용해야 한다.
 
 ### `src/core/index.ts`
 
@@ -609,9 +730,9 @@ export type { Form, FormState, FieldState } from './core/index';
 `types.ts`는 core vocabulary를 정의한다.
 
 - public path type: `FieldPathInput`; internal path concepts: `FieldPathSegment`, `FieldPath`, `PathKey`
-- validation types: `FormError`, `ValidationTrigger`, `StandardSchemaV1`
-- state types: `FieldState`, `ArrayKeys`, `FormState`
-- public API types: `CreateFormOptions`, `Form`, `FormArray`, `SetValueOptions`
+- exported validation types: `FormError`, `StandardSchemaV1`; internal validation trigger type: `ValidationTrigger`
+- internal state types: `FieldState`, `ArrayKeys`, `FormState`
+- public API types: `CreateFormOptions`, `Form`; internal command helper types: `FormArray`, `SetValueOptions`
 
 이 파일에서 가장 중요한 설계는 public string path가 literal field name이라는 점이다. Nested field에는 tuple path가 필요하다.
 
@@ -972,7 +1093,9 @@ pnpm typecheck
 pnpm test
 ```
 
-`pnpm test`는 package를 build하고 Node test runner로 `test/*.test.mjs`를 실행한다.
+`pnpm build`는 TypeScript로 declaration files를 emit하고, NodeNext 호환성을 위해 declaration-file relative specifier만 보정한 뒤, Vite로 ESM JavaScript를 bundle한다. 그래서 source import는 extensionless로 유지하면서도 `dist/index.js`와 `dist/react/index.js`는 ESM runtime에서 직접 import할 수 있다.
+
+`pnpm test`는 Vitest suite를 실행한다.
 
 ### Current test coverage themes
 
@@ -981,6 +1104,7 @@ Existing tests는 다음을 cover한다.
 1. Tuple paths와 literal string names의 차이.
 2. Blur, manual trigger, submit에서의 Standard Schema validation.
 3. Move와 remove 시 array value/key/metadata rebasing.
+4. React adapter의 text input, textarea, checkbox, radio, select, `useField`, `useRegisters`, `useFormState`, field-local schema precedence.
 
 ### Suggested future documentation/tests
 
@@ -989,4 +1113,4 @@ Existing tests는 다음을 cover한다.
 - `insert()` index bounding test.
 - `replace()`가 child metadata를 의도적으로 drop하는지에 대한 test.
 - Root-level schema errors test.
-- Adapter가 생긴 뒤 framework adapter examples.
+- Custom DOM-event-compatible component를 위한 React adapter examples.

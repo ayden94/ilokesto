@@ -5,12 +5,7 @@ export {
 export type {
   CreateFormOptions,
   FieldPathInput,
-  FormArray,
-  FieldState,
   Form,
   FormError,
-  FormState,
-  SetValueOptions,
   StandardSchemaV1,
-  ValidationTrigger,
 } from './core/index';

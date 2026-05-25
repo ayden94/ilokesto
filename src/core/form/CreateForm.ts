@@ -4,7 +4,7 @@ import { FormSubmitter } from './FormSubmitter';
 import { FormStateStore } from '../state/index';
 import { FormPath } from '../path/index';
 import { ValidationEngine } from '../validation/index';
-import type { CreateFormOptions, FieldPathInput, FieldState, Form, FormArray, FormError, FormState, PathKey, SetValueOptions } from '../types';
+import type { CreateFormOptions, FieldPathInput, FieldSchemaOptions, FieldState, Form, FormArray, FormError, FormState, PathKey, SetValueOptions } from '../types';
 
 /**
  * 프레임워크와 무관한 form의 최상위 진입점이다.
@@ -46,6 +46,11 @@ export class CreateForm<TValues> implements Form<TValues> {
   /** store 변경을 구독한다. framework adapter가 외부 store 구독을 연결할 때 사용된다. */
   public subscribe(listener: () => void): () => void {
     return this.store.subscribe(listener);
+  }
+
+  /** field-local schema를 validation engine에 등록하고 cleanup 함수를 반환한다. */
+  public registerFieldSchema(path: FieldPathInput, options: FieldSchemaOptions): () => void {
+    return this.fields.registerFieldSchema(path, options);
   }
 
   /** path에 해당하는 FieldState를 반환한다. 없는 필드는 읽기용 기본 상태를 만들어 반환한다. */
