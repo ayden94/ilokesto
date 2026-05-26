@@ -1,9 +1,14 @@
 import { HtmlTag } from "../../constants/htmlTags";
-import type { BaseTypeHelperFn, Fallback, ProxyType } from "../../types";
+import type { BaseTypeHelperFn, Fallback, NonNullableElements, ProxyType } from "../../types";
 
 export interface MatchProps<T = unknown> {
-  when: T | null | undefined | false;
+  when: T;
   children: React.ReactNode | ((item: NonNullable<T>) => React.ReactNode);
+}
+
+export interface MatchPropsArray<T extends readonly unknown[]> {
+  when: T;
+  children: React.ReactNode | ((item: NonNullableElements<T>) => React.ReactNode);
 }
 
 export interface SwitchProps extends Fallback {

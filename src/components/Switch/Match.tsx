@@ -1,16 +1,24 @@
 import { isValidElement } from "react";
+import type { NonNullableElements } from "../../types";
 import { resolveWhen } from "../../utils/resolveWhen";
-import { MatchProps } from "./types";
+import type { MatchProps, MatchPropsArray } from "./types";
 
-export function Match<T>({ when, children }: MatchProps<T>) {
+type MatchChildValue<T> = T extends readonly unknown[] ? NonNullableElements<T> : NonNullable<T>;
+type MatchElementProps = MatchProps | MatchPropsArray<readonly unknown[]>;
+
+export function Match<const T extends readonly unknown[]>(props: MatchPropsArray<T>): React.ReactNode;
+export function Match<T>(props: MatchProps<T>): React.ReactNode;
+export function Match<T>({ when, children }: MatchProps<T> | MatchPropsArray<readonly unknown[]>) {
   if (!resolveWhen(when)) {
     return null;
   }
 
   return typeof children === "function"
-    ? (children as (value: NonNullable<T>) => React.ReactNode)(when as NonNullable<T>)
+    ? (children as (value: MatchChildValue<typeof when>) => React.ReactNode)(
+        when as MatchChildValue<typeof when>
+      )
     : children;
 }
 
-export const isMatchElement = (child: React.ReactNode): child is React.ReactElement<MatchProps> =>
+export const isMatchElement = (child: React.ReactNode): child is React.ReactElement<MatchElementProps> =>
   isValidElement(child) && child.type === Match;
