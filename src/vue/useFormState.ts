@@ -30,6 +30,12 @@ export function useFormStateWithForm<TValues>(form: Form<TValues>): VueFormState
     get isSubmitting() {
       return getSummary().isSubmitting;
     },
+    get isSubmitted() {
+      return getSummary().isSubmitted;
+    },
+    get isSubmitSuccessful() {
+      return getSummary().isSubmitSuccessful;
+    },
     get submitCount() {
       return getSummary().submitCount;
     },

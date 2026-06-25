@@ -81,6 +81,8 @@ export type UseFormStateReturn<TValues> = {
   isDirty: boolean;
   isValid: boolean;
   isSubmitting: boolean;
+  isSubmitted: boolean;
+  isSubmitSuccessful: boolean;
   submitCount: number;
 };
 

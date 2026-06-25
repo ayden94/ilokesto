@@ -73,6 +73,8 @@ export type SolidFormStateReturn<TValues> = {
   readonly isDirty: boolean;
   readonly isValid: boolean;
   readonly isSubmitting: boolean;
+  readonly isSubmitted: boolean;
+  readonly isSubmitSuccessful: boolean;
   readonly submitCount: number;
 };
 

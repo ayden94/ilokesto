@@ -30,6 +30,9 @@ export class FormStateInitializer {
       initialValues,
       fields,
       submitCount: 0,
+      isSubmitting: false,
+      isSubmitted: false,
+      isSubmitSuccessful: false,
       arrayKeys,
     };
   }

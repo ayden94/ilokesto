@@ -28,15 +28,24 @@ export class FormSubmitter<TValues> {
     onValid: (values: TValues) => TResult | Promise<TResult>,
     onInvalid?: (fields: Readonly<Record<PathKey, FieldState>>) => void,
   ): Promise<TResult | undefined> {
-    this.store.incrementSubmitCount();
+    this.store.beginSubmit();
 
-    const isValid = await this.validation.validateRegisteredFields('submit');
+    try {
+      const isValid = await this.validation.validateRegisteredFields('submit');
 
-    if (!isValid) {
-      onInvalid?.(this.store.getState().fields);
-      return undefined;
+      if (!isValid) {
+        onInvalid?.(this.store.getState().fields);
+        this.store.completeSubmit(false);
+        return undefined;
+      }
+
+      const result = await onValid(this.store.getValues());
+
+      this.store.completeSubmit(true);
+      return result;
+    } catch (error) {
+      this.store.completeSubmit(false);
+      throw error;
     }
-
-    return onValid(this.store.getValues());
   }
 }

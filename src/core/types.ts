@@ -126,6 +126,12 @@ export type FormState<TValues> = {
   fields: Record<PathKey, FieldState>;
   /** form controller를 통해 submit을 시도한 횟수다. */
   submitCount: number;
+  /** submit validation 또는 submit callback이 진행 중인지 여부다. */
+  isSubmitting: boolean;
+  /** submit 흐름이 한 번 이상 완료되었는지 여부다. */
+  isSubmitted: boolean;
+  /** 가장 최근 submit 흐름이 valid callback까지 성공했는지 여부다. */
+  isSubmitSuccessful: boolean;
   /** 배열 field별 안정적인 item key 목록이다. */
   arrayKeys: ArrayKeys;
 };

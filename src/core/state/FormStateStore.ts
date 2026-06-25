@@ -101,9 +101,14 @@ export class FormStateStore<TValues> {
     this.writer.reset(values);
   }
 
-  /** submit 시도 횟수를 1 증가시킨다. */
-  public incrementSubmitCount(): void {
-    this.writer.incrementSubmitCount();
+  /** submit 시도 시작 상태를 기록한다. */
+  public beginSubmit(): void {
+    this.writer.beginSubmit();
+  }
+
+  /** submit 시도 완료 상태를 기록한다. */
+  public completeSubmit(successful: boolean): void {
+    this.writer.completeSubmit(successful);
   }
 
   /** 배열 rebasing처럼 전체 FormState를 계산해 교체해야 하는 작업에 쓰는 escape hatch다. */

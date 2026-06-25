@@ -115,6 +115,9 @@ test('Solid useFormState exposes aggregate state', () => {
 
     form.setErrors('email', [{ message: 'Required' }]);
     expect(state.isValid).toBe(false);
+    expect(state.isSubmitting).toBe(false);
+    expect(state.isSubmitted).toBe(false);
+    expect(state.isSubmitSuccessful).toBe(false);
 
     email.onInput(eventFor<HTMLInputElement>({ value: 'ada@example.com', type: 'text' }) as InputEvent & { currentTarget: HTMLInputElement });
     expect(state.isDirty).toBe(true);
@@ -146,6 +149,8 @@ test('Solid handleSubmit prevents default submit and passes valid values', async
   expect(preventDefaultCount).toBe(1);
   expect(submittedEmail).toBe('ada@example.com');
   expect(form.getState().submitCount).toBe(1);
+  expect(form.getState().isSubmitted).toBe(true);
+  expect(form.getState().isSubmitSuccessful).toBe(true);
 });
 
 test('Solid field-local schema overrides form-level schema', async () => {

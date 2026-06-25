@@ -106,6 +106,9 @@ test('Svelte useFormState returns a readable aggregate store', () => {
   const state = useFormState();
 
   expect(get(state).isValid).toBe(true);
+  expect(get(state).isSubmitting).toBe(false);
+  expect(get(state).isSubmitted).toBe(false);
+  expect(get(state).isSubmitSuccessful).toBe(false);
 
   form.setErrors('email', [{ message: 'Required' }]);
   expect(get(state).isValid).toBe(false);
@@ -129,6 +132,8 @@ test('Svelte handleSubmit prevents default submit and passes valid values', asyn
   expect(preventDefaultCount).toBe(1);
   expect(submittedEmail).toBe('ada@example.com');
   expect(form.getState().submitCount).toBe(1);
+  expect(form.getState().isSubmitted).toBe(true);
+  expect(form.getState().isSubmitSuccessful).toBe(true);
 });
 
 test('Svelte field-local schema overrides form-level schema while action is alive', async () => {

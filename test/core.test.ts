@@ -67,6 +67,56 @@ test('runs standard schema validation for blur, manual trigger, and submit', asy
   const submitResult = await form.submit(values => values.email);
   expect(submitResult).toBe('ada@example.com');
   expect(form.getState().submitCount).toBe(1);
+  expect(form.getState().isSubmitted).toBe(true);
+  expect(form.getState().isSubmitSuccessful).toBe(true);
+  expect(form.getState().isSubmitting).toBe(false);
+});
+
+test('tracks submit lifecycle for pending, invalid, and throwing submissions', async () => {
+  let resolveSubmit: (() => void) | undefined;
+  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const pendingSubmit = form.submit(() => new Promise<void>(resolve => {
+    resolveSubmit = resolve;
+  }));
+
+  expect(form.getState().submitCount).toBe(1);
+  expect(form.getState().isSubmitting).toBe(true);
+  expect(form.getState().isSubmitted).toBe(false);
+  expect(form.getState().isSubmitSuccessful).toBe(false);
+
+  for (let index = 0; index < 5 && !resolveSubmit; index += 1) {
+    await Promise.resolve();
+  }
+
+  expect(resolveSubmit).toBeDefined();
+  resolveSubmit?.();
+  await pendingSubmit;
+
+  expect(form.getState().isSubmitting).toBe(false);
+  expect(form.getState().isSubmitted).toBe(true);
+  expect(form.getState().isSubmitSuccessful).toBe(true);
+
+  const invalidForm = new CreateForm({
+    initialValues: { email: '' },
+    schema: standardSchema(() => ({ issues: [{ message: 'Invalid', path: ['email'] }] })),
+  });
+
+  await invalidForm.submit(() => 'not called');
+
+  expect(invalidForm.getState().submitCount).toBe(1);
+  expect(invalidForm.getState().isSubmitting).toBe(false);
+  expect(invalidForm.getState().isSubmitted).toBe(true);
+  expect(invalidForm.getState().isSubmitSuccessful).toBe(false);
+
+  const throwingForm = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+
+  await expect(throwingForm.submit(() => {
+    throw new Error('submit failed');
+  })).rejects.toThrow('submit failed');
+
+  expect(throwingForm.getState().isSubmitting).toBe(false);
+  expect(throwingForm.getState().isSubmitted).toBe(true);
+  expect(throwingForm.getState().isSubmitSuccessful).toBe(false);
 });
 
 test('rebases array values, keys, and field metadata together', async () => {
@@ -91,6 +141,9 @@ test('rebases array values, keys, and field metadata together', async () => {
   expect(form.getFieldState(['items', 0, 'name']).errors).toEqual([{ message: 'Keep me' }]);
   expect(form.getFieldState(['items', 0, 'name']).touched).toBe(true);
   expect(form.getFieldState(['items', 0, 'name']).modified).toBe(true);
+  expect(form.getState().isSubmitting).toBe(false);
+  expect(form.getState().isSubmitted).toBe(false);
+  expect(form.getState().isSubmitSuccessful).toBe(false);
 
   array.remove(0);
   expect(form.getValues()).toEqual({

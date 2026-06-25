@@ -102,11 +102,24 @@ export class FormStateWriter<TValues> {
     this.store.setState(FormStateInitializer.initialize(values ?? this.store.getState().initialValues));
   }
 
-  /** submitCount만 1 증가시킨다. submit 성공 여부와 무관하게 submit 시도 자체를 기록한다. */
-  public incrementSubmitCount(): void {
+  /** submit 시도 횟수를 증가시키고 진행 중 상태를 기록한다. */
+  public beginSubmit(): void {
     this.store.setState(prevState =>
       produce(prevState, draft => {
         draft.submitCount += 1;
+        draft.isSubmitting = true;
+        draft.isSubmitSuccessful = false;
+      }),
+    );
+  }
+
+  /** submit validation/callback 완료 후 성공 여부를 기록한다. */
+  public completeSubmit(successful: boolean): void {
+    this.store.setState(prevState =>
+      produce(prevState, draft => {
+        draft.isSubmitting = false;
+        draft.isSubmitted = true;
+        draft.isSubmitSuccessful = successful;
       }),
     );
   }

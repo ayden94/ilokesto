@@ -8,6 +8,8 @@ export type FormStateSummary<TValues> = {
   isDirty: boolean;
   isValid: boolean;
   isSubmitting: boolean;
+  isSubmitted: boolean;
+  isSubmitSuccessful: boolean;
   submitCount: number;
 };
 
@@ -24,7 +26,9 @@ export function createFormStateSummary<TValues>(state: Readonly<FormState<TValue
     touchedFields,
     isDirty: Object.keys(dirtyFields).length > 0,
     isValid: Object.keys(errors).length === 0,
-    isSubmitting: false,
+    isSubmitting: state.isSubmitting,
+    isSubmitted: state.isSubmitted,
+    isSubmitSuccessful: state.isSubmitSuccessful,
     submitCount: state.submitCount,
   };
 }

@@ -291,14 +291,17 @@ test('handleSubmit prevents default form submit and passes valid values', async 
   let submittedEmail = '';
 
   function Example() {
-    const { handleSubmit, useRegister } = useForm(form);
+    const { handleSubmit, useFormState, useRegister } = useForm(form);
     const email = useRegister({ name: 'email' });
+    const state = useFormState();
 
     return (
       <form onSubmit={handleSubmit(values => {
         submittedEmail = values.email;
       })}>
         <input aria-label="email" {...email} />
+        <output aria-label="submitted">{String(state.isSubmitted)}</output>
+        <output aria-label="submit-successful">{String(state.isSubmitSuccessful)}</output>
         <button type="submit">Submit</button>
       </form>
     );
@@ -311,6 +314,8 @@ test('handleSubmit prevents default form submit and passes valid values', async 
 
   await waitFor(() => expect(submittedEmail).toBe('ada@example.com'));
   expect(form.getState().submitCount).toBe(1);
+  expect(screen.getByLabelText('submitted').textContent).toBe('true');
+  expect(screen.getByLabelText('submit-successful').textContent).toBe('true');
 });
 
 test('field-local schema overrides form-level schema for a registered field', async () => {

@@ -94,6 +94,9 @@ export class FormArrayRebaser {
         [arrayKey]: [...nextKeys],
       },
       submitCount: store.getState().submitCount,
+      isSubmitting: store.getState().isSubmitting,
+      isSubmitted: store.getState().isSubmitted,
+      isSubmitSuccessful: store.getState().isSubmitSuccessful,
     };
   }
 }
