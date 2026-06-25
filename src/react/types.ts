@@ -6,7 +6,7 @@ import type {
   TextareaHTMLAttributes,
   FormEvent,
 } from 'react';
-import type { CreateFormOptions, Form, FormError, FormState, ResetOptions } from '../core/index';
+import type { CreateFormOptions, FieldPathInput, FieldPathValue, FieldState, Form, FormError, FormState, ResetOptions } from '../core/index';
 import type { RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
 
 export type { RegisterOptions } from '../adapters/dom';
@@ -80,6 +80,9 @@ export type UseFieldReturn<TProps extends RegisterProps = InputRegisterProps> = 
   touched: boolean;
 };
 
+/** 한 field의 value와 meta를 form values 타입과 path에서 추론해 반환한다. */
+export type UseFieldStateReturn<TValues, TName extends FieldPathInput> = Readonly<FieldState<FieldPathValue<TValues, TName>>>;
+
 /** form 전체 상태에서 React UI가 자주 쓰는 aggregate state다. */
 export type UseFormStateReturn<TValues> = {
   state: Readonly<FormState<TValues>>;
@@ -105,6 +108,7 @@ export type ReactForm<TValues> = {
   useRegister<TElement extends RegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(options: TOptions): RegisterPropsList<TElement, TOptions>;
   useRegister<TElement extends RegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(...options: TOptions): RegisterPropsList<TElement, TOptions>;
   useField<TElement extends RegisterElement = HTMLInputElement>(options: RegisterOptions): UseFieldReturn<RegisterPropsForElement<TElement>>;
+  useFieldState<const TName extends FieldPathInput>(name: TName): UseFieldStateReturn<TValues, TName>;
   useFormState(): UseFormStateReturn<TValues>;
   handleSubmit<TResult>(onValid: SubmitValidHandler<TValues, TResult>, onInvalid?: SubmitInvalidHandler): SubmitHandler<FormEvent<HTMLFormElement>, TResult>;
 };

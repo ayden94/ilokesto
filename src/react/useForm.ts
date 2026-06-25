@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { createSubmitHandler } from '../adapters/dom';
 import { createFormFromOptions, isFormInstance, type FormInput } from '../adapters/FormInput';
-import type { Form } from '../core/index';
+import type { FieldPathInput, Form } from '../core/index';
 import type { ReactForm, ReactFormOptions, RegisterOptions } from './types';
 import { useFieldWithForm } from './useField';
+import { useFieldStateWithForm } from './useFieldState';
 import { useFormStateWithForm } from './useFormState';
 import { useRegisterWithForm } from './useRegister';
 
@@ -35,10 +36,12 @@ export function useForm<TValues>(input: FormInput<TValues>): ReactForm<TValues> 
   ) => useRegisterWithForm(form, first, ...rest)) as ReactForm<TValues>['useRegister'];
   const useField = ((options: RegisterOptions) =>
     useFieldWithForm(form, options)) as ReactForm<TValues>['useField'];
+  const useFieldState = ((name: FieldPathInput) =>
+    useFieldStateWithForm(form, name)) as ReactForm<TValues>['useFieldState'];
   const useFormState = (): ReturnType<ReactForm<TValues>['useFormState']> =>
     useFormStateWithForm(form);
   const handleSubmit = ((onValid, onInvalid) =>
     createSubmitHandler(form, onValid, onInvalid)) as ReactForm<TValues>['handleSubmit'];
 
-  return useMemo(() => ({ form, useRegister, useField, useFormState, handleSubmit }), [form]);
+  return useMemo(() => ({ form, useRegister, useField, useFieldState, useFormState, handleSubmit }), [form]);
 }

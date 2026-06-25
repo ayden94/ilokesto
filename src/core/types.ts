@@ -115,6 +115,45 @@ export type FieldState<TValue = unknown> = {
   modified: boolean;
 };
 
+/** public field path input이 가리키는 value 타입을 form values 타입에서 계산한다. */
+export type FieldPathValue<TValues, TName extends FieldPathInput> = TName extends string
+  ? StringFieldValue<TValues, TName>
+  : TName extends FieldPath
+    ? TuplePathValue<TValues, TName>
+    : unknown;
+
+/** string path는 dot path가 아니라 top-level literal field name으로만 해석한다. */
+type StringFieldValue<TValues, TName extends string> = TName extends keyof NonNullable<TValues>
+  ? NonNullable<TValues>[TName] | MissingContainer<TValues>
+  : unknown;
+
+/** tuple path만 nested value를 표현한다. []는 root values 자체를 가리킨다. */
+type TuplePathValue<TValue, TPath extends FieldPath> = TPath extends readonly []
+  ? TValue
+  : TPath extends readonly [infer THead, ...infer TRest]
+    ? THead extends FieldPathSegment
+      ? TRest extends FieldPath
+        ? SegmentValue<TValue, THead, TRest>
+        : unknown
+      : unknown
+    : unknown;
+
+type SegmentValue<TValue, THead extends FieldPathSegment, TRest extends FieldPath> = NonNullable<TValue> extends readonly unknown[]
+  ? THead extends number
+    ? TuplePathValue<ArrayElement<NonNullable<TValue>, THead>, TRest> | MissingContainer<TValue>
+    : unknown
+  : THead extends keyof NonNullable<TValue>
+    ? TuplePathValue<NonNullable<TValue>[THead], TRest> | MissingContainer<TValue>
+    : unknown;
+
+type ArrayElement<TArray, TIndex extends number> = TArray extends readonly unknown[]
+  ? TIndex extends keyof TArray
+    ? TArray[TIndex]
+    : TArray[number]
+  : unknown;
+
+type MissingContainer<TValue> = Extract<TValue, null | undefined> extends never ? never : undefined;
+
 /** 배열 field의 안정적인 render key 목록이다. array path key를 기준으로 저장된다. */
 export type ArrayKeys = Record<PathKey, string[]>;
 

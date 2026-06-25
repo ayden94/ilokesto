@@ -8,21 +8,30 @@ type SignupValues = {
   email: string;
   displayName: string;
   newsletter: boolean;
+  profile: {
+    role: string;
+  };
 };
 
 const serverValues: SignupValues = {
   email: 'server@example.com',
   displayName: 'Server Loaded User',
   newsletter: true,
+  profile: {
+    role: 'member',
+  },
 };
 
 function ArrayUseRegisterExample() {
   const [queryValues, setQueryValues] = useState<SignupValues | undefined>();
-  const { useRegister, form, useFormState, handleSubmit } = useForm<SignupValues>({
+  const { useRegister, form, useFieldState, useFormState, handleSubmit } = useForm({
     defaultValues: {
       email: '',
       displayName: '',
       newsletter: false,
+      profile: {
+        role: 'visitor',
+      },
     },
     values: queryValues,
     resetOptions: { keepDirtyValues: true },
@@ -32,7 +41,15 @@ function ArrayUseRegisterExample() {
     { name: 'displayName' },
     { name: 'newsletter', type: 'checkbox' },
   ]);
+  const emailState = useFieldState('email');
+  const newsletterState = useFieldState('newsletter');
+  const profileRoleState = useFieldState(['profile', 'role']);
+  const extensionState = useFieldState('marketingSource');
   const state = useFormState();
+
+  const emailValue: string = emailState.value;
+  const newsletterValue: boolean = newsletterState.value;
+  const profileRoleValue: string = profileRoleState.value;
 
   return (
     <main className="page-shell">
@@ -49,8 +66,19 @@ function ArrayUseRegisterExample() {
           <button type="button" onClick={() => setQueryValues(serverValues)}>
             Load query result
           </button>
+          <button type="button" onClick={() => form.setValue('marketingSource', 'landing-page', { source: 'user' })}>
+            Set extension field
+          </button>
           <span className="status-pill">isDirty: {String(state.isDirty)}</span>
           <span className="status-pill">submitCount: {state.submitCount}</span>
+        </div>
+
+        <div className="field-state-panel" aria-label="Typed useFieldState values">
+          <strong>useFieldState</strong>
+          <span>Email value: {emailValue || '(empty)'}</span>
+          <span>Newsletter checked: {String(newsletterValue)}</span>
+          <span>Profile role: {profileRoleValue}</span>
+          <span>Unknown extension dirty: {String(extensionState.dirty)}</span>
         </div>
 
         <form

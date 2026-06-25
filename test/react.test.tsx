@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, expectTypeOf, test } from 'vitest';
 
 import { CreateForm } from '../src/index';
 import { useForm } from '../src/react/index';
@@ -126,7 +126,7 @@ test('reset from a React event updates registered inputs and form state', async 
       <>
         <input aria-label="email" {...email} />
         <input aria-label="display name" {...displayName} />
-        <input aria-label="newsletter" type="checkbox" {...newsletter} />
+        <input aria-label="newsletter" {...newsletter} />
         <output aria-label="dirty">{String(state.isDirty)}</output>
         <button
           type="button"
@@ -187,6 +187,102 @@ test('useField returns props, field state, and setter without nested register', 
   await waitFor(() => expect(screen.getByLabelText('touched').textContent).toBe('true'));
 });
 
+test('useFieldState returns typed field state and permits unknown extension paths', async () => {
+  type Values = {
+    email: string;
+    user: {
+      name: string;
+      age: number;
+    };
+    items: { title: string }[];
+    profile?: {
+      name: string;
+    };
+    'user.name': boolean;
+  };
+
+  const form = new CreateForm<Values>({
+    defaultValues: {
+      email: '',
+      user: { name: '', age: 0 },
+      items: [{ title: 'Initial' }],
+      'user.name': false,
+    },
+  });
+
+  function Example() {
+    const { useFieldState } = useForm(form);
+    const email = useFieldState('email');
+    const nestedName = useFieldState(['user', 'name']);
+    const nestedAge = useFieldState(['user', 'age']);
+    const itemTitle = useFieldState(['items', 0, 'title']);
+    const optionalName = useFieldState(['profile', 'name']);
+    const literalDotName = useFieldState('user.name');
+    const extension = useFieldState('nickname');
+
+    expectTypeOf(email.value).toEqualTypeOf<string>();
+    expectTypeOf(nestedName.value).toEqualTypeOf<string>();
+    expectTypeOf(nestedAge.value).toEqualTypeOf<number>();
+    expectTypeOf(itemTitle.value).toEqualTypeOf<string>();
+    expectTypeOf(optionalName.value).toEqualTypeOf<string | undefined>();
+    expectTypeOf(literalDotName.value).toEqualTypeOf<boolean>();
+    expectTypeOf(extension.value).toEqualTypeOf<unknown>();
+
+    return (
+      <>
+        <output aria-label="email">{String(email.value)}</output>
+        <output aria-label="nested-name">{String(nestedName.value)}</output>
+        <output aria-label="item-title">{String(itemTitle.value)}</output>
+        <output aria-label="literal-dot-name">{String(literalDotName.value)}</output>
+        <output aria-label="extension-dirty">{String(extension.dirty)}</output>
+      </>
+    );
+  }
+
+  render(<Example />);
+
+  expect(screen.getByLabelText('email').textContent).toBe('');
+  expect(screen.getByLabelText('nested-name').textContent).toBe('');
+  expect(screen.getByLabelText('item-title').textContent).toBe('Initial');
+  expect(screen.getByLabelText('literal-dot-name').textContent).toBe('false');
+
+  form.setValue('nickname', 'Ada', { source: 'user' });
+
+  await waitFor(() => expect(screen.getByLabelText('extension-dirty').textContent).toBe('true'));
+});
+
+test('useFieldState infers values from useForm options', () => {
+  type Values = {
+    email: string;
+    user: {
+      age: number;
+    };
+  };
+
+  function Example({ values }: { values: Values }) {
+    const { useFieldState } = useForm({
+      defaultValues: {
+        email: '',
+        user: { age: 0 },
+      },
+      values,
+    });
+    const email = useFieldState('email');
+    const age = useFieldState(['user', 'age']);
+    const extension = useFieldState('nickname');
+
+    expectTypeOf(email.value).toEqualTypeOf<string>();
+    expectTypeOf(age.value).toEqualTypeOf<number>();
+    expectTypeOf(extension.value).toEqualTypeOf<unknown>();
+
+    return <output aria-label="email">{String(email.value)}</output>;
+  }
+
+  render(<Example values={{ email: 'server@example.com', user: { age: 42 } }} />);
+
+  expect(screen.getByLabelText('email').textContent).toBe('server@example.com');
+});
+
 test('useRegister returns map-friendly bindings for an options array', () => {
   const form = new CreateForm({ defaultValues: {
     bio: '',
@@ -208,9 +304,9 @@ test('useRegister returns map-friendly bindings for an options array', () => {
     return (
       <>
         <textarea aria-label="bio" {...bio} />
-        <input aria-label="agreed" type="checkbox" {...agreed} />
-        <input aria-label="red" type="radio" {...red} />
-        <input aria-label="blue" type="radio" {...blue} />
+        <input aria-label="agreed" {...agreed} />
+        <input aria-label="red" {...red} />
+        <input aria-label="blue" {...blue} />
         <select aria-label="role" {...role}>
           <option value="user">User</option>
           <option value="admin">Admin</option>
@@ -246,8 +342,8 @@ test('useRegister returns a binding array for rest arguments', () => {
 
     return (
       <>
-        <input aria-label="red" type="radio" {...red} />
-        <input aria-label="blue" type="radio" {...blue} />
+        <input aria-label="red" {...red} />
+        <input aria-label="blue" {...blue} />
       </>
     );
   }
