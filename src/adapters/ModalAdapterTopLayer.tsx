@@ -1,5 +1,22 @@
 import React, { useEffect, useRef, useCallback, useId } from 'react';
+import { useIsTopModal } from '../hooks/useIsTopModal';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 import type { ModalAdapterProps, ModalPosition } from '../shared/types';
+
+const focusableSelector = [
+  'button:not([disabled])',
+  '[href]',
+  'input:not([disabled])',
+  'select:not([disabled])',
+  'textarea:not([disabled])',
+  '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+
+function getFirstFocusableElement(container: HTMLElement): HTMLElement | null {
+  return [...container.querySelectorAll<HTMLElement>(focusableSelector)].find(
+    (el) => el.getAttribute('aria-hidden') !== 'true'
+  ) ?? null;
+}
 
 function getDialogPositionStyles(pos?: ModalPosition): React.CSSProperties {
   switch (pos) {
@@ -24,11 +41,18 @@ function cssPropertiesToString(style: React.CSSProperties): string {
 }
 
 export function ModalAdapterTopLayer<TResult>({
+  id,
+  isOpen,
   status,
   close,
   remove,
   children,
+  render,
   position = 'center',
+  role = 'dialog',
+  ariaLabel,
+  ariaLabelledBy,
+  ariaDescribedBy,
   dismissible = true,
   onDismiss,
   className,
@@ -41,11 +65,12 @@ export function ModalAdapterTopLayer<TResult>({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const uniqueId = useId().replace(/:/g, '');
+  const isTopModal = useIsTopModal(id);
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   // Reduced motion fast-track removal
   useEffect(() => {
     if (status === 'closing') {
-      const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (prefersReducedMotion) {
         const dialog = dialogRef.current;
         if (dialog && dialog.open) {
@@ -54,22 +79,25 @@ export function ModalAdapterTopLayer<TResult>({
         remove();
       }
     }
-  }, [status, remove]);
+  }, [status, prefersReducedMotion, remove]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    if (autoFocus) {
-      previousFocusRef.current = document.activeElement as HTMLElement | null;
-    }
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
 
     if (!dialog.open) {
       dialog.showModal();
     }
 
+    if (autoFocus) {
+      const focusable = getFirstFocusableElement(dialog) ?? dialog;
+      focusable.focus();
+    }
+
     return () => {
-      if (restoreFocus && previousFocusRef.current) {
+      if (restoreFocus && previousFocusRef.current?.isConnected) {
         previousFocusRef.current.focus();
       }
     };
@@ -80,7 +108,7 @@ export function ModalAdapterTopLayer<TResult>({
     if (!dialog) return;
 
     const handleCancel = (e: Event) => {
-      if (dismissible && status !== 'closing') {
+      if (isTopModal && dismissible && status !== 'closing') {
         e.preventDefault();
         onDismiss?.();
         close();
@@ -95,7 +123,7 @@ export function ModalAdapterTopLayer<TResult>({
       // But wait: if the dialog is purely the content, clicking the content is ALSO clicking the dialog,
       // UNLESS the content is wrapped in a child div. Wait, e.target === dialog works because
       // if they click the content, e.target is the content element or its children.
-      if (dismissible && e.target === dialog && status !== 'closing') {
+      if (isTopModal && dismissible && e.target === dialog && status !== 'closing') {
         onDismiss?.();
         close();
       }
@@ -108,7 +136,7 @@ export function ModalAdapterTopLayer<TResult>({
       dialog.removeEventListener('cancel', handleCancel);
       dialog.removeEventListener('click', handleClick);
     };
-  }, [close, dismissible, onDismiss, status]);
+  }, [close, dismissible, isTopModal, onDismiss, status]);
 
   const handleAnimationEnd = useCallback((e: React.AnimationEvent) => {
     if (status === 'closing' && e.target === e.currentTarget) {
@@ -121,8 +149,8 @@ export function ModalAdapterTopLayer<TResult>({
   }, [status, remove]);
 
   const isClosing = status === 'closing';
-  const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const animationDuration = prefersReducedMotion ? '0s' : '0.2s';
+  const content = render ? render(close, { id, status, isOpen, close }) : children;
   const panelAnimation = isClosing
     ? `ilokestoModalScaleOut ${animationDuration} ease-out forwards`
     : `ilokestoModalScaleIn ${animationDuration} ease-out forwards`;
@@ -147,18 +175,44 @@ export function ModalAdapterTopLayer<TResult>({
           `}
         </style>
       )}
-      <dialog
-        ref={dialogRef}
-        className={classes + dynamicBackdropClass}
-        style={{
-          animation: panelAnimation,
-          ...getDialogPositionStyles(position),
-          ...style,
-        }}
-        onAnimationEnd={handleAnimationEnd}
-      >
-        {children}
-      </dialog>
+      {role === 'alertdialog' ? (
+        <dialog
+          ref={dialogRef}
+          role="alertdialog"
+          aria-modal="true"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
+          aria-describedby={ariaDescribedBy}
+          tabIndex={-1}
+          className={classes + dynamicBackdropClass}
+          style={{
+            animation: panelAnimation,
+            ...getDialogPositionStyles(position),
+            ...style,
+          }}
+          onAnimationEnd={handleAnimationEnd}
+        >
+          {content}
+        </dialog>
+      ) : (
+        <dialog
+          ref={dialogRef}
+          aria-modal="true"
+          aria-label={ariaLabel}
+          aria-labelledby={ariaLabelledBy}
+          aria-describedby={ariaDescribedBy}
+          tabIndex={-1}
+          className={classes + dynamicBackdropClass}
+          style={{
+            animation: panelAnimation,
+            ...getDialogPositionStyles(position),
+            ...style,
+          }}
+          onAnimationEnd={handleAnimationEnd}
+        >
+          {content}
+        </dialog>
+      )}
     </>
   );
 }

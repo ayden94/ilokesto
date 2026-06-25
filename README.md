@@ -33,7 +33,9 @@ npm install @ilokesto/modal react
 
 ## Basic Usage
 
-Because modal content usually needs to close itself with a result, the most practical pattern is to use a stable `id` and call `close(id, result)` from your content callbacks.
+Because modal content usually needs to close itself with a result, the preferred pattern is to use `render`. The render callback receives a `close(result)` function scoped to that specific modal instance.
+
+Use either `render` or `children`, not both. `render` is recommended for result-producing modal content; `children` remains available for static content and backward compatibility.
 
 ```tsx
 import { ModalProvider, useModal } from '@ilokesto/modal';
@@ -66,7 +68,7 @@ function ConfirmContent({
 }
 
 function DeleteButton() {
-  const { display, close } = useModal();
+  const { display } = useModal();
 
   const handleClick = async () => {
     const modalId = 'delete-confirm';
@@ -75,10 +77,12 @@ function DeleteButton() {
       id: modalId,
       position: 'center',
       dismissible: true,
-      children: (
+      ariaLabelledBy: 'delete-confirm-title',
+      ariaDescribedBy: 'delete-confirm-description',
+      render: (close) => (
         <ConfirmContent
-          onConfirm={() => close(modalId, true)}
-          onCancel={() => close(modalId, false)}
+          onConfirm={() => close(true)}
+          onCancel={() => close(false)}
         />
       ),
     });
@@ -114,10 +118,10 @@ async function openGlobalConfirm() {
 
   const result = await modal.display<boolean>({
     id: modalId,
-    children: (
+    render: (close) => (
       <div>
-        <button onClick={() => modal.close(modalId, true)}>Confirm</button>
-        <button onClick={() => modal.close(modalId, false)}>Cancel</button>
+        <button onClick={() => close(true)}>Confirm</button>
+        <button onClick={() => close(false)}>Cancel</button>
       </div>
     ),
   });
@@ -136,11 +140,54 @@ When you want native top-layer rendering, use:
 await display({
   id: 'settings-dialog',
   transport: 'top-layer',
-  children: <SettingsDialog />,
+  render: (close) => <SettingsDialog onClose={() => close()} />,
 });
 ```
 
 This path uses the native `<dialog>` element under the hood.
+
+## Accessibility
+
+Always give modal content an accessible name. The preferred pattern is to render a visible heading and connect it with `ariaLabelledBy`; add `ariaDescribedBy` when helper text explains the consequence of the action.
+
+```tsx
+await display({
+  id: 'delete-confirm',
+  ariaLabelledBy: 'delete-confirm-title',
+  ariaDescribedBy: 'delete-confirm-description',
+  render: (close) => (
+    <section>
+      <h2 id="delete-confirm-title">Delete item?</h2>
+      <p id="delete-confirm-description">This action cannot be undone.</p>
+      <button onClick={() => close(false)}>Cancel</button>
+      <button onClick={() => close(true)}>Delete</button>
+    </section>
+  ),
+});
+```
+
+For dialogs without a visible title, use `ariaLabel`. Use `role: 'alertdialog'` only for urgent confirmation flows that require immediate attention.
+
+### React Compiler note
+
+The `render` callback must stay pure. Do not call hooks, create nested components, mutate captured values, or run side effects directly inside it. If the modal body needs hooks, return a real component and pass `close` as a prop.
+
+```tsx
+// Good: hooks live inside SettingsDialog, not inside the render callback.
+await display({
+  ariaLabel: 'Settings',
+  render: (close) => <SettingsDialog onClose={() => close()} />,
+});
+
+// Avoid: hooks inside render callbacks violate the Rules of Hooks.
+await display({
+  ariaLabel: 'Settings',
+  render: (close) => {
+    // const value = useSomething(); // Do not do this.
+    return <SettingsDialog onClose={() => close()} />;
+  },
+});
+```
 
 ## Positioning
 
@@ -210,7 +257,7 @@ src/
 ### `src/shared`
 
 - `styles.ts` → shared fade/scale animation styles
-- `types.ts` → modal props, adapter props, and position contracts
+- `types.ts` → modal props, scoped render callback, adapter props, and position contracts
 
 ### `src/index.ts`
 
@@ -219,7 +266,7 @@ src/
 ## Exports
 
 - values → `ModalProvider`, `useModal`, `modal`, `globalModalStore`
-- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`
+- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`, `ModalClose`, `ModalRender`, `ModalRenderContext`
 
 ## Development
 

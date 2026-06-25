@@ -7,4 +7,11 @@ export type { UseModalOptions } from './hooks/useModal';
 export { modal, globalModalStore } from './facade/modalFacade';
 export type { ModalFacadeOptions } from './facade/modalFacade';
 
-export type { ModalProps, ModalAdapterProps, ModalPosition } from './shared/types';
+export type {
+  ModalAdapterProps,
+  ModalClose,
+  ModalPosition,
+  ModalProps,
+  ModalRender,
+  ModalRenderContext,
+} from './shared/types';

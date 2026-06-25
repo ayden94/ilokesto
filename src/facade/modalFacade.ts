@@ -1,21 +1,26 @@
 import { createOverlayStore } from '@ilokesto/overlay';
+import { assertExclusiveModalContent } from '../shared/types';
 import type { ModalProps } from '../shared/types';
 
 export const globalModalStore = createOverlayStore();
 
-export interface ModalFacadeOptions extends ModalProps {
+export type ModalFacadeOptions<TResult = unknown> = ModalProps<TResult> & {
   id?: string;
-}
+};
 
 export const modal = {
-  open: <TResult = unknown>(options: ModalFacadeOptions) => {
+  open: <TResult = unknown>(options: ModalFacadeOptions<TResult>) => {
+    assertExclusiveModalContent(options);
+
     return globalModalStore.open<TResult>({
       id: options.id,
       type: 'modal',
       props: options as unknown as Record<string, unknown>,
     }).id;
   },
-  display: <TResult = unknown>(options: ModalFacadeOptions) => {
+  display: <TResult = unknown>(options: ModalFacadeOptions<TResult>) => {
+    assertExclusiveModalContent(options);
+
     return globalModalStore.open<TResult>({
       id: options.id,
       type: 'modal',

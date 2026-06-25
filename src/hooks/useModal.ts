@@ -1,22 +1,27 @@
 import { useOverlay } from '@ilokesto/overlay';
+import { assertExclusiveModalContent } from '../shared/types';
 import type { ModalProps } from '../shared/types';
 
-export interface UseModalOptions extends ModalProps {
+export type UseModalOptions<TResult = unknown> = ModalProps<TResult> & {
   id?: string;
-}
+};
 
 export function useModal() {
   const overlay = useOverlay();
 
   return {
-    open: (options: UseModalOptions) => {
+    open: <TResult = unknown>(options: UseModalOptions<TResult>) => {
+      assertExclusiveModalContent(options);
+
       return overlay.open({
         id: options.id,
         type: 'modal',
         props: options as unknown as Record<string, unknown>,
       });
     },
-    display: <TResult = unknown>(options: UseModalOptions) => {
+    display: <TResult = unknown>(options: UseModalOptions<TResult>) => {
+      assertExclusiveModalContent(options);
+
       return overlay.display<TResult>({
         id: options.id,
         type: 'modal',

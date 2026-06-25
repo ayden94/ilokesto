@@ -33,7 +33,9 @@ npm install @ilokesto/modal react
 
 ## Basic Usage
 
-modal 내부 콘텐츠가 스스로 result를 넘기며 닫아야 하는 경우가 많기 때문에, 가장 실용적인 패턴은 stable `id`를 주고 `close(id, result)`를 콘텐츠 콜백에서 호출하는 방식입니다.
+modal 내부 콘텐츠가 스스로 result를 넘기며 닫아야 하는 경우가 많기 때문에, 권장 패턴은 `render`를 사용하는 방식입니다. render callback은 해당 modal 인스턴스에만 묶인 `close(result)` 함수를 받습니다.
+
+`render`와 `children`은 둘 중 하나만 사용하세요. result를 반환하는 modal content에는 `render`를 권장하고, `children`은 정적인 content와 하위호환을 위해 유지됩니다.
 
 ```tsx
 import { ModalProvider, useModal } from '@ilokesto/modal';
@@ -66,7 +68,7 @@ function ConfirmContent({
 }
 
 function DeleteButton() {
-  const { display, close } = useModal();
+  const { display } = useModal();
 
   const handleClick = async () => {
     const modalId = 'delete-confirm';
@@ -75,10 +77,12 @@ function DeleteButton() {
       id: modalId,
       position: 'center',
       dismissible: true,
-      children: (
+      ariaLabelledBy: 'delete-confirm-title',
+      ariaDescribedBy: 'delete-confirm-description',
+      render: (close) => (
         <ConfirmContent
-          onConfirm={() => close(modalId, true)}
-          onCancel={() => close(modalId, false)}
+          onConfirm={() => close(true)}
+          onCancel={() => close(false)}
         />
       ),
     });
@@ -114,10 +118,10 @@ async function openGlobalConfirm() {
 
   const result = await modal.display<boolean>({
     id: modalId,
-    children: (
+    render: (close) => (
       <div>
-        <button onClick={() => modal.close(modalId, true)}>Confirm</button>
-        <button onClick={() => modal.close(modalId, false)}>Cancel</button>
+        <button onClick={() => close(true)}>Confirm</button>
+        <button onClick={() => close(false)}>Cancel</button>
       </div>
     ),
   });
@@ -136,11 +140,54 @@ inline transport가 기본값입니다. 이쪽이 animation과 backdrop 제어�
 await display({
   id: 'settings-dialog',
   transport: 'top-layer',
-  children: <SettingsDialog />,
+  render: (close) => <SettingsDialog onClose={() => close()} />,
 });
 ```
 
 이 경로는 내부적으로 네이티브 `<dialog>`를 사용합니다.
+
+## Accessibility
+
+modal에는 항상 접근 가능한 이름을 제공하세요. 권장 패턴은 화면에 보이는 heading을 렌더링하고 `ariaLabelledBy`로 연결하는 것입니다. 안내 문구나 결과 설명이 있으면 `ariaDescribedBy`도 함께 연결하세요.
+
+```tsx
+await display({
+  id: 'delete-confirm',
+  ariaLabelledBy: 'delete-confirm-title',
+  ariaDescribedBy: 'delete-confirm-description',
+  render: (close) => (
+    <section>
+      <h2 id="delete-confirm-title">Delete item?</h2>
+      <p id="delete-confirm-description">This action cannot be undone.</p>
+      <button onClick={() => close(false)}>Cancel</button>
+      <button onClick={() => close(true)}>Delete</button>
+    </section>
+  ),
+});
+```
+
+보이는 제목이 없는 dialog라면 `ariaLabel`을 사용하세요. `role: 'alertdialog'`는 즉각적인 주의가 필요한 중요한 확인 흐름에만 사용하세요.
+
+### React Compiler note
+
+`render` callback은 순수하게 유지해야 합니다. callback 안에서 hook 호출, 중첩 컴포넌트 정의, 캡처 값 mutation, side effect 실행을 하지 마세요. hook이 필요한 modal body는 실제 컴포넌트로 분리하고 `close`를 prop으로 넘기세요.
+
+```tsx
+// 좋음: hook은 render callback 안이 아니라 SettingsDialog 내부에 있습니다.
+await display({
+  ariaLabel: 'Settings',
+  render: (close) => <SettingsDialog onClose={() => close()} />,
+});
+
+// 피하세요: render callback 안에서 hook을 호출하면 Rules of Hooks 위반입니다.
+await display({
+  ariaLabel: 'Settings',
+  render: (close) => {
+    // const value = useSomething(); // 이렇게 하지 마세요.
+    return <SettingsDialog onClose={() => close()} />;
+  },
+});
+```
 
 ## Positioning
 
@@ -210,7 +257,7 @@ src/
 ### `src/shared`
 
 - `styles.ts` → 공용 fade/scale animation 스타일
-- `types.ts` → modal props, adapter props, position contract
+- `types.ts` → modal props, scoped render callback, adapter props, position contract
 
 ### `src/index.ts`
 
@@ -219,7 +266,7 @@ src/
 ## Exports
 
 - values → `ModalProvider`, `useModal`, `modal`, `globalModalStore`
-- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`
+- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`, `ModalClose`, `ModalRender`, `ModalRenderContext`
 
 ## Development
 
