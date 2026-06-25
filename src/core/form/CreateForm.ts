@@ -24,12 +24,12 @@ export class CreateForm<TValues> implements Form<TValues> {
   private readonly submitter: FormSubmitter<TValues>;
 
   /**
-   * initialValues로 form 상태를 초기화하고, 같은 store를 공유하는 협력 객체들을 연결한다.
+   * defaultValues로 form 상태를 초기화하고, 같은 store를 공유하는 협력 객체들을 연결한다.
    *
    * ValidationEngine도 같은 store를 바라보기 때문에 schema validation은 항상 최신 값을 기준으로 실행된다.
    */
   public constructor(options: CreateFormOptions<TValues>) {
-    this.store = new FormStateStore(options.initialValues);
+    this.store = new FormStateStore(options.defaultValues);
 
     const validation = new ValidationEngine(this.store, options);
 
@@ -103,7 +103,7 @@ export class CreateForm<TValues> implements Form<TValues> {
     return this.arrays.create(FormPath.toFieldPath(path));
   }
 
-  /** form을 initialValues 또는 새 values 기준으로 초기 상태로 되돌린다. */
+  /** form을 defaultValues 또는 새 values 기준으로 초기 상태로 되돌린다. */
   public reset(values?: TValues): void {
     this.store.reset(values);
   }

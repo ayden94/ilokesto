@@ -2,7 +2,7 @@
  * 런타임에 추가되는 배열 item의 안정적인 key를 만든다.
  *
  * @remarks
- * initialValues에서 온 item은 FormStateInitializer가 `initial-${index}` key를 만들고,
+ * defaultValues에서 온 item은 FormStateInitializer가 `initial-${index}` key를 만들고,
  * 사용자 명령으로 추가되는 item은 이 generator가 `item-${n}` key를 만든다.
  */
 export class ArrayKeyGenerator {

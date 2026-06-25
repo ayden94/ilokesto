@@ -60,7 +60,7 @@ type LoginValues = {
 };
 
 const form = new CreateForm<LoginValues>({
-  initialValues: {
+  defaultValues: {
     email: '',
     profile: {
       name: 'Ada',
@@ -93,7 +93,7 @@ import { CreateForm } from '@ilokesto/form';
 import { useForm } from '@ilokesto/form/react';
 
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
   },
@@ -139,7 +139,7 @@ Component가 form을 소유하는 경우 React adapter는 options로 form을 직
 
 ```tsx
 const { form, useRegister, handleSubmit } = useForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
   },
@@ -180,7 +180,7 @@ import { CreateForm } from '@ilokesto/form';
 import { useForm } from '@ilokesto/form/vue';
 
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
     role: 'user',
@@ -244,7 +244,7 @@ import { CreateForm } from '@ilokesto/form';
 import { useForm } from '@ilokesto/form/solid';
 
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
     role: 'user',
@@ -289,7 +289,7 @@ Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rende
   import { useForm } from '@ilokesto/form/svelte';
 
   const form = new CreateForm({
-    initialValues: {
+    defaultValues: {
       email: '',
       remember: false,
       role: 'user',
@@ -404,7 +404,7 @@ Internal snapshot은 정규화되어 있다.
 
 ```ts
 type FormState<TValues> = {
-  initialValues: TValues;
+  defaultValues: TValues;
   fields: Record<PathKey, FieldState>;
   submitCount: number;
   arrayKeys: Record<PathKey, string[]>;
@@ -415,7 +415,7 @@ type FormState<TValues> = {
 
 ```ts
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     user: { name: 'Ada' },
     items: [{ title: 'A' }, { title: 'B' }],
   },
@@ -426,7 +426,7 @@ Core는 leaf field states와 array container keys를 따로 저장한다.
 
 ```ts
 {
-  initialValues: {
+  defaultValues: {
     user: { name: 'Ada' },
     items: [{ title: 'A' }, { title: 'B' }],
   },
@@ -503,7 +503,7 @@ Cleanup function은 자신이 등록한 schema가 여전히 해당 field의 최�
 
 Array item identity는 array values와 별도로 저장된다.
 
-- `initialValues`에서 온 item은 deterministic key를 받는다: `initial-0`, `initial-1`, ...
+- `defaultValues`에서 온 item은 deterministic key를 받는다: `initial-0`, `initial-1`, ...
 - Runtime insertion은 generated key를 받는다: `item-1`, `item-2`, ...
 - `move()`와 `swap()`은 value와 함께 key를 이동시킨다.
 - `replace()`는 모든 새 item에 새 key를 만들고 old child metadata를 보존하지 않는다.
@@ -516,7 +516,7 @@ Array item identity는 array values와 별도로 저장된다.
 
 ```ts
 const form = new CreateForm({
-  initialValues,
+  defaultValues,
   schema,
   schemaOptions,
   validateOn,
@@ -525,7 +525,7 @@ const form = new CreateForm({
 
 Options:
 
-- `initialValues`: required initial value tree.
+- `defaultValues`: required default value tree. reset/dirty 기준값으로도 사용된다.
 - `schema`: optional Standard Schema v1 compatible schema.
 - `schemaOptions`: optional Standard Schema validation options.
 - `validateOn`: optional automatic validation triggers. Defaults to `['submit']`.
@@ -608,7 +608,7 @@ Effects:
 
 1. Public path input을 internal tuple path로 변환한다.
 2. 새 value를 해당 `FieldState`에 쓴다.
-3. 같은 path의 `initialValues`와 비교해 `dirty`를 다시 계산한다.
+3. 같은 path의 `defaultValues`와 비교해 `dirty`를 다시 계산한다.
 4. `source === 'user'`일 때만 `modified`를 `true`로 만든다.
 5. `options.validate`가 true이거나 `validateOn`에 `'change'`가 있으면 change validation을 시작한다.
 
@@ -679,7 +679,7 @@ form.reset();
 form.reset({ email: 'new@example.com' });
 ```
 
-Argument가 없으면 현재 `initialValues`를 재사용한다. Argument가 있으면 그 값이 새로운 `initialValues`가 된다.
+Argument가 없으면 현재 `defaultValues`를 재사용한다. Argument가 있으면 그 값이 새로운 `defaultValues`가 된다.
 
 ### `submit(onValid, onInvalid?)`
 
@@ -734,8 +734,8 @@ Array 전체를 교체한다. 기존 item link를 의도적으로 끊기 때문�
 
 ```txt
 new CreateForm(options)
-  -> new FormStateStore(options.initialValues)
-    -> FormStateInitializer.initialize(initialValues)
+  -> new FormStateStore(options.defaultValues)
+    -> FormStateInitializer.initialize(defaultValues)
       -> fields for leaf values
       -> arrayKeys for array containers
   -> new ValidationEngine(store, options)
@@ -754,7 +754,7 @@ form.setValue(path, value, options)
   -> FormPath.toFieldPath(path)
   -> FormStateStore.setValue()
   -> FormStateWriter.setValue()
-  -> compute dirty from initialValues
+  -> compute dirty from defaultValues
   -> optionally mark modified
   -> optionally start change validation
 ```
@@ -982,7 +982,7 @@ Shared mutable reference를 피하기 위해 매번 새 `errors` array를 만든
 
 ### `src/core/state/FormStateInitializer.ts`
 
-`FormStateInitializer.initialize(initialValues)`는 nested values를 normalized `FormState`로 변환한다.
+`FormStateInitializer.initialize(defaultValues)`는 nested values를 normalized `FormState`로 변환한다.
 
 Rules:
 

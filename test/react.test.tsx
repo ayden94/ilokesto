@@ -19,7 +19,7 @@ const standardSchema = (validate: (value: any) => any) => ({
 });
 
 test('useRegister binds text input changes through DOM events', () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
 
   function Example() {
     const { useRegister } = useForm(form);
@@ -40,7 +40,7 @@ test('useRegister binds text input changes through DOM events', () => {
 
 test('useForm can create a stable form from options', () => {
   function Example({ initialEmail }: { initialEmail: string }) {
-    const { useRegister, form } = useForm({ initialValues: { email: initialEmail } });
+    const { useRegister, form } = useForm({ defaultValues: { email: initialEmail } });
     const email = useRegister({ name: 'email' });
 
     return (
@@ -65,13 +65,11 @@ test('useForm can create a stable form from options', () => {
 
 test('reset from a React event updates registered inputs and form state', async () => {
   function Example() {
-    const { form, useFormState, useRegister } = useForm({
-      initialValues: {
-        email: '',
-        displayName: '',
-        newsletter: false,
-      },
-    });
+    const { form, useFormState, useRegister } = useForm({ defaultValues: {
+      email: '',
+      displayName: '',
+      newsletter: false,
+    } });
     const [email, displayName, newsletter] = useRegister([
       { name: 'email' },
       { name: 'displayName' },
@@ -115,7 +113,7 @@ test('reset from a React event updates registered inputs and form state', async 
 });
 
 test('useField returns props, field state, and setter without nested register', async () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
 
   function Example() {
     const { useField } = useForm(form);
@@ -145,14 +143,12 @@ test('useField returns props, field state, and setter without nested register', 
 });
 
 test('useRegister returns map-friendly bindings for an options array', () => {
-  const form = new CreateForm({
-    initialValues: {
-      bio: '',
-      agreed: false,
-      color: 'red',
-      role: 'user',
-    },
-  });
+  const form = new CreateForm({ defaultValues: {
+    bio: '',
+    agreed: false,
+    color: 'red',
+    role: 'user',
+  } });
 
   function Example() {
     const { useRegister } = useForm(form);
@@ -194,7 +190,7 @@ test('useRegister returns map-friendly bindings for an options array', () => {
 });
 
 test('useRegister returns a binding array for rest arguments', () => {
-  const form = new CreateForm({ initialValues: { color: 'red' } });
+  const form = new CreateForm({ defaultValues: { color: 'red' } });
 
   function Example() {
     const { useRegister } = useForm(form);
@@ -220,11 +216,9 @@ test('useRegister returns a binding array for rest arguments', () => {
 });
 
 test('multiple select receives array value from restored container values on first render', () => {
-  const form = new CreateForm({
-    initialValues: {
-      topics: ['state'],
-    },
-  });
+  const form = new CreateForm({ defaultValues: {
+    topics: ['state'],
+  } });
 
   function Example() {
     const { useField } = useForm(form);
@@ -257,7 +251,7 @@ test('multiple select receives array value from restored container values on fir
 });
 
 test('useFormState exposes aggregate errors, dirty, touched, and validity', async () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
 
   function Example() {
     const { useRegister, useFormState } = useForm(form);
@@ -287,7 +281,7 @@ test('useFormState exposes aggregate errors, dirty, touched, and validity', asyn
 });
 
 test('handleSubmit prevents default form submit and passes valid values', async () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
   let submittedEmail = '';
 
   function Example() {
@@ -320,7 +314,7 @@ test('handleSubmit prevents default form submit and passes valid values', async 
 
 test('field-local schema overrides form-level schema for a registered field', async () => {
   const form = new CreateForm({
-    initialValues: { email: '' },
+    defaultValues: { email: '' },
     validateOn: ['blur', 'submit'],
     schema: standardSchema(() => ({
       issues: [{ message: 'Form-level error', path: ['email'] }],

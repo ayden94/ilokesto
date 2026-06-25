@@ -120,8 +120,8 @@ export type ArrayKeys = Record<PathKey, string[]>;
 
 /** form 인스턴스가 저장하는 전체 내부 snapshot이다. */
 export type FormState<TValues> = {
-  /** form 초기화에 사용한 원본 values다. reset 기준값으로도 사용된다. */
-  initialValues: TValues;
+  /** form 초기화에 사용한 default values다. reset 기준값으로도 사용된다. */
+  defaultValues: TValues;
   /** 정규화된 path key로 저장한 field states다. */
   fields: Record<PathKey, FieldState>;
   /** form controller를 통해 submit을 시도한 횟수다. */
@@ -138,8 +138,8 @@ export type FormState<TValues> = {
 
 /** form 인스턴스를 만들 때 필요한 옵션이다. */
 export type CreateFormOptions<TValues> = {
-  /** field store를 초기화할 initial values다. */
-  initialValues: TValues;
+  /** field store를 초기화하고 reset/dirty baseline으로 사용할 default values다. */
+  defaultValues: TValues;
   /**
    * 전체 form values를 검증할 Standard Schema compatible schema다.
    *

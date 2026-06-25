@@ -7,7 +7,7 @@ It also uses the options overload of `useForm`, so the form can be created direc
 
 ```tsx
 const { useRegister, handleSubmit } = useForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     displayName: '',
     newsletter: false,

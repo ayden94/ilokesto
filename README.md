@@ -60,7 +60,7 @@ type LoginValues = {
 };
 
 const form = new CreateForm<LoginValues>({
-  initialValues: {
+  defaultValues: {
     email: '',
     profile: {
       name: 'Ada',
@@ -93,7 +93,7 @@ import { CreateForm } from '@ilokesto/form';
 import { useForm } from '@ilokesto/form/react';
 
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
   },
@@ -139,14 +139,14 @@ For component-owned forms, the React adapter can also create the form from optio
 
 ```tsx
 const { form, useRegister, handleSubmit } = useForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
   },
 });
 ```
 
-Options passed to `useForm(options)` are used only to create the form instance for that component lifetime. They are not reactive. When hydrating values from async data such as a query result, initialize with safe defaults and call `form.reset(nextValues)` explicitly when you want that data to become the new initial baseline.
+Options passed to `useForm(options)` are used only to create the form instance for that component lifetime. They are not reactive. When hydrating values from async data such as a query result, initialize with safe defaults and call `form.reset(nextValues)` explicitly when you want that data to become the new default baseline.
 
 The React adapter has three first-version hooks. `useRegister` is overloaded for single, array, and rest-argument registration:
 
@@ -180,7 +180,7 @@ import { CreateForm } from '@ilokesto/form';
 import { useForm } from '@ilokesto/form/vue';
 
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
     role: 'user',
@@ -244,7 +244,7 @@ import { CreateForm } from '@ilokesto/form';
 import { useForm } from '@ilokesto/form/solid';
 
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     email: '',
     remember: false,
     role: 'user',
@@ -289,7 +289,7 @@ Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use 
   import { useForm } from '@ilokesto/form/svelte';
 
   const form = new CreateForm({
-    initialValues: {
+    defaultValues: {
       email: '',
       remember: false,
       role: 'user',
@@ -404,7 +404,7 @@ The internal snapshot is normalized.
 
 ```ts
 type FormState<TValues> = {
-  initialValues: TValues;
+  defaultValues: TValues;
   fields: Record<PathKey, FieldState>;
   submitCount: number;
   arrayKeys: Record<PathKey, string[]>;
@@ -415,7 +415,7 @@ For this input:
 
 ```ts
 const form = new CreateForm({
-  initialValues: {
+  defaultValues: {
     user: { name: 'Ada' },
     items: [{ title: 'A' }, { title: 'B' }],
   },
@@ -426,7 +426,7 @@ The core stores leaf field states and array container keys separately:
 
 ```ts
 {
-  initialValues: {
+  defaultValues: {
     user: { name: 'Ada' },
     items: [{ title: 'A' }, { title: 'B' }],
   },
@@ -503,7 +503,7 @@ The cleanup function removes the schema registration if it is still the latest r
 
 Array item identity is stored separately from array values.
 
-- Items from `initialValues` get deterministic keys: `initial-0`, `initial-1`, ...
+- Items from `defaultValues` get deterministic keys: `initial-0`, `initial-1`, ...
 - Runtime insertions get generated keys: `item-1`, `item-2`, ...
 - `move()` and `swap()` move keys with values.
 - `replace()` creates a new key for every new item and does not preserve old child metadata.
@@ -516,7 +516,7 @@ These keys are intended for framework list rendering.
 
 ```ts
 const form = new CreateForm({
-  initialValues,
+  defaultValues,
   schema,
   schemaOptions,
   validateOn,
@@ -525,7 +525,7 @@ const form = new CreateForm({
 
 Options:
 
-- `initialValues`: required initial value tree.
+- `defaultValues`: required default value tree. This is also the reset/dirty baseline.
 - `schema`: optional Standard Schema v1 compatible schema.
 - `schemaOptions`: optional Standard Schema validation options.
 - `validateOn`: optional automatic validation triggers. Defaults to `['submit']`.
@@ -608,7 +608,7 @@ Effects:
 
 1. Converts the public path input to an internal tuple path.
 2. Writes the new value to the corresponding `FieldState`.
-3. Recomputes `dirty` by comparing with `initialValues` at the same path.
+3. Recomputes `dirty` by comparing with `defaultValues` at the same path.
 4. Sets `modified` to `true` only when `source === 'user'`.
 5. Starts change validation if `options.validate` is true or `validateOn` contains `'change'`.
 
@@ -679,7 +679,7 @@ form.reset();
 form.reset({ email: 'new@example.com' });
 ```
 
-Without an argument, it reuses the current `initialValues`. With an argument, the argument becomes the new `initialValues`.
+Without an argument, it reuses the current `defaultValues`. With an argument, the argument becomes the new `defaultValues`.
 
 ### `submit(onValid, onInvalid?)`
 
@@ -734,8 +734,8 @@ Replaces the whole array. Existing item links are intentionally broken, so child
 
 ```txt
 new CreateForm(options)
-  -> new FormStateStore(options.initialValues)
-    -> FormStateInitializer.initialize(initialValues)
+  -> new FormStateStore(options.defaultValues)
+    -> FormStateInitializer.initialize(defaultValues)
       -> fields for leaf values
       -> arrayKeys for array containers
   -> new ValidationEngine(store, options)
@@ -754,7 +754,7 @@ form.setValue(path, value, options)
   -> FormPath.toFieldPath(path)
   -> FormStateStore.setValue()
   -> FormStateWriter.setValue()
-  -> compute dirty from initialValues
+  -> compute dirty from defaultValues
   -> optionally mark modified
   -> optionally start change validation
 ```
@@ -983,7 +983,7 @@ It creates a new `errors` array each time to avoid shared mutable references. Th
 
 ### `src/core/state/FormStateInitializer.ts`
 
-`FormStateInitializer.initialize(initialValues)` converts nested values into normalized `FormState`.
+`FormStateInitializer.initialize(defaultValues)` converts nested values into normalized `FormState`.
 
 Rules:
 

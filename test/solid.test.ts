@@ -17,7 +17,7 @@ function eventFor<TElement extends HTMLElement>(target: Record<string, unknown>)
 }
 
 test('Solid useRegister binds text input through input events', () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
 
   createRoot(dispose => {
     const { useRegister } = useForm(form);
@@ -34,7 +34,7 @@ test('Solid useRegister binds text input through input events', () => {
 
 test('Solid useForm accepts form options', () => {
   createRoot(dispose => {
-    const { form, useRegister } = useForm({ initialValues: { email: 'ada@example.com' } });
+    const { form, useRegister } = useForm({ defaultValues: { email: 'ada@example.com' } });
     const email = useRegister({ name: 'email' });
 
     expect(email.value).toBe('ada@example.com');
@@ -45,7 +45,7 @@ test('Solid useForm accepts form options', () => {
 });
 
 test('Solid useRegister returns binding arrays for array and rest options', () => {
-  const form = new CreateForm({ initialValues: { agreed: false, color: 'red', role: 'user' } });
+  const form = new CreateForm({ defaultValues: { agreed: false, color: 'red', role: 'user' } });
 
   createRoot(dispose => {
     const { useRegister } = useForm(form);
@@ -69,7 +69,7 @@ test('Solid useRegister returns binding arrays for array and rest options', () =
 });
 
 test('Solid useField exposes reactive getters and setter', () => {
-  const form = new CreateForm({ initialValues: { bio: '' } });
+  const form = new CreateForm({ defaultValues: { bio: '' } });
 
   createRoot(dispose => {
     const { useField } = useForm(form);
@@ -86,7 +86,7 @@ test('Solid useField exposes reactive getters and setter', () => {
 });
 
 test('Solid multiple select receives restored array values and writes selected options', () => {
-  const form = new CreateForm({ initialValues: { topics: ['state'] } });
+  const form = new CreateForm({ defaultValues: { topics: ['state'] } });
 
   createRoot(dispose => {
     const { useField } = useForm(form);
@@ -106,7 +106,7 @@ test('Solid multiple select receives restored array values and writes selected o
 });
 
 test('Solid useFormState exposes aggregate state', () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
 
   createRoot(dispose => {
     const { useRegister, useFormState } = useForm(form);
@@ -129,7 +129,7 @@ test('Solid useFormState exposes aggregate state', () => {
 });
 
 test('Solid handleSubmit prevents default submit and passes valid values', async () => {
-  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const form = new CreateForm({ defaultValues: { email: 'ada@example.com' } });
   let submittedEmail = '';
   let preventDefaultCount = 0;
   let submitPromise: Promise<void | undefined> | undefined;
@@ -155,7 +155,7 @@ test('Solid handleSubmit prevents default submit and passes valid values', async
 
 test('Solid field-local schema overrides form-level schema', async () => {
   const form = new CreateForm({
-    initialValues: { email: '' },
+    defaultValues: { email: '' },
     validateOn: ['blur', 'submit'],
     schema: standardSchema(() => ({
       issues: [{ message: 'Form-level error', path: ['email'] }],

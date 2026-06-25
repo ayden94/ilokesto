@@ -12,7 +12,7 @@ export class ValueHelper {
   /**
    * values 복원을 시작할 root container를 만든다.
    *
-   * @param source - initialValues의 root 값.
+   * @param source - defaultValues의 root 값.
    * @returns source가 배열이면 빈 배열, 객체면 빈 객체, primitive면 source 자체.
    */
   private static createEmptyRoot(source: unknown): unknown {
@@ -116,7 +116,7 @@ export class ValueHelper {
   ): TValues {
     const valueWithArrays = Object.entries(state.arrayKeys).reduce<unknown>((values, [key, keys]) => {
       return this.setValueAtPath(values, FormPath.keyToPath(key), new Array(keys.length));
-    }, this.createEmptyRoot(state.initialValues));
+    }, this.createEmptyRoot(state.defaultValues));
 
     return Object.entries(state.fields).reduce<TValues>((values, [key, field]) => {
       const fieldPath = fieldPaths[key];

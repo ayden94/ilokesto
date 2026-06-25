@@ -14,7 +14,7 @@ const standardSchema = (validate: (value: any) => any) => ({
 });
 
 test('Svelte register action binds text input through input events', () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
   const { register } = useForm(form);
   const input = document.createElement('input');
   const action = register(input, { name: 'email' });
@@ -32,7 +32,7 @@ test('Svelte register action binds text input through input events', () => {
 });
 
 test('Svelte useForm accepts form options', () => {
-  const { form, register } = useForm({ initialValues: { email: 'ada@example.com' } });
+  const { form, register } = useForm({ defaultValues: { email: 'ada@example.com' } });
   const input = document.createElement('input');
   const action = register(input, { name: 'email' });
 
@@ -46,7 +46,7 @@ test('Svelte useForm accepts form options', () => {
 });
 
 test('Svelte register action handles checkbox, radio, and select', () => {
-  const form = new CreateForm({ initialValues: { agreed: false, color: 'red', role: 'user' } });
+  const form = new CreateForm({ defaultValues: { agreed: false, color: 'red', role: 'user' } });
   const { register } = useForm(form);
   const agreed = document.createElement('input');
   const blue = document.createElement('input');
@@ -78,7 +78,7 @@ test('Svelte register action handles checkbox, radio, and select', () => {
 });
 
 test('Svelte register action syncs multiple select array values', () => {
-  const form = new CreateForm({ initialValues: { topics: ['state'] } });
+  const form = new CreateForm({ defaultValues: { topics: ['state'] } });
   const { register } = useForm(form);
   const select = document.createElement('select');
   const state = new Option('State', 'state');
@@ -101,7 +101,7 @@ test('Svelte register action syncs multiple select array values', () => {
 });
 
 test('Svelte useFormState returns a readable aggregate store', () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
   const { useFormState } = useForm(form);
   const state = useFormState();
 
@@ -118,7 +118,7 @@ test('Svelte useFormState returns a readable aggregate store', () => {
 });
 
 test('Svelte handleSubmit prevents default submit and passes valid values', async () => {
-  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const form = new CreateForm({ defaultValues: { email: 'ada@example.com' } });
   const { handleSubmit } = useForm(form);
   let submittedEmail = '';
   let preventDefaultCount = 0;
@@ -138,7 +138,7 @@ test('Svelte handleSubmit prevents default submit and passes valid values', asyn
 
 test('Svelte field-local schema overrides form-level schema while action is alive', async () => {
   const form = new CreateForm({
-    initialValues: { email: '' },
+    defaultValues: { email: '' },
     validateOn: ['blur', 'submit'],
     schema: standardSchema(() => ({
       issues: [{ message: 'Form-level error', path: ['email'] }],

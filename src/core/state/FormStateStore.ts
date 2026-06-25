@@ -26,12 +26,12 @@ export class FormStateStore<TValues> {
   }
 
   /**
-   * initialValues를 FormState로 변환해 store를 만든다.
+   * defaultValues를 FormState로 변환해 store를 만든다.
    *
    * FormStateInitializer는 nested object/array를 순회해 leaf field와 array key 정보를 만든다.
    */
-  public constructor(initialValues: TValues) {
-    this.store = new Store<FormState<TValues>>(FormStateInitializer.initialize(initialValues));
+  public constructor(defaultValues: TValues) {
+    this.store = new Store<FormState<TValues>>(FormStateInitializer.initialize(defaultValues));
     this.reader = new FormStateReader(() => this.store.getState());
     this.writer = new FormStateWriter(this.store);
   }
@@ -96,7 +96,7 @@ export class FormStateStore<TValues> {
     this.writer.clearErrors(fieldKeys);
   }
 
-  /** form을 initialValues 또는 새 values 기준으로 다시 초기화한다. */
+  /** form을 defaultValues 또는 새 values 기준으로 다시 초기화한다. */
   public reset(values?: TValues): void {
     this.writer.reset(values);
   }

@@ -17,7 +17,7 @@ function eventFor(target: Record<string, unknown>): Event & { currentTarget: HTM
 }
 
 test('Vue useRegister binds text input through input events', () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
   const scope = effectScope();
 
   scope.run(() => {
@@ -37,7 +37,7 @@ test('Vue useForm accepts form options', () => {
   const scope = effectScope();
 
   scope.run(() => {
-    const { form, useRegister } = useForm({ initialValues: { email: 'ada@example.com' } });
+    const { form, useRegister } = useForm({ defaultValues: { email: 'ada@example.com' } });
     const email = useRegister({ name: 'email' });
 
     expect(email.value).toBe('ada@example.com');
@@ -49,13 +49,11 @@ test('Vue useForm accepts form options', () => {
 });
 
 test('Vue useRegister returns binding arrays for array and rest options', () => {
-  const form = new CreateForm({
-    initialValues: {
-      agreed: false,
-      color: 'red',
-      role: 'user',
-    },
-  });
+  const form = new CreateForm({ defaultValues: {
+    agreed: false,
+    color: 'red',
+    role: 'user',
+  } });
   const scope = effectScope();
 
   scope.run(() => {
@@ -85,7 +83,7 @@ test('Vue useRegister returns binding arrays for array and rest options', () => 
 });
 
 test('Vue useField exposes reactive getters and setter', () => {
-  const form = new CreateForm({ initialValues: { bio: '' } });
+  const form = new CreateForm({ defaultValues: { bio: '' } });
   const scope = effectScope();
 
   scope.run(() => {
@@ -104,7 +102,7 @@ test('Vue useField exposes reactive getters and setter', () => {
 });
 
 test('Vue multiple select receives restored array values and writes selected options', () => {
-  const form = new CreateForm({ initialValues: { topics: ['state'] } });
+  const form = new CreateForm({ defaultValues: { topics: ['state'] } });
   const scope = effectScope();
 
   scope.run(() => {
@@ -125,7 +123,7 @@ test('Vue multiple select receives restored array values and writes selected opt
 });
 
 test('Vue useFormState exposes aggregate state', () => {
-  const form = new CreateForm({ initialValues: { email: '' } });
+  const form = new CreateForm({ defaultValues: { email: '' } });
   const scope = effectScope();
 
   scope.run(() => {
@@ -150,7 +148,7 @@ test('Vue useFormState exposes aggregate state', () => {
 });
 
 test('Vue handleSubmit prevents default submit and passes valid values', async () => {
-  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const form = new CreateForm({ defaultValues: { email: 'ada@example.com' } });
   const scope = effectScope();
   let submittedEmail = '';
   let preventDefaultCount = 0;
@@ -177,7 +175,7 @@ test('Vue handleSubmit prevents default submit and passes valid values', async (
 
 test('Vue field-local schema overrides form-level schema', async () => {
   const form = new CreateForm({
-    initialValues: { email: '' },
+    defaultValues: { email: '' },
     validateOn: ['blur', 'submit'],
     schema: standardSchema(() => ({
       issues: [{ message: 'Form-level error', path: ['email'] }],

@@ -41,7 +41,7 @@ export class FormStateReader<TValues> {
     return this.getFieldState(fieldPath).value;
   }
 
-  /** 현재 FormState를 사용자가 넘긴 initialValues와 같은 nested 구조로 복원한다. */
+  /** 현재 FormState를 사용자가 넘긴 defaultValues와 같은 nested 구조로 복원한다. */
   public getValues(): TValues {
     return ValueHelper.getValuesFromFields(this.getSnapshot(), this.getKnownFieldPaths());
   }

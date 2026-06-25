@@ -3,7 +3,7 @@ import { FormPath } from '../path/index';
 import type { ArrayKeys, FieldPath, FieldState, FormState } from '../types';
 
 /**
- * initialValues를 내부 FormState로 변환한다.
+  * defaultValues를 내부 FormState로 변환한다.
  *
  * @remarks
  * core는 nested values를 그대로 저장하지 않고 leaf field 목록과 array container key 목록으로 나눠 저장한다.
@@ -11,23 +11,23 @@ import type { ArrayKeys, FieldPath, FieldState, FormState } from '../types';
  */
 export class FormStateInitializer {
   /**
-   * initialValues에서 첫 FormState snapshot을 만든다.
+   * defaultValues에서 첫 FormState snapshot을 만든다.
    *
    * @remarks
    * 배열 자체는 field leaf가 아니라 container로 취급되어 arrayKeys에 저장된다.
    * primitive, 빈 객체, Date, class instance 같은 leaf 값은 fields에 FieldState로 저장된다.
    *
-   * @param initialValues - form을 시작할 원본 values.
+   * @param defaultValues - form을 시작할 기본 values.
    * @returns fields, arrayKeys, submitCount를 포함한 초기 FormState.
    */
-  public static initialize<TValues>(initialValues: TValues): FormState<TValues> {
+  public static initialize<TValues>(defaultValues: TValues): FormState<TValues> {
     const fields: Record<string, FieldState> = {};
     const arrayKeys: ArrayKeys = {};
 
-    this.visitInitialValue(initialValues, [], fields, arrayKeys);
+    this.visitInitialValue(defaultValues, [], fields, arrayKeys);
 
     return {
-      initialValues,
+      defaultValues,
       fields,
       submitCount: 0,
       isSubmitting: false,
@@ -51,7 +51,7 @@ export class FormStateInitializer {
   }
 
   /**
-   * initialValues 안에 이미 존재하는 배열 item의 deterministic key를 만든다.
+   * defaultValues 안에 이미 존재하는 배열 item의 deterministic key를 만든다.
    *
    * @param length - 배열 길이.
    * @returns `initial-0`, `initial-1` 형태의 key 배열.

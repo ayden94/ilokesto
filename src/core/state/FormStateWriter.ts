@@ -22,13 +22,13 @@ export class FormStateWriter<TValues> {
   /**
    * 한 field value를 갱신한다.
    *
-   * dirty는 initialValues의 같은 path 값과 Object.is로 비교해 계산한다.
+   * dirty는 defaultValues의 같은 path 값과 Object.is로 비교해 계산한다.
    * modified는 사용자가 만든 변경(source: 'user')일 때만 true로 바꾼다.
    * 반환한 PathKey는 이후 validation 실행에 재사용된다.
    */
   public setValue(fieldPath: FieldPath, value: unknown, options: SetValueOptions = {}): PathKey {
     const fieldKey = FormPath.pathToKey(fieldPath);
-    const initialValue = ValueHelper.getValueAtPath(this.store.getState().initialValues, fieldPath);
+    const defaultValue = ValueHelper.getValueAtPath(this.store.getState().defaultValues, fieldPath);
 
     this.store.setState(prevState =>
       produce(prevState, draft => {
@@ -37,7 +37,7 @@ export class FormStateWriter<TValues> {
         draft.fields[fieldKey] = {
           ...previousField,
           value,
-          dirty: !FormStateWriter.isSameValue(value, initialValue),
+          dirty: !FormStateWriter.isSameValue(value, defaultValue),
           modified: options.source === 'user' ? true : previousField.modified,
         };
       }),
@@ -97,9 +97,9 @@ export class FormStateWriter<TValues> {
     );
   }
 
-  /** 새 values가 있으면 그것을 새 initialValues로 삼고, 없으면 기존 initialValues로 FormState를 재생성한다. */
+  /** 새 values가 있으면 그것을 새 defaultValues로 삼고, 없으면 기존 defaultValues로 FormState를 재생성한다. */
   public reset(values?: TValues): void {
-    this.store.setState(FormStateInitializer.initialize(values ?? this.store.getState().initialValues));
+    this.store.setState(FormStateInitializer.initialize(values ?? this.store.getState().defaultValues));
   }
 
   /** submit 시도 횟수를 증가시키고 진행 중 상태를 기록한다. */

@@ -16,13 +16,11 @@ const serverValues: SignupValues = {
 };
 
 function ArrayUseRegisterExample() {
-  const { useRegister, form, useFormState, handleSubmit } = useForm<SignupValues>({
-    initialValues: {
-      email: '',
-      displayName: '',
-      newsletter: false,
-    },
-  });
+  const { useRegister, form, useFormState, handleSubmit } = useForm<SignupValues>({ defaultValues: {
+    email: '',
+    displayName: '',
+    newsletter: false,
+  } });
   const [email, displayName, newsletter] = useRegister([
     { name: 'email' },
     { name: 'displayName' },

@@ -11,13 +11,11 @@ const standardSchema = (validate: (value: any) => any) => ({
 });
 
 test('reads and writes tuple paths without treating string names as dot paths', () => {
-  const form = new CreateForm({
-    initialValues: {
-      email: '',
-      user: { name: 'Ada' },
-      'user.name': 'literal',
-    },
-  });
+  const form = new CreateForm({ defaultValues: {
+    email: '',
+    user: { name: 'Ada' },
+    'user.name': 'literal',
+  } });
 
   form.setValue(['user', 'name'], 'Grace', { source: 'user' });
   form.setValue('user.name', 'literal changed');
@@ -36,7 +34,7 @@ test('reads and writes tuple paths without treating string names as dot paths', 
 
 test('runs standard schema validation for blur, manual trigger, and submit', async () => {
   const form = new CreateForm({
-    initialValues: { email: '' },
+    defaultValues: { email: '' },
     validateOn: ['blur', 'submit'],
     schema: standardSchema(values => {
       if (values.email.includes('@')) {
@@ -74,7 +72,7 @@ test('runs standard schema validation for blur, manual trigger, and submit', asy
 
 test('tracks submit lifecycle for pending, invalid, and throwing submissions', async () => {
   let resolveSubmit: (() => void) | undefined;
-  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const form = new CreateForm({ defaultValues: { email: 'ada@example.com' } });
   const pendingSubmit = form.submit(() => new Promise<void>(resolve => {
     resolveSubmit = resolve;
   }));
@@ -97,7 +95,7 @@ test('tracks submit lifecycle for pending, invalid, and throwing submissions', a
   expect(form.getState().isSubmitSuccessful).toBe(true);
 
   const invalidForm = new CreateForm({
-    initialValues: { email: '' },
+    defaultValues: { email: '' },
     schema: standardSchema(() => ({ issues: [{ message: 'Invalid', path: ['email'] }] })),
   });
 
@@ -108,7 +106,7 @@ test('tracks submit lifecycle for pending, invalid, and throwing submissions', a
   expect(invalidForm.getState().isSubmitted).toBe(true);
   expect(invalidForm.getState().isSubmitSuccessful).toBe(false);
 
-  const throwingForm = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const throwingForm = new CreateForm({ defaultValues: { email: 'ada@example.com' } });
 
   await expect(throwingForm.submit(() => {
     throw new Error('submit failed');
@@ -120,11 +118,9 @@ test('tracks submit lifecycle for pending, invalid, and throwing submissions', a
 });
 
 test('rebases array values, keys, and field metadata together', async () => {
-  const form = new CreateForm({
-    initialValues: {
-      items: [{ name: 'a' }, { name: 'b' }, { name: 'c' }],
-    },
-  });
+  const form = new CreateForm({ defaultValues: {
+    items: [{ name: 'a' }, { name: 'b' }, { name: 'c' }],
+  } });
   const array = form.array('items');
 
   await form.blur(['items', 1, 'name']);
