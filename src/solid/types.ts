@@ -1,5 +1,5 @@
 import type { Form, FormError, FormState } from '../core/index';
-import type { DomValue, RegisterOptions } from '../adapters/dom';
+import type { DomValue, RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
 
 export type { RegisterOptions } from '../adapters/dom';
 
@@ -84,4 +84,5 @@ export type SolidForm<TValues> = {
   useRegister<TElement extends SolidRegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(...options: TOptions): SolidRegisterPropsList<TElement, TOptions>;
   useField<TElement extends SolidRegisterElement = HTMLInputElement>(options: RegisterOptions): SolidFieldReturn<SolidRegisterPropsForElement<TElement>>;
   useFormState(): SolidFormStateReturn<TValues>;
+  handleSubmit<TResult>(onValid: SubmitValidHandler<TValues, TResult>, onInvalid?: SubmitInvalidHandler): SubmitHandler<Event, TResult>;
 };

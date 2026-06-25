@@ -31,6 +31,20 @@ test('Svelte register action binds text input through input events', () => {
   action?.destroy?.();
 });
 
+test('Svelte useForm accepts form options', () => {
+  const { form, register } = useForm({ initialValues: { email: 'ada@example.com' } });
+  const input = document.createElement('input');
+  const action = register(input, { name: 'email' });
+
+  expect(input.value).toBe('ada@example.com');
+
+  input.value = 'grace@example.com';
+  input.dispatchEvent(new InputEvent('input', { bubbles: true }));
+
+  expect(form.getValue('email')).toBe('grace@example.com');
+  action?.destroy?.();
+});
+
 test('Svelte register action handles checkbox, radio, and select', () => {
   const form = new CreateForm({ initialValues: { agreed: false, color: 'red', role: 'user' } });
   const { register } = useForm(form);
@@ -98,6 +112,23 @@ test('Svelte useFormState returns a readable aggregate store', () => {
 
   form.setValue('email', 'ada@example.com', { source: 'user' });
   expect(get(state).isDirty).toBe(true);
+});
+
+test('Svelte handleSubmit prevents default submit and passes valid values', async () => {
+  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const { handleSubmit } = useForm(form);
+  let submittedEmail = '';
+  let preventDefaultCount = 0;
+
+  const submit = handleSubmit(values => {
+    submittedEmail = values.email;
+  });
+
+  await submit({ preventDefault: () => { preventDefaultCount += 1; } } as Event);
+
+  expect(preventDefaultCount).toBe(1);
+  expect(submittedEmail).toBe('ada@example.com');
+  expect(form.getState().submitCount).toBe(1);
 });
 
 test('Svelte field-local schema overrides form-level schema while action is alive', async () => {

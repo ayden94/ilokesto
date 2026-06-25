@@ -38,6 +38,82 @@ test('useRegister binds text input changes through DOM events', () => {
   expect(form.getFieldState('email').modified).toBe(true);
 });
 
+test('useForm can create a stable form from options', () => {
+  function Example({ initialEmail }: { initialEmail: string }) {
+    const { useRegister, form } = useForm({ initialValues: { email: initialEmail } });
+    const email = useRegister({ name: 'email' });
+
+    return (
+      <>
+        <input aria-label="email" {...email} />
+        <output aria-label="value">{String(form.getValue('email'))}</output>
+      </>
+    );
+  }
+
+  const { rerender } = render(<Example initialEmail="first@example.com" />);
+
+  expect((screen.getByLabelText('email') as HTMLInputElement).value).toBe('first@example.com');
+
+  fireEvent.change(screen.getByLabelText('email'), { target: { value: 'user@example.com' } });
+  expect(screen.getByLabelText('value').textContent).toBe('user@example.com');
+
+  rerender(<Example initialEmail="server-refetch@example.com" />);
+
+  expect((screen.getByLabelText('email') as HTMLInputElement).value).toBe('user@example.com');
+});
+
+test('reset from a React event updates registered inputs and form state', async () => {
+  function Example() {
+    const { form, useFormState, useRegister } = useForm({
+      initialValues: {
+        email: '',
+        displayName: '',
+        newsletter: false,
+      },
+    });
+    const [email, displayName, newsletter] = useRegister([
+      { name: 'email' },
+      { name: 'displayName' },
+      { name: 'newsletter', type: 'checkbox' },
+    ]);
+    const state = useFormState();
+
+    return (
+      <>
+        <input aria-label="email" {...email} />
+        <input aria-label="display name" {...displayName} />
+        <input aria-label="newsletter" type="checkbox" {...newsletter} />
+        <output aria-label="dirty">{String(state.isDirty)}</output>
+        <button
+          type="button"
+          onClick={() => form.reset({
+            email: 'server@example.com',
+            displayName: 'Server Loaded User',
+            newsletter: true,
+          })}
+        >
+          Reset from query
+        </button>
+      </>
+    );
+  }
+
+  render(<Example />);
+
+  fireEvent.change(screen.getByLabelText('email'), { target: { value: 'user@example.com' } });
+  await waitFor(() => expect(screen.getByLabelText('dirty').textContent).toBe('true'));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Reset from query' }));
+
+  await waitFor(() => {
+    expect((screen.getByLabelText('email') as HTMLInputElement).value).toBe('server@example.com');
+    expect((screen.getByLabelText('display name') as HTMLInputElement).value).toBe('Server Loaded User');
+    expect((screen.getByLabelText('newsletter') as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByLabelText('dirty').textContent).toBe('false');
+  });
+});
+
 test('useField returns props, field state, and setter without nested register', async () => {
   const form = new CreateForm({ initialValues: { email: '' } });
 
@@ -208,6 +284,33 @@ test('useFormState exposes aggregate errors, dirty, touched, and validity', asyn
 
   fireEvent.blur(screen.getByLabelText('email'));
   await waitFor(() => expect(screen.getByLabelText('touched-count').textContent).toBe('1'));
+});
+
+test('handleSubmit prevents default form submit and passes valid values', async () => {
+  const form = new CreateForm({ initialValues: { email: '' } });
+  let submittedEmail = '';
+
+  function Example() {
+    const { handleSubmit, useRegister } = useForm(form);
+    const email = useRegister({ name: 'email' });
+
+    return (
+      <form onSubmit={handleSubmit(values => {
+        submittedEmail = values.email;
+      })}>
+        <input aria-label="email" {...email} />
+        <button type="submit">Submit</button>
+      </form>
+    );
+  }
+
+  render(<Example />);
+
+  fireEvent.change(screen.getByLabelText('email'), { target: { value: 'ada@example.com' } });
+  fireEvent.submit(screen.getByRole('button', { name: 'Submit' }).closest('form')!);
+
+  await waitFor(() => expect(submittedEmail).toBe('ada@example.com'));
+  expect(form.getState().submitCount).toBe(1);
 });
 
 test('field-local schema overrides form-level schema for a registered field', async () => {

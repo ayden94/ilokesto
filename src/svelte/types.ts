@@ -2,7 +2,7 @@ import type { Action } from 'svelte/action';
 import type { Readable } from 'svelte/store';
 import type { Form } from '../core/index';
 import type { FormStateSummary } from '../adapters/FormStateSummary';
-import type { RegisterOptions } from '../adapters/dom';
+import type { RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
 
 export type { RegisterOptions } from '../adapters/dom';
 
@@ -15,4 +15,6 @@ export type SvelteForm<TValues> = {
   register: SvelteRegisterAction;
   /** form-wide aggregate state를 Svelte readable store로 반환한다. */
   useFormState(): Readable<FormStateSummary<TValues>>;
+  /** submit event를 막고 core submit 흐름을 실행하는 handler factory다. */
+  handleSubmit<TResult>(onValid: SubmitValidHandler<TValues, TResult>, onInvalid?: SubmitInvalidHandler): SubmitHandler<Event, TResult>;
 };

@@ -33,6 +33,21 @@ test('Vue useRegister binds text input through input events', () => {
   scope.stop();
 });
 
+test('Vue useForm accepts form options', () => {
+  const scope = effectScope();
+
+  scope.run(() => {
+    const { form, useRegister } = useForm({ initialValues: { email: 'ada@example.com' } });
+    const email = useRegister({ name: 'email' });
+
+    expect(email.value).toBe('ada@example.com');
+    email.onInput(eventFor({ value: 'grace@example.com', type: 'text' }));
+    expect(form.getValue('email')).toBe('grace@example.com');
+  });
+
+  scope.stop();
+});
+
 test('Vue useRegister returns binding arrays for array and rest options', () => {
   const form = new CreateForm({
     initialValues: {
@@ -128,6 +143,30 @@ test('Vue useFormState exposes aggregate state', () => {
     expect(state.touchedFields).toEqual({ '["email"]': true });
   });
 
+  scope.stop();
+});
+
+test('Vue handleSubmit prevents default submit and passes valid values', async () => {
+  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  const scope = effectScope();
+  let submittedEmail = '';
+  let preventDefaultCount = 0;
+  let submitPromise: Promise<void | undefined> | undefined;
+
+  scope.run(() => {
+    const { handleSubmit } = useForm(form);
+    const submit = handleSubmit(values => {
+      submittedEmail = values.email;
+    });
+
+    submitPromise = submit({ preventDefault: () => { preventDefaultCount += 1; } } as Event);
+  });
+
+  await submitPromise;
+
+  expect(preventDefaultCount).toBe(1);
+  expect(submittedEmail).toBe('ada@example.com');
+  expect(form.getState().submitCount).toBe(1);
   scope.stop();
 });
 

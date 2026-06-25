@@ -1,5 +1,5 @@
 import type { Form, FormError, FormState } from '../core/index';
-import type { DomValue, RegisterOptions } from '../adapters/dom';
+import type { DomValue, RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
 
 export type { RegisterOptions } from '../adapters/dom';
 
@@ -84,4 +84,5 @@ export type VueForm<TValues> = {
   useRegister<TElement extends VueRegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(...options: TOptions): VueRegisterPropsList<TElement, TOptions>;
   useField<TElement extends VueRegisterElement = HTMLInputElement>(options: RegisterOptions): VueFieldReturn<VueRegisterPropsForElement<TElement>>;
   useFormState(): VueFormStateReturn<TValues>;
+  handleSubmit<TResult>(onValid: SubmitValidHandler<TValues, TResult>, onInvalid?: SubmitInvalidHandler): SubmitHandler<Event, TResult>;
 };

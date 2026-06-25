@@ -32,6 +32,18 @@ test('Solid useRegister binds text input through input events', () => {
   });
 });
 
+test('Solid useForm accepts form options', () => {
+  createRoot(dispose => {
+    const { form, useRegister } = useForm({ initialValues: { email: 'ada@example.com' } });
+    const email = useRegister({ name: 'email' });
+
+    expect(email.value).toBe('ada@example.com');
+    email.onInput(eventFor<HTMLInputElement>({ value: 'grace@example.com', type: 'text' }) as InputEvent & { currentTarget: HTMLInputElement });
+    expect(form.getValue('email')).toBe('grace@example.com');
+    dispose();
+  });
+});
+
 test('Solid useRegister returns binding arrays for array and rest options', () => {
   const form = new CreateForm({ initialValues: { agreed: false, color: 'red', role: 'user' } });
 
@@ -111,6 +123,29 @@ test('Solid useFormState exposes aggregate state', () => {
     expect(state.touchedFields).toEqual({ '["email"]': true });
     dispose();
   });
+});
+
+test('Solid handleSubmit prevents default submit and passes valid values', async () => {
+  const form = new CreateForm({ initialValues: { email: 'ada@example.com' } });
+  let submittedEmail = '';
+  let preventDefaultCount = 0;
+  let submitPromise: Promise<void | undefined> | undefined;
+
+  createRoot(dispose => {
+    const { handleSubmit } = useForm(form);
+    const submit = handleSubmit(values => {
+      submittedEmail = values.email;
+    });
+
+    submitPromise = submit({ preventDefault: () => { preventDefaultCount += 1; } } as Event);
+    dispose();
+  });
+
+  await submitPromise;
+
+  expect(preventDefaultCount).toBe(1);
+  expect(submittedEmail).toBe('ada@example.com');
+  expect(form.getState().submitCount).toBe(1);
 });
 
 test('Solid field-local schema overrides form-level schema', async () => {

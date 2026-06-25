@@ -4,9 +4,10 @@ import type {
   InputHTMLAttributes,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
+  FormEvent,
 } from 'react';
 import type { Form, FormError, FormState } from '../core/index';
-import type { RegisterOptions } from '../adapters/dom';
+import type { RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
 
 export type { RegisterOptions } from '../adapters/dom';
 
@@ -95,4 +96,5 @@ export type ReactForm<TValues> = {
   useRegister<TElement extends RegisterElement = HTMLInputElement, TOptions extends readonly RegisterOptions[] = readonly RegisterOptions[]>(...options: TOptions): RegisterPropsList<TElement, TOptions>;
   useField<TElement extends RegisterElement = HTMLInputElement>(options: RegisterOptions): UseFieldReturn<RegisterPropsForElement<TElement>>;
   useFormState(): UseFormStateReturn<TValues>;
+  handleSubmit<TResult>(onValid: SubmitValidHandler<TValues, TResult>, onInvalid?: SubmitInvalidHandler): SubmitHandler<FormEvent<HTMLFormElement>, TResult>;
 };

@@ -135,6 +135,19 @@ function LoginForm() {
 }
 ```
 
+Component가 form을 소유하는 경우 React adapter는 options로 form을 직접 만들 수도 있다.
+
+```tsx
+const { form, useRegister, handleSubmit } = useForm({
+  initialValues: {
+    email: '',
+    remember: false,
+  },
+});
+```
+
+`useForm(options)`에 전달한 options는 해당 component lifetime 동안 form instance를 만들 때만 사용된다. Reactive하게 다시 적용되지 않는다. `useQuery` 같은 async data로 값을 hydrate할 때는 안전한 기본값으로 초기화한 뒤, 그 data를 새 initial baseline으로 삼고 싶은 시점에 `form.reset(nextValues)`를 명시적으로 호출한다.
+
 React adapter의 첫 버전 hook은 세 가지다. `useRegister`는 단일, 배열, rest-argument 등록을 모두 처리하도록 overload되어 있다.
 
 | Hook | Purpose |

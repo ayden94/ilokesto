@@ -135,6 +135,19 @@ function LoginForm() {
 }
 ```
 
+For component-owned forms, the React adapter can also create the form from options directly:
+
+```tsx
+const { form, useRegister, handleSubmit } = useForm({
+  initialValues: {
+    email: '',
+    remember: false,
+  },
+});
+```
+
+Options passed to `useForm(options)` are used only to create the form instance for that component lifetime. They are not reactive. When hydrating values from async data such as a query result, initialize with safe defaults and call `form.reset(nextValues)` explicitly when you want that data to become the new initial baseline.
+
 The React adapter has three first-version hooks. `useRegister` is overloaded for single, array, and rest-argument registration:
 
 | Hook | Purpose |
