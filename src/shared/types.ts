@@ -2,6 +2,8 @@ import type { OverlayRenderProps } from '@ilokesto/overlay';
 
 export type ModalClose<TResult = unknown> = (result?: TResult) => void;
 
+export type ModalCloseHandler<TResult = unknown> = (result?: TResult) => void;
+
 export interface ModalRenderContext<TResult = unknown> {
   id: string;
   status: 'open' | 'closing';
@@ -25,7 +27,7 @@ export type ModalPosition =
   | 'bottom-left'
   | 'bottom-right';
 
-interface ModalBaseProps {
+interface ModalBaseProps<TResult = unknown> {
   transport?: 'inline' | 'top-layer';
   position?: ModalPosition;
   role?: 'dialog' | 'alertdialog';
@@ -34,6 +36,7 @@ interface ModalBaseProps {
   ariaDescribedBy?: string;
   dismissible?: boolean;
   onDismiss?: () => void;
+  onModalClose?: ModalCloseHandler<TResult>;
   className?: string;
   style?: React.CSSProperties;
   backdropClassName?: string;
@@ -42,26 +45,8 @@ interface ModalBaseProps {
   restoreFocus?: boolean;
 }
 
-interface ModalChildrenProps {
-  children?: React.ReactNode;
-  render?: never;
-}
-
-interface ModalRenderProps<TResult = unknown> {
-  children?: never;
+export type ModalProps<TResult = unknown> = ModalBaseProps<TResult> & {
   render: ModalRender<TResult>;
-}
-
-export type ModalProps<TResult = unknown> = ModalBaseProps &
-  (ModalChildrenProps | ModalRenderProps<TResult>);
+};
 
 export type ModalAdapterProps<TResult = unknown> = OverlayRenderProps<TResult> & ModalProps<TResult>;
-
-export function assertExclusiveModalContent(options: {
-  children?: React.ReactNode;
-  render?: ModalRender<unknown>;
-}) {
-  if (options.render && options.children !== undefined) {
-    throw new Error('Use either render or children for modal content, not both.');
-  }
-}

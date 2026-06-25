@@ -18,9 +18,8 @@ describe('ModalAdapterTopLayer', () => {
         close={vi.fn()}
         remove={vi.fn()}
         ariaLabel="Settings"
-      >
-        <button type="button">Save</button>
-      </ModalAdapterTopLayer>
+        render={() => <button type="button">Save</button>}
+      />
     );
 
     expect(screen.getByRole('dialog', { name: 'Settings' })).toBeInTheDocument();
@@ -38,6 +37,7 @@ describe('ModalAdapterTopLayer', () => {
         close={close}
         remove={vi.fn()}
         ariaLabel="Cancellable dialog"
+        render={() => null}
       />
     );
 

@@ -4,6 +4,7 @@ import type { OverlayStoreApi } from '@ilokesto/overlay';
 import { ModalAdapter } from '../adapters/ModalAdapter';
 import { globalStyles } from '../shared/styles';
 import { globalModalStore } from '../facade/modalFacade';
+import { createModalLifecycleStore } from '../shared/lifecycle';
 
 export interface ModalProviderProps {
   children: React.ReactNode;
@@ -11,7 +12,10 @@ export interface ModalProviderProps {
 }
 
 export function ModalProvider({ children, store }: ModalProviderProps) {
-  const overlayStore = useMemo(() => store || globalModalStore, [store]);
+  const overlayStore = useMemo(
+    () => store ? createModalLifecycleStore(store) : globalModalStore,
+    [store]
+  );
   const adapters = useMemo(() => ({ modal: ModalAdapter }), []);
 
   useEffect(() => {

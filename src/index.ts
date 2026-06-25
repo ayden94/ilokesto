@@ -10,6 +10,7 @@ export type { ModalFacadeOptions } from './facade/modalFacade';
 export type {
   ModalAdapterProps,
   ModalClose,
+  ModalCloseHandler,
   ModalPosition,
   ModalProps,
   ModalRender,

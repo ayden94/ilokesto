@@ -16,6 +16,7 @@ function renderInline(props: Partial<ModalAdapterProps<unknown>> = {}) {
       status="open"
       close={close}
       remove={remove}
+      render={() => null}
       {...props}
     />
   );
@@ -34,7 +35,7 @@ describe('ModalAdapterInline', () => {
     renderInline({
       ariaLabelledBy: 'modal-title',
       ariaDescribedBy: 'modal-description',
-      children: (
+      render: () => (
         <div>
           <h2 id="modal-title">Delete item</h2>
           <p id="modal-description">This cannot be undone.</p>
@@ -62,9 +63,8 @@ describe('ModalAdapterInline', () => {
         status="open"
         close={vi.fn()}
         remove={vi.fn()}
-      >
-        <button type="button">Confirm</button>
-      </ModalAdapterInline>
+        render={() => <button type="button">Confirm</button>}
+      />
     );
 
     expect(screen.getByRole('button', { name: 'Confirm' })).toHaveFocus();
@@ -78,7 +78,7 @@ describe('ModalAdapterInline', () => {
   it('closes on Escape and backdrop click when dismissible', () => {
     const { close } = renderInline({
       ariaLabel: 'Dismissible dialog',
-      children: <button type="button">Inside</button>,
+      render: () => <button type="button">Inside</button>,
     });
 
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -90,7 +90,7 @@ describe('ModalAdapterInline', () => {
   it('does not close from inside clicks', () => {
     const { close } = renderInline({
       ariaLabel: 'Stable dialog',
-      children: <button type="button">Inside</button>,
+      render: () => <button type="button">Inside</button>,
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Inside' }));
@@ -101,7 +101,7 @@ describe('ModalAdapterInline', () => {
   it('wraps keyboard focus inside the dialog', () => {
     renderInline({
       ariaLabel: 'Focus trap dialog',
-      children: (
+      render: () => (
         <div>
           <button type="button">First</button>
           <button type="button">Last</button>
@@ -149,9 +149,8 @@ describe('ModalAdapterInline', () => {
           close={outerClose}
           remove={vi.fn()}
           ariaLabel="Outer modal"
-        >
-          <button type="button">Outer action</button>
-        </ModalAdapterInline>
+          render={() => <button type="button">Outer action</button>}
+        />
         <ModalAdapterInline
           id="inner-modal"
           isOpen
@@ -159,9 +158,8 @@ describe('ModalAdapterInline', () => {
           close={innerClose}
           remove={vi.fn()}
           ariaLabel="Inner modal"
-        >
-          <button type="button">Inner action</button>
-        </ModalAdapterInline>
+          render={() => <button type="button">Inner action</button>}
+        />
       </>
     );
 
@@ -181,6 +179,7 @@ describe('ModalAdapterInline', () => {
           close={vi.fn()}
           remove={vi.fn()}
           ariaLabel="Outer modal"
+          render={() => null}
         />
         <ModalAdapterInline
           id="inner-modal"
@@ -189,6 +188,7 @@ describe('ModalAdapterInline', () => {
           close={vi.fn()}
           remove={vi.fn()}
           ariaLabel="Inner modal"
+          render={() => null}
         />
       </>
     );
@@ -213,7 +213,7 @@ describe('ModalAdapterInline', () => {
 
     renderInline({
       ariaLabel: 'Reduced motion dialog',
-      children: <button type="button">Inside</button>,
+      render: () => <button type="button">Inside</button>,
     });
 
     expect(screen.getByRole('dialog', { name: 'Reduced motion dialog' })).toHaveStyle({

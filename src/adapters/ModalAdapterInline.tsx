@@ -41,7 +41,6 @@ export function ModalAdapterInline<TResult>({
   status,
   close,
   remove,
-  children,
   render,
   position = 'center',
   role = 'dialog',
@@ -169,7 +168,7 @@ export function ModalAdapterInline<TResult>({
   }, [status, remove]);
 
   const isClosing = status === 'closing';
-  const content = render ? render(close, { id, status, isOpen, close }) : children;
+  const content = render(close, { id, status, isOpen, close });
 
   const animationDuration = prefersReducedMotion ? '0s' : '0.2s';
   const backdropAnimation = isClosing

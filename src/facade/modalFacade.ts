@@ -1,8 +1,8 @@
 import { createOverlayStore } from '@ilokesto/overlay';
-import { assertExclusiveModalContent } from '../shared/types';
+import { createModalLifecycleStore } from '../shared/lifecycle';
 import type { ModalProps } from '../shared/types';
 
-export const globalModalStore = createOverlayStore();
+export const globalModalStore = createModalLifecycleStore(createOverlayStore());
 
 export type ModalFacadeOptions<TResult = unknown> = ModalProps<TResult> & {
   id?: string;
@@ -10,8 +10,6 @@ export type ModalFacadeOptions<TResult = unknown> = ModalProps<TResult> & {
 
 export const modal = {
   open: <TResult = unknown>(options: ModalFacadeOptions<TResult>) => {
-    assertExclusiveModalContent(options);
-
     return globalModalStore.open<TResult>({
       id: options.id,
       type: 'modal',
@@ -19,8 +17,6 @@ export const modal = {
     }).id;
   },
   display: <TResult = unknown>(options: ModalFacadeOptions<TResult>) => {
-    assertExclusiveModalContent(options);
-
     return globalModalStore.open<TResult>({
       id: options.id,
       type: 'modal',

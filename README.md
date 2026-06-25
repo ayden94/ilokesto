@@ -33,9 +33,7 @@ npm install @ilokesto/modal react
 
 ## Basic Usage
 
-Because modal content usually needs to close itself with a result, the preferred pattern is to use `render`. The render callback receives a `close(result)` function scoped to that specific modal instance.
-
-Use either `render` or `children`, not both. `render` is recommended for result-producing modal content; `children` remains available for static content and backward compatibility.
+Modal content is provided through `render`. The render callback receives a `close(result)` function scoped to that specific modal instance, plus context for that modal. Use `render: () => ...` for static content too.
 
 ```tsx
 import { ModalProvider, useModal } from '@ilokesto/modal';
@@ -101,6 +99,12 @@ export function App() {
   );
 }
 ```
+
+## Close Lifecycle
+
+Use `onModalClose(result)` when you need a callback whenever the modal is closed. Calling the scoped `close(result)` from `render` triggers that modal's callback once with the same result. Calling `clear()` triggers `onModalClose` for every open modal in stack order before removing them.
+
+`onDismiss` is narrower: it only fires when a dismissible modal is dismissed by ESC or backdrop click.
 
 ## Global Facade
 
@@ -252,7 +256,7 @@ src/
 
 ### `src/hooks`
 
-- `useModal.ts` → React command API for `open`, `display`, `close`, `remove`, and `clear`
+- `useModal.ts` → React command API for `display` and `clear`
 
 ### `src/shared`
 

@@ -33,9 +33,7 @@ npm install @ilokesto/modal react
 
 ## Basic Usage
 
-modal 내부 콘텐츠가 스스로 result를 넘기며 닫아야 하는 경우가 많기 때문에, 권장 패턴은 `render`를 사용하는 방식입니다. render callback은 해당 modal 인스턴스에만 묶인 `close(result)` 함수를 받습니다.
-
-`render`와 `children`은 둘 중 하나만 사용하세요. result를 반환하는 modal content에는 `render`를 권장하고, `children`은 정적인 content와 하위호환을 위해 유지됩니다.
+modal content는 `render`로 제공합니다. render callback은 해당 modal 인스턴스에만 묶인 `close(result)` 함수와 context를 받습니다. 정적인 content도 `render: () => ...` 형태로 전달하세요.
 
 ```tsx
 import { ModalProvider, useModal } from '@ilokesto/modal';
@@ -101,6 +99,12 @@ export function App() {
   );
 }
 ```
+
+## Close Lifecycle
+
+modal이 닫힐 때마다 callback이 필요하면 `onModalClose(result)`를 사용하세요. `render`에서 받은 scoped `close(result)`를 호출하면 해당 modal의 callback만 같은 result로 한 번 호출됩니다. `clear()`를 호출하면 열려 있는 모든 modal의 `onModalClose`가 stack 순서대로 호출된 뒤 제거됩니다.
+
+`onDismiss`는 더 좁은 이벤트입니다. dismissible modal이 ESC 또는 backdrop click으로 dismiss될 때만 호출됩니다.
 
 ## Global Facade
 
@@ -252,7 +256,7 @@ src/
 
 ### `src/hooks`
 
-- `useModal.ts` → `open`, `display`, `close`, `remove`, `clear`를 노출하는 React 명령형 API입니다
+- `useModal.ts` → `display`, `clear`를 노출하는 React 명령형 API입니다
 
 ### `src/shared`
 

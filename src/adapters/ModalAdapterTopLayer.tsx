@@ -46,7 +46,6 @@ export function ModalAdapterTopLayer<TResult>({
   status,
   close,
   remove,
-  children,
   render,
   position = 'center',
   role = 'dialog',
@@ -150,7 +149,7 @@ export function ModalAdapterTopLayer<TResult>({
 
   const isClosing = status === 'closing';
   const animationDuration = prefersReducedMotion ? '0s' : '0.2s';
-  const content = render ? render(close, { id, status, isOpen, close }) : children;
+  const content = render(close, { id, status, isOpen, close });
   const panelAnimation = isClosing
     ? `ilokestoModalScaleOut ${animationDuration} ease-out forwards`
     : `ilokestoModalScaleIn ${animationDuration} ease-out forwards`;
