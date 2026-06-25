@@ -7,5 +7,6 @@ export type {
   FieldPathInput,
   Form,
   FormError,
+  ResetOptions,
   StandardSchemaV1,
 } from './core/index';

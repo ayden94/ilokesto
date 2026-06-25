@@ -9,6 +9,7 @@ export type {
   FormArray,
   FormError,
   FormState,
+  ResetOptions,
   SetValueOptions,
   StandardSchemaV1,
   ValidationTrigger

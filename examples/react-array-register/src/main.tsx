@@ -1,5 +1,6 @@
 import { useForm } from '@ilokesto/form/react';
 import { StrictMode } from 'react';
+import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
 
@@ -16,11 +17,16 @@ const serverValues: SignupValues = {
 };
 
 function ArrayUseRegisterExample() {
-  const { useRegister, form, useFormState, handleSubmit } = useForm<SignupValues>({ defaultValues: {
-    email: '',
-    displayName: '',
-    newsletter: false,
-  } });
+  const [queryValues, setQueryValues] = useState<SignupValues | undefined>();
+  const { useRegister, form, useFormState, handleSubmit } = useForm<SignupValues>({
+    defaultValues: {
+      email: '',
+      displayName: '',
+      newsletter: false,
+    },
+    values: queryValues,
+    resetOptions: { keepDirtyValues: true },
+  });
   const [email, displayName, newsletter] = useRegister([
     { name: 'email' },
     { name: 'displayName' },
@@ -35,12 +41,13 @@ function ArrayUseRegisterExample() {
         <h1 id="example-title">Array useRegister example</h1>
         <p className="description">
           One options tuple is passed to <code>useRegister</code>, and the returned tuple is
-          destructured into field props. Use the reset button to simulate hydrating a query result.
+          destructured into field props. Load query data through the reactive <code>values</code>
+          option while preserving dirty user edits.
         </p>
 
         <div className="toolbar" aria-label="Form actions">
-          <button type="button" onClick={() => form.reset(serverValues)}>
-            Load query result with reset
+          <button type="button" onClick={() => setQueryValues(serverValues)}>
+            Load query result
           </button>
           <span className="status-pill">isDirty: {String(state.isDirty)}</span>
           <span className="status-pill">submitCount: {state.submitCount}</span>

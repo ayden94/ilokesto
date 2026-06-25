@@ -4,7 +4,7 @@ import { FieldStateFactory } from './FieldStateFactory';
 import { FormStateReader } from './FormStateReader';
 import { FormStateWriter } from './FormStateWriter';
 import { FormStateInitializer } from './FormStateInitializer';
-import type { FieldPath, FieldPathInput, FieldState, FormError, FormState, PathKey, SetValueOptions } from '../types';
+import type { FieldPath, FieldPathInput, FieldState, FormError, FormState, PathKey, ResetOptions, SetValueOptions } from '../types';
 
 /**
  * core 상태 저장소의 facade다.
@@ -97,8 +97,8 @@ export class FormStateStore<TValues> {
   }
 
   /** form을 defaultValues 또는 새 values 기준으로 다시 초기화한다. */
-  public reset(values?: TValues): void {
-    this.writer.reset(values);
+  public reset(values?: TValues, options?: ResetOptions): void {
+    this.writer.reset(values, options);
   }
 
   /** submit 시도 시작 상태를 기록한다. */

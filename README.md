@@ -148,6 +148,19 @@ const { form, useRegister, handleSubmit } = useForm({
 
 Options passed to `useForm(options)` are used only to create the form instance for that component lifetime. They are not reactive. When hydrating values from async data such as a query result, initialize with safe defaults and call `form.reset(nextValues)` explicitly when you want that data to become the new default baseline.
 
+The React adapter also accepts reactive external `values`. When the `values` reference changes, the adapter calls `form.reset(values, resetOptions)` for you. This is useful for server/query data; use `keepDirtyValues` when refetches should not overwrite fields the user already edited.
+
+```tsx
+const { useRegister } = useForm({
+  defaultValues: emptyUser,
+  values: query.data,
+  resetOptions: {
+    keepDirtyValues: true,
+    keepErrors: true,
+  },
+});
+```
+
 The React adapter has three first-version hooks. `useRegister` is overloaded for single, array, and rest-argument registration:
 
 | Hook | Purpose |
@@ -670,16 +683,26 @@ console.log(items.keys());
 
 The array controller reads the latest values and keys from the store each time a command runs.
 
-### `reset(values?)`
+### `reset(values?, options?)`
 
 Resets the form to initial state.
 
 ```ts
 form.reset();
 form.reset({ email: 'new@example.com' });
+form.reset({ email: 'new@example.com' }, { keepDirtyValues: true });
 ```
 
 Without an argument, it reuses the current `defaultValues`. With an argument, the argument becomes the new `defaultValues`.
+
+Reset options can preserve selected state for fields that still exist in the new normalized value shape:
+
+| Option | Behavior |
+| --- | --- |
+| `keepDirtyValues` | Keeps current values for dirty fields and recomputes dirty against the new `defaultValues`. |
+| `keepErrors` | Keeps existing errors for surviving field paths. |
+| `keepTouched` | Keeps touched flags for surviving field paths. |
+| `keepSubmitState` | Keeps `submitCount`, `isSubmitting`, `isSubmitted`, and `isSubmitSuccessful`. |
 
 ### `submit(onValid, onInvalid?)`
 

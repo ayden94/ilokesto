@@ -153,6 +153,18 @@ export type CreateFormOptions<TValues> = {
   validateOn?: readonly ValidationTrigger[];
 };
 
+/** form reset 시 보존할 상태 조각을 고르는 옵션이다. */
+export type ResetOptions = {
+  /** dirty field의 현재 value를 새 defaultValues 위에서도 유지한다. */
+  keepDirtyValues?: boolean;
+  /** reset 후에도 살아남은 field path의 errors를 유지한다. */
+  keepErrors?: boolean;
+  /** reset 후에도 살아남은 field path의 touched flag를 유지한다. */
+  keepTouched?: boolean;
+  /** submitCount/isSubmitting/isSubmitted/isSubmitSuccessful을 유지한다. */
+  keepSubmitState?: boolean;
+};
+
 /** 특정 field에 form-level schema보다 우선 적용할 validation schema 설정이다. */
 export type FieldSchemaOptions = {
   /** field value 하나를 검증할 Standard Schema compatible schema다. */
@@ -194,8 +206,8 @@ export type Form<TValues> = {
   trigger(...paths: FieldPathInput[]): Promise<boolean>;
   /** 배열 index와 child field state를 함께 맞추는 array commands를 반환한다. */
   array(path: FieldPathInput): FormArray;
-  /** initial values 또는 새 replacement initial values로 form을 reset한다. */
-  reset(values?: TValues): void;
+  /** default values 또는 새 replacement values로 form을 reset한다. */
+  reset(values?: TValues, options?: ResetOptions): void;
   /** form을 검증하고 submit callback을 실행한다. */
   submit<TResult>(
     onValid: (values: TValues) => TResult | Promise<TResult>,

@@ -147,3 +147,75 @@ test('rebases array values, keys, and field metadata together', async () => {
   });
   expect(array.keys()).toEqual([initialKeys[0], initialKeys[2]]);
 });
+
+test('resets with keepDirtyValues while updating the default baseline', () => {
+  const form = new CreateForm({ defaultValues: {
+    email: 'old@example.com',
+    profile: { name: 'Ada', role: 'admin' },
+  } });
+
+  form.setValue('email', 'edited@example.com', { source: 'user' });
+
+  form.reset({
+    email: 'server@example.com',
+    profile: { name: 'Grace', role: 'member' },
+  }, { keepDirtyValues: true });
+
+  expect(form.getValues()).toEqual({
+    email: 'edited@example.com',
+    profile: { name: 'Grace', role: 'member' },
+  });
+  expect(form.getState().defaultValues).toEqual({
+    email: 'server@example.com',
+    profile: { name: 'Grace', role: 'member' },
+  });
+  expect(form.getFieldState('email').dirty).toBe(true);
+  expect(form.getFieldState('email').modified).toBe(true);
+  expect(form.getFieldState(['profile', 'role']).dirty).toBe(false);
+  expect(form.getFieldState(['profile', 'role']).modified).toBe(false);
+});
+
+test('reset options preserve errors, touched, and submit state for surviving fields', async () => {
+  const form = new CreateForm<{ email: string; extra?: string }>({ defaultValues: {
+    email: '',
+    extra: 'keep path',
+  } });
+
+  await form.blur('email');
+  await form.submit(values => values);
+  form.setErrors('email', [{ message: 'Server error' }]);
+
+  form.reset({
+    email: 'server@example.com',
+  }, {
+    keepErrors: true,
+    keepTouched: true,
+    keepSubmitState: true,
+  });
+
+  expect(form.getValues()).toEqual({ email: 'server@example.com' });
+  expect(form.getFieldState('email').errors).toEqual([{ message: 'Server error' }]);
+  expect(form.getFieldState('email').touched).toBe(true);
+  expect(form.getState().submitCount).toBe(1);
+  expect(form.getState().isSubmitted).toBe(true);
+  expect(form.getState().isSubmitSuccessful).toBe(true);
+  expect(form.getFieldState('extra').errors).toEqual([]);
+});
+
+test('keepDirtyValues preserves array dirty fields only at surviving indexes', () => {
+  const form = new CreateForm({ defaultValues: {
+    items: [{ name: 'a' }, { name: 'b' }],
+  } });
+
+  form.setValue(['items', 1, 'name'], 'B', { source: 'user' });
+
+  form.reset({
+    items: [{ name: 'server-a' }, { name: 'server-b' }, { name: 'server-c' }],
+  }, { keepDirtyValues: true });
+
+  expect(form.getValues()).toEqual({
+    items: [{ name: 'server-a' }, { name: 'B' }, { name: 'server-c' }],
+  });
+  expect(form.getFieldState(['items', 1, 'name']).dirty).toBe(true);
+  expect(form.getFieldState(['items', 2, 'name']).dirty).toBe(false);
+});

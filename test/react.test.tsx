@@ -63,6 +63,51 @@ test('useForm can create a stable form from options', () => {
   expect((screen.getByLabelText('email') as HTMLInputElement).value).toBe('user@example.com');
 });
 
+test('useForm reacts to values option changes with resetOptions', async () => {
+  type Values = {
+    email: string;
+    displayName: string;
+  };
+
+  function Example({ values }: { values: Values }) {
+    const { useRegister, useFormState } = useForm({
+      defaultValues: { email: '', displayName: '' },
+      values,
+      resetOptions: { keepDirtyValues: true },
+    });
+    const [email, displayName] = useRegister([
+      { name: 'email' },
+      { name: 'displayName' },
+    ]);
+    const state = useFormState();
+
+    return (
+      <>
+        <input aria-label="email" {...email} />
+        <input aria-label="display name" {...displayName} />
+        <output aria-label="dirty">{String(state.isDirty)}</output>
+      </>
+    );
+  }
+
+  const { rerender } = render(<Example values={{ email: 'server@example.com', displayName: 'Server User' }} />);
+
+  await waitFor(() => {
+    expect((screen.getByLabelText('email') as HTMLInputElement).value).toBe('server@example.com');
+    expect((screen.getByLabelText('display name') as HTMLInputElement).value).toBe('Server User');
+  });
+
+  fireEvent.change(screen.getByLabelText('email'), { target: { value: 'user@example.com' } });
+
+  rerender(<Example values={{ email: 'refetched@example.com', displayName: 'Refetched User' }} />);
+
+  await waitFor(() => {
+    expect((screen.getByLabelText('email') as HTMLInputElement).value).toBe('user@example.com');
+    expect((screen.getByLabelText('display name') as HTMLInputElement).value).toBe('Refetched User');
+    expect(screen.getByLabelText('dirty').textContent).toBe('true');
+  });
+});
+
 test('reset from a React event updates registered inputs and form state', async () => {
   function Example() {
     const { form, useFormState, useRegister } = useForm({ defaultValues: {

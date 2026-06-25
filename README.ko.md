@@ -146,7 +146,18 @@ const { form, useRegister, handleSubmit } = useForm({
 });
 ```
 
-`useForm(options)`에 전달한 options는 해당 component lifetime 동안 form instance를 만들 때만 사용된다. Reactive하게 다시 적용되지 않는다. `useQuery` 같은 async data로 값을 hydrate할 때는 안전한 기본값으로 초기화한 뒤, 그 data를 새 initial baseline으로 삼고 싶은 시점에 `form.reset(nextValues)`를 명시적으로 호출한다.
+`useForm(options)`에 전달한 options는 해당 component lifetime 동안 form instance를 만들 때 사용된다. React adapter에서는 외부 `values`도 받을 수 있다. `values` reference가 바뀌면 adapter가 `form.reset(values, resetOptions)`를 대신 호출한다. `useQuery` 같은 async data로 값을 hydrate할 때 사용자 편집값을 덮어쓰고 싶지 않다면 `keepDirtyValues`를 사용한다.
+
+```tsx
+const { useRegister } = useForm({
+  defaultValues: emptyUser,
+  values: query.data,
+  resetOptions: {
+    keepDirtyValues: true,
+    keepErrors: true,
+  },
+});
+```
 
 React adapter의 첫 버전 hook은 세 가지다. `useRegister`는 단일, 배열, rest-argument 등록을 모두 처리하도록 overload되어 있다.
 
@@ -670,16 +681,26 @@ console.log(items.keys());
 
 Array controller는 command가 실행될 때마다 store에서 최신 values와 keys를 읽는다.
 
-### `reset(values?)`
+### `reset(values?, options?)`
 
 Form을 initial state로 되돌린다.
 
 ```ts
 form.reset();
 form.reset({ email: 'new@example.com' });
+form.reset({ email: 'new@example.com' }, { keepDirtyValues: true });
 ```
 
 Argument가 없으면 현재 `defaultValues`를 재사용한다. Argument가 있으면 그 값이 새로운 `defaultValues`가 된다.
+
+Reset options는 새 normalized value shape에도 살아남은 field path에 대해 일부 상태를 보존한다.
+
+| Option | Behavior |
+| --- | --- |
+| `keepDirtyValues` | dirty field의 현재 value를 유지하고 새 `defaultValues` 기준으로 dirty를 다시 계산한다. |
+| `keepErrors` | 살아남은 field path의 errors를 유지한다. |
+| `keepTouched` | 살아남은 field path의 touched flag를 유지한다. |
+| `keepSubmitState` | `submitCount`, `isSubmitting`, `isSubmitted`, `isSubmitSuccessful`을 유지한다. |
 
 ### `submit(onValid, onInvalid?)`
 

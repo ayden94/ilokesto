@@ -4,7 +4,7 @@ import { FormSubmitter } from './FormSubmitter';
 import { FormStateStore } from '../state/index';
 import { FormPath } from '../path/index';
 import { ValidationEngine } from '../validation/index';
-import type { CreateFormOptions, FieldPathInput, FieldSchemaOptions, FieldState, Form, FormArray, FormError, FormState, PathKey, SetValueOptions } from '../types';
+import type { CreateFormOptions, FieldPathInput, FieldSchemaOptions, FieldState, Form, FormArray, FormError, FormState, PathKey, ResetOptions, SetValueOptions } from '../types';
 
 /**
  * 프레임워크와 무관한 form의 최상위 진입점이다.
@@ -104,8 +104,8 @@ export class CreateForm<TValues> implements Form<TValues> {
   }
 
   /** form을 defaultValues 또는 새 values 기준으로 초기 상태로 되돌린다. */
-  public reset(values?: TValues): void {
-    this.store.reset(values);
+  public reset(values?: TValues, options?: ResetOptions): void {
+    this.store.reset(values, options);
   }
 
   /** submit 횟수를 증가시키고 submit validation을 통과하면 onValid를 실행한다. */

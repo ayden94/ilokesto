@@ -5,7 +5,7 @@ import { FieldStateFactory } from './FieldStateFactory';
 import { FormStateInitializer } from './FormStateInitializer';
 import { FormPath } from '../path/index';
 import { ValueHelper } from '../value/index';
-import type { FieldPath, FormError, FormState, PathKey, SetValueOptions } from '../types';
+import type { FieldPath, FormError, FormState, PathKey, ResetOptions, SetValueOptions } from '../types';
 
 type WritableFormStore<TValues> = Pick<Store<FormState<TValues>>, 'getState' | 'setState'>;
 
@@ -98,8 +98,46 @@ export class FormStateWriter<TValues> {
   }
 
   /** 새 values가 있으면 그것을 새 defaultValues로 삼고, 없으면 기존 defaultValues로 FormState를 재생성한다. */
-  public reset(values?: TValues): void {
-    this.store.setState(FormStateInitializer.initialize(values ?? this.store.getState().defaultValues));
+  public reset(values?: TValues, options: ResetOptions = {}): void {
+    const previousState = this.store.getState();
+    const nextDefaultValues = values ?? previousState.defaultValues;
+    const initializedState = FormStateInitializer.initialize(nextDefaultValues);
+
+    this.store.setState(
+      produce(initializedState, draft => {
+        Object.entries(draft.fields).forEach(([fieldKey, nextField]) => {
+          const previousField = previousState.fields[fieldKey];
+
+          if (!previousField) {
+            return;
+          }
+
+          if (options.keepDirtyValues && previousField.dirty) {
+            const fieldPath = FormPath.keyToPath(fieldKey);
+            const defaultValue = ValueHelper.getValueAtPath(nextDefaultValues, fieldPath);
+
+            nextField.value = previousField.value;
+            nextField.dirty = !FormStateWriter.isSameValue(previousField.value, defaultValue);
+            nextField.modified = previousField.modified;
+          }
+
+          if (options.keepErrors) {
+            nextField.errors = [...previousField.errors];
+          }
+
+          if (options.keepTouched) {
+            nextField.touched = previousField.touched;
+          }
+        });
+
+        if (options.keepSubmitState) {
+          draft.submitCount = previousState.submitCount;
+          draft.isSubmitting = previousState.isSubmitting;
+          draft.isSubmitted = previousState.isSubmitted;
+          draft.isSubmitSuccessful = previousState.isSubmitSuccessful;
+        }
+      }),
+    );
   }
 
   /** submit 시도 횟수를 증가시키고 진행 중 상태를 기록한다. */

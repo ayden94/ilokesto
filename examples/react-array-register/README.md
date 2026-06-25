@@ -1,7 +1,7 @@
 # React array `useRegister` example
 
 This Vite + React + TypeScript example shows the array overload of `useRegister`.
-It also demonstrates `form.reset(nextValues)` by simulating a query result load.
+It also demonstrates reactive `values` hydration by simulating a query result load.
 
 It also uses the options overload of `useForm`, so the form can be created directly inside the component:
 
@@ -12,6 +12,8 @@ const { useRegister, handleSubmit } = useForm({
     displayName: '',
     newsletter: false,
   },
+  values: queryValues,
+  resetOptions: { keepDirtyValues: true },
 });
 ```
 
@@ -26,7 +28,7 @@ const [email, displayName, newsletter] = useRegister(registerOptions);
 ```
 
 ```tsx
-form.reset({
+setQueryValues({
   email: 'server@example.com',
   displayName: 'Server Loaded User',
   newsletter: true,
