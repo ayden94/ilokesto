@@ -1,35 +1,20 @@
-import { Store } from '@ilokesto/store';
-import { getStore } from '../../lib/getStore';
-import type { ReduceFn } from '../../types/ReduceFn';
+import type { Store } from '@ilokesto/store';
+import type { ReduceFn, ReducerAction } from '../../types/ReduceFn';
 import type { UseReducer, UseState } from './types';
 
-import { getInitialState } from '../shared/getInitialState';
-import { useStoreState } from './createUseState';
+import { createFrameworkAdapter } from '../shared/createFrameworkAdapter';
+import { createUseState } from './createUseState';
 
-export function create<T, Action extends { type: string; [x: PropertyKey]: any }>(
+export function create<T, Action extends ReducerAction>(
   reduceFn: ReduceFn<T, Action>,
   initialState: T | Store<T>,
 ): UseReducer<T, Action>;
 
 export function create<T>(initialState: T | Store<T>): UseState<T>;
 
-export function create<T, Action extends { type: string; [x: PropertyKey]: any }>(
+export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,
   secondArg?: T | Store<T>,
 ) {
-  const { initialState, isReduce } = getInitialState(firstArg, secondArg);
-  const store = getStore(initialState, isReduce ? (firstArg as ReduceFn<T, Action>) : undefined);
-
-  const useStore = Object.assign(
-    <S>(selector: (state: T) => S = (state: T) => state as any) => {
-      return useStoreState(store, selector);
-    },
-    {
-      writeOnly: () => store.setState.bind(store),
-      readOnly: <S>(selector: (state: T) => S = (state: T) => state as any): S =>
-        selector(store.getState() as T),
-    },
-  );
-
-  return useStore;
+  return createFrameworkAdapter(createUseState<T, Action>, firstArg, secondArg);
 }

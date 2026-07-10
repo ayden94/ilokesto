@@ -1,6 +1,7 @@
-import { Store } from '@ilokesto/store';
-import { SetStateAction } from 'react';
+import type { Store } from '@ilokesto/store';
 import { getStore } from '../lib/getStore';
+
+type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
 type StandardSchemaIssue = {
   readonly message: string;
@@ -36,7 +37,7 @@ const isPromiseLike = <T>(value: T | Promise<T>): value is Promise<T> => {
 const applyValidate = <T>(initialState: T | Store<T>, schema: StandardSchemaV1<T, T>): Store<T> => {
   const store = getStore(initialState);
 
-  store.pushMiddleware((nextState: SetStateAction<T>, next) => {
+  store.pushMiddleware((nextState: StoreSetStateAction<T>, next) => {
     const resolvedState =
       typeof nextState === 'function'
         ? (nextState as (prev: Readonly<T>) => T)(store.getState() as T)

@@ -1,25 +1,35 @@
 import { Store } from '@ilokesto/store';
-import { ReduceFn } from '../types/ReduceFn';
+import { getDispatchedStoreAction } from './actionMetadata';
+import type { ReduceFn, ReducerAction } from '../types/ReduceFn';
+
+type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
 const isStore = <T>(initialValue: T | Store<T>): initialValue is Store<T> => {
   return initialValue instanceof Store;
 };
 
-export const getStore = <T, Action extends { type: string; [x: PropertyKey]: any }>(
+export const isStoreAction = <T, Action extends ReducerAction>(
+  store: Store<T>,
+  value: unknown,
+): value is Action => {
+  return getDispatchedStoreAction(store) === value;
+};
+
+export const getStore = <T, Action extends ReducerAction>(
   initState: T | Store<T>,
   reduceFn?: ReduceFn<T, Action>,
 ): Store<T> => {
   const store = isStore(initState) ? initState : new Store(initState);
 
   if (reduceFn) {
-    store.unshiftMiddleware((nextState: any, next) => {
-      const action: Action = nextState as unknown as Action;
-      // @ts-ignore
-      store.actionName = action.type;
+    store.unshiftMiddleware((nextState: StoreSetStateAction<T>, next) => {
+      if (!isStoreAction<T, Action>(store, nextState)) {
+        next(nextState);
+        return;
+      }
+
       const currentState = store.getState();
-      next(reduceFn(currentState, action));
-      // @ts-ignore
-      store.actionName = undefined;
+      next(reduceFn(currentState, nextState));
     });
   }
 

@@ -1,6 +1,8 @@
 import type { Store } from '@ilokesto/store';
 import type { Readable, Writable } from 'svelte/store';
 
+import type { ReducerAction } from '../../types/ReduceFn';
+
 export type Selector<T, S> = (state: T) => S;
 export type SetStateAction<T> = Parameters<Store<T>['setState']>[0];
 export type StateWriter<T> = (nextState: SetStateAction<T>) => void;
@@ -18,7 +20,7 @@ export type SvelteStateStore<T> = Writable<T> & {
   };
 };
 
-export type SvelteReducerStore<T, Action extends object> = Readable<T> & {
+export type SvelteReducerStore<T, Action extends ReducerAction> = Readable<T> & {
   dispatch: ActionWriter<Action>;
   select: <S>(selector: Selector<T, S>) => SvelteReadable<S>;
   writeOnly: () => ActionWriter<Action>;
@@ -29,4 +31,4 @@ export type SvelteReducerStore<T, Action extends object> = Readable<T> & {
 };
 
 export type UseState<T> = SvelteStateStore<T>;
-export type UseReducer<T, Action extends object> = SvelteReducerStore<T, Action>;
+export type UseReducer<T, Action extends ReducerAction> = SvelteReducerStore<T, Action>;

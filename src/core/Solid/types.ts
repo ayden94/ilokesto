@@ -1,6 +1,8 @@
 import type { Store } from '@ilokesto/store';
 import type { Accessor } from 'solid-js';
 
+import type { ReducerAction } from '../../types/ReduceFn';
+
 export type Selector<T, S> = (state: T) => S;
 export type SetStateAction<T> = Parameters<Store<T>['setState']>[0];
 export type StateWriter<T> = (nextState: SetStateAction<T>) => void;
@@ -26,7 +28,7 @@ export type UseState<T> = {
   };
 };
 
-export type UseReducer<T, Action extends object> = {
+export type UseReducer<T, Action extends ReducerAction> = {
   (): SolidReducerResult<T, Action>;
   <S>(selector: Selector<T, S>): SolidReducerResult<S, Action>;
   writeOnly: () => ActionWriter<Action>;

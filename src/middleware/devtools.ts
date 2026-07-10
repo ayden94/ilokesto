@@ -1,6 +1,8 @@
-import { Store } from '@ilokesto/store';
-import { SetStateAction } from 'react';
+import type { Store } from '@ilokesto/store';
+import { getStoreActionMetadata } from '../lib/actionMetadata';
 import { getStore } from '../lib/getStore';
+
+type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
 type DevtoolsMessage = {
   type: string;
@@ -75,15 +77,16 @@ const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
     });
   }
 
-  store.pushMiddleware((nextState: SetStateAction<T>, next) => {
+  store.pushMiddleware((nextState: StoreSetStateAction<T>, next) => {
     next(nextState);
 
     if (!isProduction && devTools && !isDispatchAction) {
       try {
-        // @ts-ignore
-        devTools.send(`${name}:${store.actionName ?? 'anonymous action'}`, store.getState() as T);
+        const actionType = getStoreActionMetadata(store)?.type ?? 'anonymous action';
+        devTools.send(`${name}:${actionType}`, store.getState());
       } catch (error) {
-        console.error('Error sending state to devtools', error);
+        const normalizedError = error instanceof Error ? error : new Error(String(error));
+        console.error('Error sending state to devtools', normalizedError);
       }
     }
   });

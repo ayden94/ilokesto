@@ -1,5 +1,7 @@
 import { SetStateAction } from 'react';
 
+import type { ReducerAction } from '../../types/ReduceFn';
+
 export type UseState<T> = {
   (): readonly [T, (nextState: SetStateAction<T>) => void];
   <S>(selector: (state: T) => S): readonly [S, (nextState: SetStateAction<T>) => void];
@@ -10,7 +12,7 @@ export type UseState<T> = {
   };
 };
 
-export type UseReducer<T, Action extends object> = {
+export type UseReducer<T, Action extends ReducerAction> = {
   (): readonly [T, (action: Action) => void];
   <S>(selector: (state: T) => S): readonly [S, (action: Action) => void];
   writeOnly: () => (action: Action) => void;

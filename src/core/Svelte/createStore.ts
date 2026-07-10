@@ -1,20 +1,21 @@
-import { Store } from '@ilokesto/store';
+import type { Store } from '@ilokesto/store';
 
 import type { Readable, Subscriber, Unsubscriber, Updater } from 'svelte/store';
 
+import { dispatchStoreAction } from '../../lib/actionMetadata';
+import type { ReducerAction } from '../../types/ReduceFn';
 import type {
   ActionWriter,
   Selector,
-  StateWriter,
   UseReducer,
   UseState,
 } from './types';
 
 const identity = <Value>(value: Value): Value => value;
 
-function createDispatch<T, Action>(write: StateWriter<T>): ActionWriter<Action> {
+function createDispatch<T, Action extends ReducerAction>(store: Store<T>): ActionWriter<Action> {
   return (action) => {
-    write(action as Parameters<Store<T>['setState']>[0]);
+    dispatchStoreAction(store, action);
   };
 }
 
@@ -30,9 +31,9 @@ function createReadable<T, S>(store: Store<T>, selector: Selector<T, S>): Readab
   };
 }
 
-export function createStore<T, Action extends object>(store: Store<T>, isReduce: boolean) {
+export function createStore<T, Action extends ReducerAction>(store: Store<T>, isReduce: boolean) {
   const write = store.setState.bind(store);
-  const dispatch = createDispatch<T, Action>(write);
+  const dispatch = createDispatch<T, Action>(store);
   const subscribe = (run: Subscriber<T>): Unsubscriber => {
     run(store.getState() as T);
 

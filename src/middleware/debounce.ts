@@ -1,17 +1,17 @@
-import { Store } from '@ilokesto/store';
-import { SetStateAction } from 'react';
+import type { Store } from '@ilokesto/store';
 import { getStore } from '../lib/getStore';
 
 type Dispatch<A> = (value: A) => void;
+type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
 const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
   const store = getStore(initialState);
 
   let timeout: NodeJS.Timeout | null = null;
-  let updates: Array<SetStateAction<T>> = [];
-  let savedNext: Dispatch<SetStateAction<T>> | null = null;
+  let updates: Array<StoreSetStateAction<T>> = [];
+  let savedNext: Dispatch<StoreSetStateAction<T>> | null = null;
 
-  store.pushMiddleware((nextState: SetStateAction<T>, next) => {
+  store.pushMiddleware((nextState: StoreSetStateAction<T>, next) => {
     updates.push(nextState);
     savedNext = next;
 

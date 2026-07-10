@@ -1,8 +1,8 @@
 import { Store } from '@ilokesto/store';
 
-import type { ReduceFn } from '../../types/ReduceFn';
+import type { ReduceFn, ReducerAction } from '../../types/ReduceFn';
 
-export function getInitialState<T, Action extends object>(
+export function getInitialState<T, Action extends ReducerAction>(
   firstArg: T | Store<T> | ReduceFn<T, Action>,
   secondArg?: T | Store<T>,
 ): { initialState: T | Store<T>; isReduce: boolean } {

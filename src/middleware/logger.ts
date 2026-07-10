@@ -1,6 +1,8 @@
-import { Store } from '@ilokesto/store';
-import { SetStateAction } from 'react';
+import type { Store } from '@ilokesto/store';
+import { getStoreActionMetadata } from '../lib/actionMetadata';
 import { getStore } from '../lib/getStore';
+
+type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
 type LoggerOptions = {
   collapsed?: boolean;
@@ -25,7 +27,7 @@ const applyLogger = <T>(
   const store = getStore(initialState);
   const isProduction = typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
 
-  store.pushMiddleware((nextState: SetStateAction<T>, next) => {
+  store.pushMiddleware((nextState: StoreSetStateAction<T>, next) => {
     if (isProduction) {
       next(nextState);
       return;
@@ -33,8 +35,8 @@ const applyLogger = <T>(
 
     const prevState = store.getState();
     const time = new Date().toLocaleTimeString();
-    // @ts-ignore
-    const logTitle = `State update: ${store.actionName ?? 'anonymous action'} @ ${time}`;
+    const actionType = getStoreActionMetadata(store)?.type ?? 'anonymous action';
+    const logTitle = `State update: ${actionType} @ ${time}`;
 
     if (options.collapsed) {
       console.groupCollapsed(logTitle);

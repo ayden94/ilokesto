@@ -1,6 +1,8 @@
-import { Store } from '@ilokesto/store';
+import type { Store } from '@ilokesto/store';
 import { DestroyRef, computed, inject, signal } from '@angular/core';
 
+import { dispatchStoreAction } from '../../lib/actionMetadata';
+import type { ReducerAction } from '../../types/ReduceFn';
 import type {
   ActionWriter,
   AngularOptions,
@@ -10,9 +12,9 @@ import type {
 
 const identity = <Value>(value: Value): Value => value;
 
-function createDispatch<T, Action>(write: StateWriter<T>): ActionWriter<Action> {
+function createDispatch<T, Action extends ReducerAction>(store: Store<T>): ActionWriter<Action> {
   return (action) => {
-    write(action as Parameters<Store<T>['setState']>[0]);
+    dispatchStoreAction(store, action);
   };
 }
 
@@ -41,22 +43,17 @@ function createSelection<T, S>(store: Store<T>, selector: Selector<T, S>, option
   return computed(() => selector(snapshot()));
 }
 
-export function createUseSignal<T, Action extends object>(store: Store<T>, isReduce: boolean) {
+export function createUseSignal<T, Action extends ReducerAction>(store: Store<T>, isReduce: boolean) {
   const write = store.setState.bind(store);
-  const dispatch = createDispatch<T, Action>(write);
+  const dispatch = createDispatch<T, Action>(store);
   const subscribe = store.subscribe.bind(store);
 
   return Object.assign(
     <S = T>(selectorOrOptions?: Selector<T, S> | AngularOptions, maybeOptions?: AngularOptions) => {
-      const selector =
-        typeof selectorOrOptions === "function"
-          ? selectorOrOptions
-          : ((identity as unknown) as Selector<T, S>);
-      const options =
+      const state =
         typeof selectorOrOptions === 'function'
-          ? maybeOptions
-          : (selectorOrOptions as AngularOptions | undefined);
-      const state = createSelection(store, selector, options);
+          ? createSelection(store, selectorOrOptions, maybeOptions)
+          : createSelection(store, identity<T>, selectorOrOptions);
 
       if (isReduce) {
         return {

@@ -1,13 +1,15 @@
-import { Store } from '@ilokesto/store';
+import type { Store } from '@ilokesto/store';
 import { computed, getCurrentScope, onScopeDispose, shallowRef } from 'vue';
 
+import { dispatchStoreAction } from '../../lib/actionMetadata';
+import type { ReducerAction } from '../../types/ReduceFn';
 import type { ActionWriter, Selector, StateWriter } from './types';
 
 const identity = <Value>(value: Value): Value => value;
 
-function createDispatch<T, Action>(write: StateWriter<T>): ActionWriter<Action> {
+function createDispatch<T, Action extends ReducerAction>(store: Store<T>): ActionWriter<Action> {
   return (action) => {
-    write(action as unknown as Parameters<Store<T>['setState']>[0]);
+    dispatchStoreAction(store, action);
   };
 }
 
@@ -29,9 +31,9 @@ function createSelection<T, S>(store: Store<T>, selector: Selector<T, S>) {
   return computed(() => selector(snapshot.value as T));
 }
 
-export function createUseComposable<T, Action extends object>(store: Store<T>, isReduce: boolean) {
+export function createUseComposable<T, Action extends ReducerAction>(store: Store<T>, isReduce: boolean) {
   const write = store.setState.bind(store);
-  const dispatch = createDispatch<T, Action>(write);
+  const dispatch = createDispatch<T, Action>(store);
 
   return Object.assign(
     <S = T>(selector?: Selector<T, S>) => {
