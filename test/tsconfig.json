@@ -6,5 +6,22 @@
     "skipLibCheck": true,
     "types": ["bun", "node"]
   },
-  "include": ["../src", "."]
+  "include": ["../src", "."],
+  "exclude": [
+    "fixtures/pipe-types/invalid-callable-root",
+    "fixtures/pipe-types/invalid-cycle",
+    "fixtures/pipe-types/dist-consumer/public-invalid",
+    "fixtures/pipe-types/invalid-duplicate-capability",
+    "fixtures/pipe-types/invalid-duplicate",
+    "fixtures/pipe-types/invalid-harness",
+    "fixtures/pipe-types/invalid-legacy-call",
+    "fixtures/pipe-types/invalid-missing-capability",
+    "fixtures/pipe-types/invalid-order",
+    "fixtures/pipe-types/invalid-root-create",
+    "fixtures/pipe-types/invalid-state",
+    "fixtures/pipe-types/invalid-store-input",
+    "fixtures/pipe-types/invalid-untagged-use",
+    "fixtures/pipe-types/invalid-validate-initial-state",
+    "fixtures/pipe-types/invalid-validate-state"
+  ]
 }
