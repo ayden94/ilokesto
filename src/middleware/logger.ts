@@ -1,6 +1,9 @@
 import type { Store } from '@ilokesto/store';
 import { getStoreActionMetadata } from '../lib/actionMetadata';
 import { getStore } from '../lib/getStore';
+import { definePipeableMiddleware } from '../utils/pipe/metadata';
+import type { PipeableMiddleware } from '../utils/pipe/metadata';
+import type { PipeAnyMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/types';
 
 type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
@@ -9,6 +12,11 @@ type LoggerOptions = {
   diff?: boolean;
   timestamp?: boolean;
 };
+
+type LoggerPipeMiddleware = PipeableMiddleware<
+  PipeAnyMiddleware,
+  PipeMiddlewareMetadata<'@ilokesto/state/logger', readonly [], readonly [], 'reject'>
+>;
 
 const DEFAULT_LOGGER_OPTIONS: LoggerOptions = { collapsed: false, diff: false, timestamp: true };
 
@@ -84,12 +92,20 @@ const applyLogger = <T>(
 };
 
 export function logger<T>(initialState: T | Store<T>, options: LoggerOptions | undefined): Store<T>;
-export function logger(options?: LoggerOptions): <T>(initialState: T | Store<T>) => Store<T>;
+export function logger(options?: LoggerOptions): LoggerPipeMiddleware;
 export function logger<T>(first?: T | Store<T> | LoggerOptions, second?: LoggerOptions) {
   if (arguments.length <= 1) {
     const options = first as LoggerOptions | undefined;
 
-    return (initialState: T | Store<T>) => applyLogger(initialState, options);
+    const middleware: PipeAnyMiddleware = (initialState) => applyLogger(initialState, options);
+    return definePipeableMiddleware(middleware, {
+      adds: [],
+      after: [],
+      before: [],
+      duplicate: 'reject',
+      id: '@ilokesto/state/logger',
+      requires: [],
+    } as const);
   }
 
   return applyLogger(first as T | Store<T>, second);

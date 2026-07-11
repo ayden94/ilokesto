@@ -1,5 +1,8 @@
 import type { Store } from '@ilokesto/store';
 import { getStore } from '../lib/getStore';
+import { definePipeableMiddleware } from '../utils/pipe/metadata';
+import type { PipeableMiddleware } from '../utils/pipe/metadata';
+import type { PipeMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/types';
 
 type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
@@ -24,11 +27,22 @@ type StandardSchemaV1<Input = unknown, Output = Input> = {
       value: unknown,
     ) => StandardSchemaResult<Output> | Promise<StandardSchemaResult<Output>>;
     readonly types?: {
-      readonly input: Input;
-      readonly output: Output;
+      readonly input: NoInfer<Input>;
+      readonly output: NoInfer<Output>;
     };
   };
 };
+
+type ValidatePipeMiddleware<T> = PipeableMiddleware<
+  PipeMiddleware<T>,
+  PipeMiddlewareMetadata<'@ilokesto/state/validate', readonly [], readonly [], 'reject'>
+>;
+
+type StandardSchemaOutput<Result> = Result extends { readonly value: infer Output } ? Output : never;
+
+type StandardSchemaState<Schema extends StandardSchemaV1> = StandardSchemaOutput<
+  Awaited<ReturnType<Schema['~standard']['validate']>>
+>;
 
 const isPromiseLike = <T>(value: T | Promise<T>): value is Promise<T> => {
   return typeof value === 'object' && value !== null && 'then' in value;
@@ -63,18 +77,25 @@ const applyValidate = <T>(initialState: T | Store<T>, schema: StandardSchemaV1<T
   return store;
 };
 
-export function validate<T>(initialState: T | Store<T>, schema: StandardSchemaV1<T, T>): Store<T>;
 export function validate<T>(
-  schema: StandardSchemaV1<T, T>,
-): (initialState: T | Store<T>) => Store<T>;
+  initialState: T | Store<T>,
+  schema: StandardSchemaV1<NoInfer<T>, NoInfer<T>>,
+): Store<T>;
+export function validate<Schema extends StandardSchemaV1>(
+  schema: Schema,
+): ValidatePipeMiddleware<StandardSchemaState<Schema>>;
 export function validate<T>(
   first: T | Store<T> | StandardSchemaV1<T, T>,
   second?: StandardSchemaV1<T, T>,
 ) {
   if (arguments.length === 1) {
     const schema = first as StandardSchemaV1<T, T>;
+    const middleware: PipeMiddleware<T> = (store) => applyValidate(store, schema);
 
-    return (initialState: T | Store<T>) => applyValidate(initialState, schema);
+    return definePipeableMiddleware(middleware, {
+      duplicate: 'reject',
+      id: '@ilokesto/state/validate',
+    } as const);
   }
 
   return applyValidate(first as T | Store<T>, second as StandardSchemaV1<T, T>);

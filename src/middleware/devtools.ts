@@ -1,8 +1,17 @@
 import type { Store } from '@ilokesto/store';
 import { getStoreActionMetadata } from '../lib/actionMetadata';
 import { getStore } from '../lib/getStore';
+import { definePipeableMiddleware } from '../utils/pipe/metadata';
+import type { PipeableMiddleware } from '../utils/pipe/metadata';
+import type { PipeAnyMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/types';
 
 type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
+
+type CurriedDevtools = (<T>(initialState: T | Store<T>) => Store<T>) &
+  PipeableMiddleware<
+    PipeAnyMiddleware,
+    PipeMiddlewareMetadata<'@ilokesto/state/devtools', readonly [], readonly [], 'reject'>
+  >;
 
 type DevtoolsMessage = {
   type: string;
@@ -95,12 +104,22 @@ const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
 };
 
 export function devtools<T>(initialState: T | Store<T>, name: string): Store<T>;
-export function devtools(name: string): <T>(initialState: T | Store<T>) => Store<T>;
+export function devtools(name: string): CurriedDevtools;
 export function devtools<T>(first: T | Store<T> | string, second?: string) {
   if (arguments.length === 1) {
     const name = first as string;
 
-    return (initialState: T | Store<T>) => applyDevtools(initialState, name);
+    return definePipeableMiddleware(
+      <State>(initialState: State | Store<State>) => applyDevtools(initialState, name),
+      {
+        adds: [],
+        after: [],
+        before: [],
+        duplicate: 'reject',
+        id: '@ilokesto/state/devtools',
+        requires: [],
+      } as const,
+    );
   }
 
   return applyDevtools(first as T | Store<T>, second as string);

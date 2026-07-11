@@ -1,7 +1,16 @@
 import { Store } from '@ilokesto/store';
 import { getStore } from '../../lib/getStore';
+import { definePipeableMiddleware } from '../../utils/pipe/metadata';
+import type { PipeableMiddleware } from '../../utils/pipe/metadata';
+import type { PipeAnyMiddleware, PipeMiddlewareMetadata } from '../../utils/pipe/types';
 import { MigrationFn, PersistConfig } from './Persist';
 import { getStorage, parseOptions, setStorage } from './persistUtils';
+
+type CurriedPersist = (<T>(initialState: T | Store<T>) => Store<T>) &
+  PipeableMiddleware<
+    PipeAnyMiddleware,
+    PipeMiddlewareMetadata<'@ilokesto/state/persist', readonly [], readonly [], 'reject'>
+  >;
 
 const applyPersist = <T, P extends Array<MigrationFn>>(
   initialState: T | Store<T>,
@@ -40,7 +49,7 @@ export function persist<T, P extends Array<MigrationFn>>(
 ): Store<T>;
 export function persist<P extends Array<MigrationFn>>(
   options: PersistConfig<unknown, P>,
-): <T>(initialState: T | Store<T>) => Store<T>;
+): CurriedPersist;
 export function persist<T, P extends Array<MigrationFn>>(
   first: T | Store<T> | PersistConfig<unknown, P>,
   second?: PersistConfig<T, P>,
@@ -48,8 +57,18 @@ export function persist<T, P extends Array<MigrationFn>>(
   if (arguments.length === 1) {
     const options = first as PersistConfig<unknown, P>;
 
-    return (initialState: T | Store<T>) =>
-      applyPersist<T, P>(initialState, options as PersistConfig<T, P>);
+    return definePipeableMiddleware(
+      <State>(initialState: State | Store<State>) =>
+        applyPersist<State, P>(initialState, options as PersistConfig<State, P>),
+      {
+        adds: [],
+        after: [],
+        before: [],
+        duplicate: 'reject',
+        id: '@ilokesto/state/persist',
+        requires: [],
+      } as const,
+    );
   }
 
   return applyPersist(first as T | Store<T>, second as PersistConfig<T, P>);
