@@ -199,18 +199,73 @@ console.log(currentCount);
 
 ### `@ilokesto/state/utils`
 
-- `pipe()` to compose a store from plain state and middleware
+- `pipe` to compose a store from plain state and registered middleware
+- `definePipeableMiddleware()` to register custom pipe middleware metadata
 - `adaptor()` to create immutable object updaters with immer
 
+`pipe` is builder-only. Start with `pipe.use(...)`, add middleware in outer-to-inner order, then call `.create(initialState)`. The first `.use()` is outermost during updates, while middleware setup runs left to right when `.create()` creates the Store.
+
+<!-- pipe-example:builder-basics -->
 ```ts
 import { create } from '@ilokesto/state/react';
 import { logger, persist } from '@ilokesto/state/middleware';
 import { pipe } from '@ilokesto/state/utils';
 
-const counterStore = pipe({ count: 0 }, logger({ timestamp: true }), persist({ local: 'counter' }));
+const counterStore = pipe
+  .use(logger({ timestamp: true }))
+  .use(persist({ local: 'counter' }))
+  .create({ count: 0 });
 
 export const useCounter = create(counterStore);
 ```
+
+`.create()` accepts plain state only. It does not accept an existing `Store`. Direct middleware calls are still available when you already have plain state or a Store and do not need pipe composition.
+
+<!-- pipe-example:direct-middleware -->
+```ts
+import { logger } from '@ilokesto/state/middleware';
+
+const loggedStore = logger({ count: 0 }, { timestamp: true });
+loggedStore.getState().count;
+```
+
+Every middleware passed to `.use()` must be registered with `definePipeableMiddleware`, including custom middleware. Its metadata requires an `id`; duplicate IDs reject by default. Set `duplicate: 'allow'` on every occurrence only when repetition is intentional.
+
+`before: ['id']` means this middleware must be declared earlier, which makes it outer. `after: ['id']` means it must be declared later, which makes it inner. A relation to a middleware that is absent is ignored. Pipe rejects invalid present relationships and cycles, and it never reorders middleware for you.
+
+Capabilities make a middleware's Store additions visible to later middleware and the final Store. `requires` must already be available when `.use()` runs, so an earlier outer middleware cannot require a capability supplied by a later inner middleware. `adds` supplies capabilities in the immediate outer-to-inner direction.
+
+<!-- pipe-example:custom-capability -->
+```ts
+import { definePipeableMiddleware, pipe } from '@ilokesto/state/utils';
+import type { PipeAnyMiddleware, PipeCapability } from '@ilokesto/state/utils';
+
+type IncrementCapability = PipeCapability<
+  '@example/increment',
+  { readonly increment: () => void }
+>;
+
+const incrementCapability = {
+  id: '@example/increment',
+  shape: { increment: (): void => undefined },
+} as const satisfies IncrementCapability;
+
+const addIncrement: PipeAnyMiddleware<readonly [], readonly [IncrementCapability]> = (store) => {
+  return Object.assign(store, incrementCapability.shape);
+};
+
+const incrementMiddleware = definePipeableMiddleware(addIncrement, {
+  adds: [incrementCapability],
+  id: '@example/increment-middleware',
+} as const);
+
+const counterStore = pipe.use(incrementMiddleware).create({ count: 0 });
+
+counterStore.increment();
+counterStore.getState().count;
+```
+
+This is a breaking change. Callable and variadic pipe syntax has been removed. Replace legacy calls with `pipe.use(...).create(initialState)`.
 
 ## Exports
 
@@ -220,7 +275,7 @@ export const useCounter = create(counterStore);
 - `@ilokesto/state/svelte` → Svelte adapter
 - `@ilokesto/state/solid` → Solid adapter
 - `@ilokesto/state/middleware` → middleware helpers
-- `@ilokesto/state/utils` → `adaptor`, `pipe`
+- `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, and pipe types
 
 ## Development
 

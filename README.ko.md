@@ -197,18 +197,73 @@ console.log(currentCount);
 
 ### `@ilokesto/state/utils`
 
-- `pipe()`: 일반 상태와 미들웨어를 조합하여 스토어 생성
+- `pipe`: 일반 상태와 등록된 미들웨어로 스토어 조합
+- `definePipeableMiddleware()`: 사용자 미들웨어 메타데이터 등록
 - `adaptor()`: immer를 사용한 불변 객체 업데이트 헬퍼 생성
 
+`pipe`는 빌더 전용 API입니다. `pipe.use(...)`로 시작해 바깥쪽에서 안쪽 순서로 미들웨어를 추가한 다음, `.create(initialState)`를 호출하세요. 첫 번째 `.use()`가 업데이트 시 가장 바깥을 감싸며, `.create()`가 Store를 만들 때 미들웨어 설정은 왼쪽에서 오른쪽 순서로 실행됩니다.
+
+<!-- pipe-example:builder-basics -->
 ```ts
 import { create } from '@ilokesto/state/react';
 import { logger, persist } from '@ilokesto/state/middleware';
 import { pipe } from '@ilokesto/state/utils';
 
-const counterStore = pipe({ count: 0 }, logger({ timestamp: true }), persist({ local: 'counter' }));
+const counterStore = pipe
+  .use(logger({ timestamp: true }))
+  .use(persist({ local: 'counter' }))
+  .create({ count: 0 });
 
 export const useCounter = create(counterStore);
 ```
+
+`.create()`는 일반 상태만 받습니다. 기존 `Store`는 받을 수 없습니다. 파이프 조합이 필요 없고 일반 상태나 Store가 이미 있다면 미들웨어를 직접 호출할 수 있습니다.
+
+<!-- pipe-example:direct-middleware -->
+```ts
+import { logger } from '@ilokesto/state/middleware';
+
+const loggedStore = logger({ count: 0 }, { timestamp: true });
+loggedStore.getState().count;
+```
+
+`.use()`에 전달하는 모든 미들웨어는 사용자 미들웨어를 포함해 `definePipeableMiddleware`로 등록되어야 합니다. 메타데이터에는 `id`가 필요하며, 같은 ID는 기본적으로 거부됩니다. 반복이 의도된 경우에만 모든 항목에 `duplicate: 'allow'`를 설정하세요.
+
+`before: ['id']`는 이 미들웨어가 더 앞에 선언되어 바깥쪽이 되어야 함을 뜻합니다. `after: ['id']`는 더 뒤에 선언되어 안쪽이 되어야 함을 뜻합니다. 대상 미들웨어가 없으면 관계는 무시됩니다. 파이프는 존재하는 관계의 오류와 순환을 거부하며, 미들웨어 순서를 자동으로 바꾸지 않습니다.
+
+기능(capability)은 미들웨어가 Store에 추가한 API를 이후 미들웨어와 최종 Store에서 보이게 합니다. `requires`는 `.use()`를 호출할 때 이미 사용할 수 있어야 하므로, 앞선 바깥 미들웨어가 나중의 안쪽 미들웨어가 제공하는 기능을 요구할 수 없습니다. `adds`는 즉시 바깥에서 안쪽으로 향하는 방향으로 기능을 제공합니다.
+
+<!-- pipe-example:custom-capability -->
+```ts
+import { definePipeableMiddleware, pipe } from '@ilokesto/state/utils';
+import type { PipeAnyMiddleware, PipeCapability } from '@ilokesto/state/utils';
+
+type IncrementCapability = PipeCapability<
+  '@example/increment',
+  { readonly increment: () => void }
+>;
+
+const incrementCapability = {
+  id: '@example/increment',
+  shape: { increment: (): void => undefined },
+} as const satisfies IncrementCapability;
+
+const addIncrement: PipeAnyMiddleware<readonly [], readonly [IncrementCapability]> = (store) => {
+  return Object.assign(store, incrementCapability.shape);
+};
+
+const incrementMiddleware = definePipeableMiddleware(addIncrement, {
+  adds: [incrementCapability],
+  id: '@example/increment-middleware',
+} as const);
+
+const counterStore = pipe.use(incrementMiddleware).create({ count: 0 });
+
+counterStore.increment();
+counterStore.getState().count;
+```
+
+이 변경은 호환성을 깨는 변경입니다. 호출형과 가변 인자 `pipe` 문법은 제거되었습니다. 기존 호출은 `pipe.use(...).create(initialState)`로 바꾸세요.
 
 ## 내보내기
 
@@ -218,7 +273,7 @@ export const useCounter = create(counterStore);
 - `@ilokesto/state/svelte` → Svelte 어댑터
 - `@ilokesto/state/solid` → Solid 어댑터
 - `@ilokesto/state/middleware` → 미들웨어 헬퍼
-- `@ilokesto/state/utils` → `adaptor`, `pipe`
+- `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, pipe 타입
 
 ## 개발
 
