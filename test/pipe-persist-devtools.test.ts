@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
 
+import './pipe-devtools-dispose.test';
+import './pipe-history-observation.test';
 import { MemoryStorage, restoreBrowserGlobal, withBrowserFakes } from './helpers/browserFakes';
 import { devtools, persist } from '../src/middleware';
 import { PipeConfigurationError, type PipeConfigurationErrorCode } from '../src/utils/pipe/errors';

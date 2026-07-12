@@ -1,6 +1,7 @@
 import { expect, jest, spyOn, test } from 'bun:test';
 import { Store } from '@ilokesto/store';
 
+import './pipe-history-integration.test';
 import { create as createAngular } from '../src/core/Angular';
 import { create as createReact } from '../src/core/React';
 import { create as createSolid } from '../src/core/Solid';
