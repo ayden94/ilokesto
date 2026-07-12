@@ -1,0 +1,61 @@
+import type { Store } from '@ilokesto/store';
+
+type Cleanup = () => void;
+
+type CleanupEntry = {
+  active: boolean;
+  readonly cleanup: Cleanup;
+};
+
+const cleanupsByStore = new WeakMap<Store<unknown>, Set<CleanupEntry>>();
+const cleanupEntriesByStore: WeakMap<object, Set<CleanupEntry>> = cleanupsByStore;
+
+export function registerStoreCleanup<T>(store: Store<T>, cleanup: Cleanup): () => void {
+  const entry: CleanupEntry = { active: true, cleanup };
+  const entries = cleanupEntriesByStore.get(store) ?? new Set<CleanupEntry>();
+  entries.add(entry);
+  cleanupEntriesByStore.set(store, entries);
+
+  return () => {
+    if (!entry.active) {
+      return;
+    }
+
+    entry.active = false;
+    entries.delete(entry);
+  };
+}
+
+export function dispose<T>(store: Store<T>): void {
+  const entries = cleanupEntriesByStore.get(store);
+  if (!entries) {
+    return;
+  }
+
+  const snapshot = [...entries];
+  cleanupEntriesByStore.delete(store);
+  const errors: unknown[] = [];
+
+  for (const entry of snapshot) {
+    if (!entry.active) {
+      continue;
+    }
+
+    entry.active = false;
+
+    try {
+      entry.cleanup();
+    } catch (error) {
+      if (error instanceof Error) {
+        errors.push(error);
+        continue;
+      }
+
+      errors.push(error);
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new AggregateError(errors, 'Store cleanup failed');
+  }
+}
