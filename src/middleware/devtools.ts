@@ -11,7 +11,7 @@ type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 type CurriedDevtools = (<T>(initialState: T | Store<T>) => Store<T>) &
   PipeableMiddleware<
     PipeAnyMiddleware,
-    PipeMiddlewareMetadata<'@ilokesto/state/devtools', readonly [], readonly [], 'reject'>
+    PipeMiddlewareMetadata<'@ilokesto/state/devtools', readonly [], readonly [], 'reject', readonly []>
   >;
 
 type DevtoolsMessage = {
@@ -120,6 +120,7 @@ export function devtools<T>(first: T | Store<T> | string, second?: string) {
         adds: [],
         after: [],
         before: [],
+        conflicts: [],
         duplicate: 'reject',
         id: '@ilokesto/state/devtools',
         requires: [],

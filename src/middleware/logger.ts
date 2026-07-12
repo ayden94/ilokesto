@@ -15,7 +15,7 @@ type LoggerOptions = {
 
 type LoggerPipeMiddleware = PipeableMiddleware<
   PipeAnyMiddleware,
-  PipeMiddlewareMetadata<'@ilokesto/state/logger', readonly [], readonly [], 'reject'>
+  PipeMiddlewareMetadata<'@ilokesto/state/logger', readonly [], readonly [], 'reject', readonly []>
 >;
 
 const DEFAULT_LOGGER_OPTIONS: LoggerOptions = { collapsed: false, diff: false, timestamp: true };
@@ -102,6 +102,7 @@ export function logger<T>(first?: T | Store<T> | LoggerOptions, second?: LoggerO
       adds: [],
       after: [],
       before: [],
+      conflicts: [],
       duplicate: 'reject',
       id: '@ilokesto/state/logger',
       requires: [],

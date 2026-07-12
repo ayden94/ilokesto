@@ -27,6 +27,7 @@ function expectConfigurationError(
     expect(error).toBeInstanceOf(PipeConfigurationError);
     if (error instanceof PipeConfigurationError) {
       expect(error.code).toBe(code);
+      expect(error.id).toBe(ids[0] ?? '');
       expect(error.ids).toEqual(ids);
       return;
     }
@@ -47,10 +48,14 @@ test('Given explicit middleware relationships, when every present edge follows d
   const mutableBefore: string[] = [];
   const snapshotOuter = middleware({ before: mutableBefore, id: '@test/snapshot-outer' });
   const snapshotPrevious = middleware({ id: '@test/snapshot-previous' });
+  const absentConflict = middleware({
+    conflicts: ['@test/absent-conflict'],
+    id: '@test/absent-conflict-source',
+  });
   mutableBefore.push('@test/snapshot-previous');
 
   // When / Then
-  expect(() => validatePipeMiddlewareChain([outer, inner, absentTarget])).not.toThrow();
+  expect(() => validatePipeMiddlewareChain([outer, inner, absentTarget, absentConflict])).not.toThrow();
   expect(() => validatePipeMiddlewareChain([duplicateOne, duplicateTwo])).not.toThrow();
   expect(() => validatePipeMiddlewareChain([snapshotPrevious, snapshotOuter])).not.toThrow();
   expect(() => validatePipeMiddlewareAppend([outer], inner)).not.toThrow();
@@ -74,6 +79,11 @@ test('Given invalid chain metadata, when relationships or duplicate policy confl
   const inner = middleware({ id: '@test/inner' });
   const cycleOne = middleware({ before: ['@test/cycle-two'], id: '@test/cycle-one' });
   const cycleTwo = middleware({ before: ['@test/cycle-one'], id: '@test/cycle-two' });
+  const conflictSource = middleware({
+    conflicts: ['@test/conflict-target'],
+    id: '@test/conflict-source',
+  });
+  const conflictTarget = middleware({ id: '@test/conflict-target' });
 
   // When / Then
   expectConfigurationError(
@@ -95,5 +105,15 @@ test('Given invalid chain metadata, when relationships or duplicate policy confl
     () => validatePipeMiddlewareChain([cycleOne, cycleTwo]),
     'MIDDLEWARE_CYCLE',
     ['@test/cycle-one', '@test/cycle-two'],
+  );
+  expectConfigurationError(
+    () => validatePipeMiddlewareChain([conflictSource, conflictTarget]),
+    'MIDDLEWARE_CONFLICT',
+    ['@test/conflict-source', '@test/conflict-target'],
+  );
+  expectConfigurationError(
+    () => validatePipeMiddlewareChain([conflictTarget, conflictSource]),
+    'MIDDLEWARE_CONFLICT',
+    ['@test/conflict-source', '@test/conflict-target'],
   );
 });

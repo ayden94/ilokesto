@@ -24,6 +24,7 @@ const stateAgnostic = definePipeableMiddleware(
     after: ['@fixture/outer'],
     adds: noCapabilities,
     before: ['@fixture/inner'],
+    conflicts: [],
     duplicate: 'reject',
     id: '@fixture/generic',
     requires,
@@ -32,7 +33,13 @@ const stateAgnostic = definePipeableMiddleware(
 
 const stateSpecific = definePipeableMiddleware(
   (store: Store<CounterState>): Store<CounterState> => store,
-  { adds: noCapabilities, duplicate: 'reject', id: '@fixture/specific', requires: noCapabilities },
+  {
+    adds: noCapabilities,
+    conflicts: [],
+    duplicate: 'reject',
+    id: '@fixture/specific',
+    requires: noCapabilities,
+  },
 );
 
 declare const clockStore: Store<{ readonly label: string }> & ClockCapability['shape'];
@@ -45,11 +52,23 @@ counterStore.getState().count;
 
 const genericLiteralContract: PipeableMiddleware<
   PipeAnyMiddleware<typeof requires, typeof noCapabilities>,
-  PipeMiddlewareMetadata<'@fixture/generic', typeof requires, typeof noCapabilities, 'reject'>
+  PipeMiddlewareMetadata<
+    '@fixture/generic',
+    typeof requires,
+    typeof noCapabilities,
+    'reject',
+    readonly []
+  >
 > = stateAgnostic;
 const specificLiteralContract: PipeableMiddleware<
   PipeMiddleware<CounterState, typeof noCapabilities, typeof noCapabilities>,
-  PipeMiddlewareMetadata<'@fixture/specific', typeof noCapabilities, typeof noCapabilities, 'reject'>
+  PipeMiddlewareMetadata<
+    '@fixture/specific',
+    typeof noCapabilities,
+    typeof noCapabilities,
+    'reject',
+    readonly []
+  >
 > = stateSpecific;
 
 genericLiteralContract;

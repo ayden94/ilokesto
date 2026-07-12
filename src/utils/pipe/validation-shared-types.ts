@@ -1,3 +1,3 @@
-import type { PipeMiddlewareMetadata } from './types';
+import type { PipeMiddlewareMetadata } from './metadata-types';
 
 export type PipeMetadataChain = readonly PipeMiddlewareMetadata[];

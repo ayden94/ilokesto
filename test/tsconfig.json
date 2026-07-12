@@ -9,6 +9,7 @@
   "include": ["../src", "."],
   "exclude": [
     "fixtures/pipe-types/invalid-callable-root",
+    "fixtures/pipe-types/invalid-conflict",
     "fixtures/pipe-types/invalid-cycle",
     "fixtures/pipe-types/dist-consumer/public-invalid",
     "fixtures/pipe-types/invalid-duplicate-capability",

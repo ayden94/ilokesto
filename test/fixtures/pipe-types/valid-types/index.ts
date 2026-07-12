@@ -25,6 +25,7 @@ const metadata = {
   adds: [{ id: 'log', shape: { log: (message: string) => console.log(message) } }],
   after: ['outer'],
   before: ['inner'],
+  conflicts: [],
   duplicate: 'allow',
   id: 'fixture',
   requires: [{ id: 'clock', shape: { now: () => Date.now() } }],
@@ -32,7 +33,8 @@ const metadata = {
   'fixture',
   readonly [ClockCapability],
   readonly [LogCapability],
-  'allow'
+  'allow',
+  readonly []
 >;
 
 const taggedStateSpecificMiddleware = definePipeableMiddleware(stateSpecificMiddleware, {

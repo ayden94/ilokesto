@@ -7,7 +7,7 @@ import type { PipeAnyMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/ty
 
 type ThrottlePipeMiddleware = PipeableMiddleware<
   PipeAnyMiddleware,
-  PipeMiddlewareMetadata<'@ilokesto/state/throttle', readonly [], readonly [], 'reject'>
+  PipeMiddlewareMetadata<'@ilokesto/state/throttle', readonly [], readonly [], 'reject', readonly []>
 >;
 
 function validateWait(wait: number | undefined): void {
@@ -66,6 +66,7 @@ export function throttle<T>(
     adds: [],
     after: [],
     before: [],
+    conflicts: [],
     duplicate: 'reject',
     id: '@ilokesto/state/throttle',
     requires: [],

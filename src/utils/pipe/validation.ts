@@ -18,8 +18,25 @@ function equalMetadata(left: PipeMetadataSnapshot, right: PipeMetadataSnapshot):
     equalIdentifierSets(left.adds, right.adds) &&
     equalIdentifierSets(left.after, right.after) &&
     equalIdentifierSets(left.before, right.before) &&
+    equalIdentifierSets(left.conflicts, right.conflicts) &&
     equalIdentifierSets(left.requires, right.requires)
   );
+}
+
+function validateConflicts(metadata: readonly PipeMetadataSnapshot[]): void {
+  const ids = new Set(metadata.map((item) => item.id));
+
+  for (const item of metadata) {
+    for (const conflict of item.conflicts) {
+      if (ids.has(conflict)) {
+        throw new PipeConfigurationError(
+          'MIDDLEWARE_CONFLICT',
+          `Pipe middleware ${item.id} conflicts with ${conflict}`,
+          { id: item.id, ids: [item.id, conflict] },
+        );
+      }
+    }
+  }
 }
 
 function readMetadata(chain: readonly object[]): readonly PipeMetadataSnapshot[] {
@@ -205,6 +222,7 @@ function validateRelationshipOrder(metadata: readonly PipeMetadataSnapshot[]): v
 export function validatePipeMiddlewareChain(chain: readonly object[]): void {
   const metadata = readMetadata(chain);
   validateDuplicateMetadata(metadata);
+  validateConflicts(metadata);
   validateCapabilities(metadata);
   const cycle = findCycle(createEdges(metadata));
   if (cycle !== undefined) {

@@ -1,26 +1,23 @@
 import { PipeConfigurationError } from './errors';
 import type {
-  PipeAnyMiddleware,
   PipeCapability,
   PipeDuplicatePolicy,
-  PipeMiddleware,
   PipeMiddlewareMetadata,
-} from './types';
-
-declare const pipeMiddlewareMetadataBrand: unique symbol;
+} from './metadata-types';
+import type { PipeableMiddleware } from './pipeable-types';
+import type { PipeAnyMiddleware, PipeMiddleware } from './types';
 
 export type PipeMetadataSnapshot = {
   readonly adds: readonly string[];
   readonly after: readonly string[];
   readonly before: readonly string[];
+  readonly conflicts: readonly string[];
   readonly duplicate: PipeDuplicatePolicy;
   readonly id: string;
   readonly requires: readonly string[];
 };
 
-export type PipeableMiddleware<Middleware extends object, Metadata extends object> = Middleware & {
-  readonly [pipeMiddlewareMetadataBrand]: Metadata;
-};
+export type { PipeableMiddleware } from './pipeable-types';
 
 const pipeMiddlewareMetadata = new WeakMap<object, PipeMetadataSnapshot>();
 const capturedPipeMiddleware = new WeakMap<object, object>();
@@ -90,6 +87,7 @@ function createMetadataSnapshot(metadata: PipeMiddlewareMetadata): PipeMetadataS
     adds: snapshotCapabilityIds(metadata.adds),
     after: snapshotRelationshipIds(metadata.after, metadata.id),
     before: snapshotRelationshipIds(metadata.before, metadata.id),
+    conflicts: snapshotRelationshipIds(metadata.conflicts, metadata.id),
     duplicate: metadata.duplicate ?? 'reject',
     id: metadata.id,
     requires: snapshotCapabilityIds(metadata.requires),
@@ -107,6 +105,7 @@ function metadataMatches(left: PipeMetadataSnapshot, right: PipeMetadataSnapshot
     equalIdentifiers(left.adds, right.adds) &&
     equalIdentifiers(left.after, right.after) &&
     equalIdentifiers(left.before, right.before) &&
+    equalIdentifiers(left.conflicts, right.conflicts) &&
     equalIdentifiers(left.requires, right.requires)
   );
 }
@@ -140,29 +139,31 @@ export function getCapturedPipeMiddleware(entry: object): object {
 }
 
 export function definePipeableMiddleware<
-  Requires extends readonly PipeCapability[],
-  Adds extends readonly PipeCapability[],
-  Id extends string,
-  Duplicate extends PipeDuplicatePolicy,
+  const Id extends string,
+  const Requires extends readonly PipeCapability[] = readonly [],
+  const Adds extends readonly PipeCapability[] = readonly [],
+  const Duplicate extends PipeDuplicatePolicy = 'reject',
+  const Conflicts extends readonly string[] = readonly string[],
 >(
   middleware: PipeAnyMiddleware<Requires, Adds>,
-  metadata: PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate>,
+  metadata: PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate, Conflicts>,
 ): PipeableMiddleware<
   PipeAnyMiddleware<Requires, Adds>,
-  PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate>
+  PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate, Conflicts>
 >;
 export function definePipeableMiddleware<
   State,
-  Requires extends readonly PipeCapability[],
-  Adds extends readonly PipeCapability[],
-  Id extends string,
-  Duplicate extends PipeDuplicatePolicy,
+  const Id extends string,
+  const Requires extends readonly PipeCapability[] = readonly [],
+  const Adds extends readonly PipeCapability[] = readonly [],
+  const Duplicate extends PipeDuplicatePolicy = 'reject',
+  const Conflicts extends readonly string[] = readonly string[],
 >(
   middleware: PipeMiddleware<State, Requires, Adds>,
-  metadata: PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate>,
+  metadata: PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate, Conflicts>,
 ): PipeableMiddleware<
   PipeMiddleware<State, Requires, Adds>,
-  PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate>
+  PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate, Conflicts>
 >;
 export function definePipeableMiddleware(
   middleware: object,

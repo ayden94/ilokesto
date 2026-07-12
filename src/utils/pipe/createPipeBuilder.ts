@@ -41,7 +41,8 @@ function createBuilderUse<
   State,
   Capabilities extends readonly PipeCapability[],
   MetadataChain extends readonly PipeMiddlewareMetadata[],
->(chain: readonly object[]): PipeBuilder<State, Capabilities, MetadataChain>['use'];
+  StateMismatchKind extends 'pipe' | 'persist-decoder',
+>(chain: readonly object[]): PipeBuilder<State, Capabilities, MetadataChain, StateMismatchKind>['use'];
 function createBuilderUse(chain: readonly object[]): unknown {
   return (middleware: object) => {
     const captured = capturePipeableMiddleware(middleware);
@@ -53,7 +54,8 @@ function createBuilderUse(chain: readonly object[]): unknown {
 function createBuilderCreate<
   State,
   Capabilities extends readonly PipeCapability[],
->(chain: readonly object[]): PipeBuilder<State, Capabilities>['create'];
+  StateMismatchKind extends 'pipe' | 'persist-decoder',
+>(chain: readonly object[]): PipeBuilder<State, Capabilities, readonly [], StateMismatchKind>['create'];
 function createBuilderCreate(chain: readonly object[]): unknown {
   return (initialState: unknown) => {
     if (initialState instanceof Store) {
@@ -78,11 +80,12 @@ export function createPipeBuilder<
   State = unknown,
   Capabilities extends readonly PipeCapability[] = readonly [],
   MetadataChain extends readonly PipeMiddlewareMetadata[] = readonly [],
->(chain: readonly object[] = []): PipeBuilder<State, Capabilities, MetadataChain> {
+  StateMismatchKind extends 'pipe' | 'persist-decoder' = 'pipe',
+>(chain: readonly object[] = []): PipeBuilder<State, Capabilities, MetadataChain, StateMismatchKind> {
   const snapshot = Object.freeze([...chain]);
-  const builder: PipeBuilder<State, Capabilities, MetadataChain> = {
-    use: createBuilderUse<State, Capabilities, MetadataChain>(snapshot),
-    create: createBuilderCreate<State, Capabilities>(snapshot),
+  const builder: PipeBuilder<State, Capabilities, MetadataChain, StateMismatchKind> = {
+    use: createBuilderUse<State, Capabilities, MetadataChain, StateMismatchKind>(snapshot),
+    create: createBuilderCreate<State, Capabilities, StateMismatchKind>(snapshot),
   };
 
   return Object.freeze(builder);

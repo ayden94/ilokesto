@@ -35,7 +35,7 @@ type StandardSchemaV1<Input = unknown, Output = Input> = {
 
 type ValidatePipeMiddleware<T> = PipeableMiddleware<
   PipeMiddleware<T>,
-  PipeMiddlewareMetadata<'@ilokesto/state/validate', readonly [], readonly [], 'reject'>
+  PipeMiddlewareMetadata<'@ilokesto/state/validate', readonly [], readonly [], 'reject', readonly []>
 >;
 
 type StandardSchemaOutput<Result> = Result extends { readonly value: infer Output } ? Output : never;
@@ -93,6 +93,7 @@ export function validate<T>(
     const middleware: PipeMiddleware<T> = (store) => applyValidate(store, schema);
 
     return definePipeableMiddleware(middleware, {
+      conflicts: [],
       duplicate: 'reject',
       id: '@ilokesto/state/validate',
     } as const);

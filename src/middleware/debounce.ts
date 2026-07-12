@@ -10,7 +10,7 @@ type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 
 type DebouncePipeMiddleware = PipeableMiddleware<
   PipeAnyMiddleware,
-  PipeMiddlewareMetadata<'@ilokesto/state/debounce', readonly [], readonly [], 'reject'>
+  PipeMiddlewareMetadata<'@ilokesto/state/debounce', readonly [], readonly [], 'reject', readonly []>
 >;
 
 const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
@@ -77,6 +77,7 @@ export function debounce<T>(first?: T | Store<T> | number, second?: number) {
       adds: [],
       after: [],
       before: [],
+      conflicts: [],
       duplicate: 'reject',
       id: '@ilokesto/state/debounce',
       requires: [],

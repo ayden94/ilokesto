@@ -1,4 +1,8 @@
-import type { PipeCapability, PipeMetadataCapabilities, PipeMiddlewareMetadata } from './types';
+import type {
+  PipeCapability,
+  PipeMetadataCapabilities,
+  PipeMiddlewareMetadata,
+} from './metadata-types';
 import type { PipeMetadataChain } from './validation-shared-types';
 
 declare const pipeCapabilityDiagnosticBrand: unique symbol;
