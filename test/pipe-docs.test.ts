@@ -3,6 +3,8 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSyn
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
+import { compileTypeFiles } from './helpers/compileTypeFiles';
+
 type PipeExample = {
   readonly code: string;
   readonly id: string;
@@ -16,6 +18,11 @@ type Marker = {
 type CompilerRun = {
   readonly diagnostics: string;
   readonly exitCode: number;
+};
+
+type DocumentExamples = {
+  readonly examples: readonly PipeExample[];
+  readonly language: 'en' | 'ko';
 };
 
 const requiredMiddlewareExampleIds = [
@@ -128,70 +135,59 @@ function runCommand(command: readonly string[]): CompilerRun {
   };
 }
 
-function compileExample(example: PipeExample): CompilerRun {
+function compileExamples(documents: readonly DocumentExamples[]): CompilerRun {
   const temporaryProject = mkdtempSync(join(tmpdir(), 'ilokesto-state-pipe-docs-'));
 
   try {
     const packageDirectory = join(temporaryProject, 'node_modules', '@ilokesto');
     const packageLink = join(packageDirectory, 'state');
-    const tsconfigPath = join(temporaryProject, 'tsconfig.json');
-
     mkdirSync(packageDirectory, { recursive: true });
     symlinkSync(projectRoot, packageLink, 'dir');
     writeFileSync(join(temporaryProject, 'package.json'), '{"type":"module"}\n');
-    writeFileSync(
-      tsconfigPath,
-      JSON.stringify({
-        compilerOptions: {
-          module: 'ESNext',
-          moduleResolution: 'bundler',
-          noEmit: true,
-          strict: true,
-          target: 'ESNext',
-        },
-        include: ['index.ts'],
+    const sourcePaths = documents.flatMap(({ examples, language }) =>
+      examples.map((example) => {
+        const sourcePath = join(temporaryProject, `${language}-${example.id}.ts`);
+        writeFileSync(sourcePath, example.code);
+        return sourcePath;
       }),
     );
-    writeFileSync(join(temporaryProject, 'index.ts'), example.code);
+    const result = compileTypeFiles(sourcePaths);
 
-    return runCommand(['pnpm', 'exec', 'tsc', '--noEmit', '-p', tsconfigPath]);
+    return { diagnostics: result.diagnostics, exitCode: result.exitCode };
   } finally {
     rmSync(temporaryProject, { force: true, recursive: true });
   }
 }
 
-test('Given marked English pipe examples, when compiled against a fresh package build, then compiles marked English pipe examples without diagnostics', () => {
+test('Given marked bilingual pipe examples, when compiled against a fresh package build, then compiles every marked example without diagnostics', () => {
   // Given
   const build = runCommand(['pnpm', 'build']);
-  const examples = extractMarkedPipeExamples(readFileSync(readmePath, 'utf8'), 'English README');
-  assertRequiredMiddlewareExamples(examples, 'English README');
+  const englishExamples = extractMarkedPipeExamples(readFileSync(readmePath, 'utf8'), 'English README');
+  const koreanExamples = extractMarkedPipeExamples(readFileSync(koreanReadmePath, 'utf8'), 'Korean README');
+  assertRequiredMiddlewareExamples(englishExamples, 'English README');
+  assertRequiredMiddlewareExamples(koreanExamples, 'Korean README');
   assertNoHistoryWithDelayedMiddleware(readFileSync(readmePath, 'utf8'), 'English README');
-
-  // When / Then
-  expect(build.exitCode).toBe(0);
-  expect(build.diagnostics).toContain('rm -rf dist && tsc');
-  for (const example of examples) {
-    const result = compileExample(example);
-    expect(result.exitCode, `${example.id}\n${result.diagnostics}`).toBe(0);
-    expect(result.diagnostics, example.id).toBe('');
-  }
-}, { timeout: 180_000 });
-
-test('Given marked Korean pipe examples, when compiled against a fresh package build, then compiles marked Korean pipe examples without diagnostics', () => {
-  // Given
-  const build = runCommand(['pnpm', 'build']);
-  const examples = extractMarkedPipeExamples(readFileSync(koreanReadmePath, 'utf8'), 'Korean README');
-  assertRequiredMiddlewareExamples(examples, 'Korean README');
   assertNoHistoryWithDelayedMiddleware(readFileSync(koreanReadmePath, 'utf8'), 'Korean README');
 
   // When / Then
   expect(build.exitCode).toBe(0);
   expect(build.diagnostics).toContain('rm -rf dist && tsc');
-  for (const example of examples) {
-    const result = compileExample(example);
-    expect(result.exitCode, `${example.id}\n${result.diagnostics}`).toBe(0);
-    expect(result.diagnostics, example.id).toBe('');
-  }
+  const result = compileExamples([
+    { examples: englishExamples, language: 'en' },
+    { examples: koreanExamples, language: 'ko' },
+  ]);
+  expect(result.exitCode, result.diagnostics).toBe(0);
+  expect(result.diagnostics).toBe('');
+}, { timeout: 180_000 });
+
+test('Given marked Korean pipe examples, when checked, then includes required middleware examples without delayed history', () => {
+  // Given
+  const examples = extractMarkedPipeExamples(readFileSync(koreanReadmePath, 'utf8'), 'Korean README');
+  assertRequiredMiddlewareExamples(examples, 'Korean README');
+  assertNoHistoryWithDelayedMiddleware(readFileSync(koreanReadmePath, 'utf8'), 'Korean README');
+
+  // When / Then
+  expect(examples).toHaveLength(requiredMiddlewareExampleIds.length + 3);
 }, { timeout: 180_000 });
 
 test('Given bilingual pipe documentation, when their marked examples are compared, then documents equivalent bilingual pipe contracts', () => {
