@@ -1,5 +1,6 @@
 import type { Store } from '@ilokesto/store';
 import { getStore } from '../lib/getStore';
+import { registerStoreCleanup } from '../lib/storeCleanup';
 import { definePipeableMiddleware } from '../utils/pipe/metadata';
 import type { PipeableMiddleware } from '../utils/pipe/metadata';
 import type { PipeAnyMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/types';
@@ -18,6 +19,7 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
   let timeout: NodeJS.Timeout | null = null;
   let updates: Array<StoreSetStateAction<T>> = [];
   let savedNext: Dispatch<StoreSetStateAction<T>> | null = null;
+  let unregisterTimeout: (() => void) | null = null;
 
   store.pushMiddleware((nextState: StoreSetStateAction<T>, next) => {
     updates.push(nextState);
@@ -42,11 +44,23 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
       updates = [];
       timeout = null;
       savedNext = null;
+      unregisterTimeout?.();
+      unregisterTimeout = null;
 
       if (pendingNext) {
         pendingNext(currentState);
       }
     }, wait);
+    unregisterTimeout = registerStoreCleanup(store, () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+
+      timeout = null;
+      updates = [];
+      savedNext = null;
+      unregisterTimeout = null;
+    });
   });
 
   return store;

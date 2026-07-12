@@ -2,7 +2,7 @@ import { expect, jest, spyOn, test } from 'bun:test';
 import { Store } from '@ilokesto/store';
 
 import { runWithStoreActionMetadata } from '../src/lib/actionMetadata';
-import { debounce, logger } from '../src/middleware';
+import { debounce, dispose, logger } from '../src/middleware';
 import {
   PipeConfigurationError,
   type PipeConfigurationErrorCode,
@@ -167,6 +167,37 @@ test('Given duplicate logger or debounce pipe middleware, when a chain is built,
   } finally {
     timeoutSpy.mockRestore();
     logSpy.mockRestore();
+    callBunFakeTimer('clearAllTimers');
+    callBunFakeTimer('useRealTimers');
+  }
+});
+
+test('Given a debounced Store, when timers expire and disposal interrupts later updates, then expiry unregisters cleanup and the Store remains reusable', () => {
+  // Given
+  callBunFakeTimer('useFakeTimers');
+  const store = debounce({ count: 0 }, 25);
+
+  try {
+    // When
+    store.setState({ count: 1 });
+    callBunFakeTimer('advanceTimersByTime', [25]);
+    dispose(store);
+    store.setState({ count: 2 });
+    callBunFakeTimer('advanceTimersByTime', [25]);
+    store.setState({ count: 3 });
+    dispose(store);
+    callBunFakeTimer('advanceTimersByTime', [25]);
+
+    // Then
+    expect(store.getState()).toEqual({ count: 2 });
+
+    // When
+    store.setState({ count: 4 });
+    callBunFakeTimer('advanceTimersByTime', [25]);
+
+    // Then
+    expect(store.getState()).toEqual({ count: 4 });
+  } finally {
     callBunFakeTimer('clearAllTimers');
     callBunFakeTimer('useRealTimers');
   }

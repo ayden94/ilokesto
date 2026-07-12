@@ -1,6 +1,7 @@
 import type { Store } from '@ilokesto/store';
 import { getStoreActionMetadata } from '../lib/actionMetadata';
 import { getStore } from '../lib/getStore';
+import { registerStoreCleanup } from '../lib/storeCleanup';
 import { definePipeableMiddleware } from '../utils/pipe/metadata';
 import type { PipeableMiddleware } from '../utils/pipe/metadata';
 import type { PipeAnyMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/types';
@@ -23,7 +24,7 @@ type DevtoolsMessage = {
 
 type DevtoolsConnection<T> = {
   init: (state: Readonly<T>) => void;
-  subscribe: (listener: (message: DevtoolsMessage) => void) => void;
+  subscribe: (listener: (message: DevtoolsMessage) => void) => (() => void) | undefined;
   send: (action: string, state: Readonly<T>) => void;
 };
 
@@ -54,7 +55,7 @@ const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
   if (devTools) {
     devTools.init(store.getState() as T);
 
-    devTools.subscribe((message) => {
+    const unsubscribe = devTools.subscribe((message) => {
       if (message.type !== 'DISPATCH') {
         return;
       }
@@ -84,6 +85,10 @@ const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
           break;
       }
     });
+
+    if (unsubscribe) {
+      registerStoreCleanup(store, unsubscribe);
+    }
   }
 
   store.pushMiddleware((nextState: StoreSetStateAction<T>, next) => {
