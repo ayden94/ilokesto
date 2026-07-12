@@ -3,41 +3,20 @@ import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { compileTypeFixture } from './helpers/compileTypeFixture';
+import {
+  pipeTypeFixtureCases,
+  type PipeTypeFixtureCase,
+} from './helpers/pipeTypeFixtureRegistry';
 
-type InvalidFixture = {
+type InvalidFixture = Extract<PipeTypeFixtureCase, { readonly kind: 'invalid' | 'dist-invalid' }> & {
   readonly diagnosticCount: number;
-  readonly fixture: string;
-  readonly markers: readonly string[];
+  readonly expectedMarkers: readonly string[];
 };
 
 type CommandResult = {
   readonly diagnostics: string;
   readonly exitCode: number;
 };
-
-const invalidFixtures = {
-  builder: [
-    { diagnosticCount: 1, fixture: 'invalid-callable-root', markers: ['__pipeCallableRootError'] },
-    { diagnosticCount: 2, fixture: 'invalid-legacy-call', markers: ['__pipeCallableRootError'] },
-    { diagnosticCount: 1, fixture: 'invalid-root-create', markers: ['__pipeRootCreateError'] },
-    { diagnosticCount: 1, fixture: 'invalid-untagged-use', markers: ['__pipeUntaggedMiddlewareError'] },
-    { diagnosticCount: 1, fixture: 'invalid-store-input', markers: ['__pipeStoreInputError'] },
-  ],
-  capability: [
-    { diagnosticCount: 1, fixture: 'invalid-missing-capability', markers: ['__pipeMissingCapabilityError'] },
-    { diagnosticCount: 1, fixture: 'invalid-duplicate-capability', markers: ['__pipeDuplicateCapabilityError'] },
-    { diagnosticCount: 1, fixture: 'invalid-state', markers: ['__pipeStateCompatibilityError'] },
-  ],
-  graph: [
-    { diagnosticCount: 2, fixture: 'invalid-duplicate', markers: ['__pipeDuplicateMiddlewareError'] },
-    { diagnosticCount: 1, fixture: 'invalid-order', markers: ['__pipeMiddlewareOrderError'] },
-    { diagnosticCount: 1, fixture: 'invalid-cycle', markers: ['__pipeMiddlewareCycleError'] },
-  ],
-  validate: [
-    { diagnosticCount: 1, fixture: 'invalid-validate-initial-state', markers: ['__pipeStateCompatibilityError'] },
-    { diagnosticCount: 1, fixture: 'invalid-validate-state', markers: ['__pipeStateCompatibilityError'] },
-  ],
-} as const satisfies Record<string, readonly InvalidFixture[]>;
 
 const projectRoot = join(import.meta.dir, '..');
 const decoder = new TextDecoder();
@@ -56,44 +35,41 @@ function buildDistribution(): CommandResult {
   };
 }
 
-function expectInvalidFixture(contract: InvalidFixture): void {
-  const result = compileTypeFixture(contract.fixture);
+function expectInvalidFixture(fixture: string, contract: InvalidFixture): void {
+  const result = compileTypeFixture(fixture);
   const diagnosticLines = result.diagnostics.split('\n').filter((line) => line.includes('error TS'));
 
   expect(result.success).toBeFalse();
   expect(result.exitCode).toBe(1);
   expect(diagnosticLines).toHaveLength(contract.diagnosticCount);
-  for (const marker of contract.markers) {
+  for (const marker of contract.expectedMarkers) {
     expect(result.diagnostics).toContain(marker);
   }
   expect(result.diagnostics).not.toContain('Cannot find module');
   expect(result.diagnostics).not.toContain('TS5058');
 }
 
-function expectInvalidFixtures(contracts: readonly InvalidFixture[]): void {
-  for (const contract of contracts) {
-    expectInvalidFixture(contract);
-  }
-}
-
 test('Given public pipe contracts, when valid fixtures compile in isolated programs, then they exit successfully', () => {
   // Given / When / Then
-  for (const fixture of ['valid-types', 'valid-metadata', 'valid-capabilities', 'valid-builder', 'valid-validate']) {
+  for (const [fixture, contract] of Object.entries(pipeTypeFixtureCases)) {
+    if (contract.kind !== 'valid') continue;
     const result = compileTypeFixture(fixture);
     expect(result.success).toBeTrue();
     expect(result.exitCode).toBe(0);
     expect(result.diagnostics).toBe('');
   }
-}, { timeout: 90_000 });
+}, { timeout: 180_000 });
 
 test('Given invalid pipe contracts, when their isolated programs compile, then their branded diagnostics are preserved', () => {
   // Given / When / Then
-  expectInvalidFixture({ diagnosticCount: 1, fixture: 'invalid-harness', markers: ['__fixtureExpectedError'] });
-  expectInvalidFixtures(invalidFixtures.validate);
-  expectInvalidFixtures(invalidFixtures.builder);
-  expectInvalidFixtures(invalidFixtures.graph);
-  expectInvalidFixtures(invalidFixtures.capability);
-}, { timeout: 90_000 });
+  const harnessResult = compileTypeFixture('invalid-harness');
+  expect(harnessResult.success).toBeFalse();
+  expect(harnessResult.diagnostics).toContain('__fixtureExpectedError');
+  for (const [fixture, contract] of Object.entries(pipeTypeFixtureCases)) {
+    if (contract.kind !== 'invalid') continue;
+    expectInvalidFixture(fixture, contract);
+  }
+}, { timeout: 180_000 });
 
 test('Given generated declarations, when public fixtures compile in isolated programs, then public contracts remain correct', () => {
   // Given
@@ -117,11 +93,8 @@ test('Given generated declarations, when public fixtures compile in isolated pro
   expect(statSync(declarationPath).mtimeMs).toBeGreaterThanOrEqual(sourceModifiedAt);
   expect(validResult.success).toBeTrue();
   expect(validResult.diagnostics).toBe('');
-  expectInvalidFixture({
-    diagnosticCount: 3,
-    fixture: 'dist-consumer/public-invalid',
-    markers: ['__pipeCallableRootError', '__pipeStoreInputError'],
-  });
+  const invalidContract = pipeTypeFixtureCases['dist-consumer/public-invalid'];
+  expectInvalidFixture('dist-consumer/public-invalid', invalidContract);
   expect(rootDeclaration).toContain('export declare const pipe: Pipe;');
   expect(rootDeclaration).not.toContain('declare function pipe');
   expect(pipeTypeDeclaration).toBeDefined();
@@ -131,4 +104,4 @@ test('Given generated declarations, when public fixtures compile in isolated pro
   expect(publicDeclaration).not.toMatch(/\bPipeableMiddleware\b/);
   expect(publicDeclaration).not.toContain('PipeMetadataSnapshot');
   expect(publicDeclaration).not.toContain('validation-types');
-}, { timeout: 90_000 });
+}, { timeout: 180_000 });

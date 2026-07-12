@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
 import { join } from 'node:path';
 
+import { pipeTypeFixtureCases } from './helpers/pipeTypeFixtureRegistry';
+
 const projectRoot = join(import.meta.dir, '..');
 
 test('Given pipe type fixtures, when their compiler configs are listed, then only the shared fixture and test configs remain', () => {
@@ -14,4 +16,17 @@ test('Given pipe type fixtures, when their compiler configs are listed, then onl
     'test/fixtures/pipe-types/tsconfig.json',
     'test/tsconfig.json',
   ]);
+});
+
+test('Given pipe type fixtures, when fixture indexes are discovered recursively, then registry keys match exactly', () => {
+  // Given / When
+  const fixturePrefix = 'test/fixtures/pipe-types/';
+  const indexSuffix = '/index.ts';
+  const discovered = [...new Bun.Glob(`${fixturePrefix}**${indexSuffix}`).scanSync({ cwd: projectRoot })]
+    .map((path) => path.slice(fixturePrefix.length, -indexSuffix.length))
+    .sort();
+  const registered = Object.keys(pipeTypeFixtureCases).sort();
+
+  // Then
+  expect(discovered).toEqual(registered);
 });

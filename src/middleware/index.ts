@@ -6,4 +6,14 @@ export { history, HistoryConfigurationError } from './history';
 export type { HistoryControls, HistoryOptions, HistoryStore } from './history';
 export { logger } from './logger';
 export { persist } from './persist';
+export type {
+  PersistConfig,
+  PersistDecoder,
+  PersistDecoderStateDiagnostic,
+  PersistMigration,
+  SafePersistConfig,
+  SafePersistCookieConfig,
+  SafePersistLocalConfig,
+  SafePersistSessionConfig,
+} from './persist/Persist';
 export { validate } from './validate';
