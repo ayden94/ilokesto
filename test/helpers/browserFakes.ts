@@ -45,8 +45,40 @@ export class MemoryStorage implements Storage {
   }
 }
 
+export class MemoryCookieDocument {
+  readonly values = new Map<string, string>();
+  reads = 0;
+  writes = 0;
+
+  get cookie(): string {
+    this.reads += 1;
+    return [...this.values].map(([key, value]) => `${key}=${value}`).join('; ');
+  }
+
+  set cookie(encodedCookie: string) {
+    this.writes += 1;
+    const separatorIndex = encodedCookie.indexOf('=');
+    if (separatorIndex < 0) return;
+
+    this.values.set(
+      encodedCookie.slice(0, separatorIndex),
+      encodedCookie.slice(separatorIndex + 1),
+    );
+  }
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+}
+
+export type BrowserStorageFakes = {
+  readonly cookieDocument: MemoryCookieDocument;
+  readonly localStorage: MemoryStorage;
+  readonly sessionStorage: MemoryStorage;
+};
+
 export function restoreBrowserGlobal(
-  name: 'localStorage' | 'window',
+  name: 'document' | 'localStorage' | 'sessionStorage' | 'window',
   descriptor: PropertyDescriptor | undefined,
 ): void {
   if (descriptor === undefined) {
@@ -58,11 +90,19 @@ export function restoreBrowserGlobal(
 }
 
 export function withBrowserFakes<State>(
-  action: (storage: MemoryStorage, connections: FakeDevtoolsConnection<State>[]) => void,
+  action: (
+    storage: MemoryStorage,
+    connections: FakeDevtoolsConnection<State>[],
+    browserStorage: BrowserStorageFakes,
+  ) => void,
 ): void {
+  const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
   const localStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  const sessionStorageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'sessionStorage');
   const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
   const storage = new MemoryStorage();
+  const sessionStorage = new MemoryStorage();
+  const cookieDocument = new MemoryCookieDocument();
   const connections: FakeDevtoolsConnection<State>[] = [];
   let hasFakeWindow = false;
 
@@ -70,6 +110,14 @@ export function withBrowserFakes<State>(
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: storage,
+    });
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      configurable: true,
+      value: sessionStorage,
+    });
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: cookieDocument,
     });
     try {
       Object.defineProperty(globalThis, 'window', {
@@ -98,13 +146,19 @@ export function withBrowserFakes<State>(
         },
       });
       hasFakeWindow = true;
-      action(storage, connections);
+      action(storage, connections, {
+        cookieDocument,
+        localStorage: storage,
+        sessionStorage,
+      });
     } finally {
       if (hasFakeWindow) {
         restoreBrowserGlobal('window', windowDescriptor);
       }
     }
   } finally {
+    restoreBrowserGlobal('document', documentDescriptor);
     restoreBrowserGlobal('localStorage', localStorageDescriptor);
+    restoreBrowserGlobal('sessionStorage', sessionStorageDescriptor);
   }
 }
