@@ -4,7 +4,7 @@
   "scripts": {
     "build": "rm -rf dist && tsc",
     "test": "bun test",
-    "test:typecheck": "tsc --noEmit -p test/tsconfig.json",
+    "test:typecheck": "pnpm build && tsc --noEmit -p test/tsconfig.json",
     "typecheck": "tsc --noEmit"
   },
   "repository": {

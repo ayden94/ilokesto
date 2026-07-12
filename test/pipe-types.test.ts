@@ -21,9 +21,9 @@ type CommandResult = {
 const projectRoot = join(import.meta.dir, '..');
 const decoder = new TextDecoder();
 
-function buildDistribution(): CommandResult {
+function buildAndTypecheckDistribution(): CommandResult {
   const result = Bun.spawnSync({
-    cmd: ['pnpm', 'build'],
+    cmd: ['pnpm', 'test:typecheck'],
     cwd: projectRoot,
     stderr: 'pipe',
     stdout: 'pipe',
@@ -74,7 +74,7 @@ test('Given invalid pipe contracts, when their isolated programs compile, then t
 test('Given generated declarations, when public fixtures compile in isolated programs, then public contracts remain correct', () => {
   // Given
   const sourceModifiedAt = statSync(join(projectRoot, 'src/utils/index.ts')).mtimeMs;
-  const build = buildDistribution();
+  const typecheck = buildAndTypecheckDistribution();
   const declarationPath = join(projectRoot, 'dist/utils/pipe/createPipeBuilder.d.ts');
   const publicDeclarationPath = join(projectRoot, 'dist/utils/index.d.ts');
   const pipeTypesDeclarationPath = join(projectRoot, 'dist/utils/pipe/types.d.ts');
@@ -88,8 +88,8 @@ test('Given generated declarations, when public fixtures compile in isolated pro
   )?.[0];
 
   // Then
-  expect(build.exitCode).toBe(0);
-  expect(build.diagnostics).toContain('rm -rf dist && tsc');
+  expect(typecheck.exitCode).toBe(0);
+  expect(typecheck.diagnostics).toContain('pnpm build && tsc --noEmit -p test/tsconfig.json');
   expect(statSync(declarationPath).mtimeMs).toBeGreaterThanOrEqual(sourceModifiedAt);
   expect(validResult.success).toBeTrue();
   expect(validResult.diagnostics).toBe('');
