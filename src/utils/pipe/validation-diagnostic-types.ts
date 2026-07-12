@@ -1,5 +1,5 @@
-import type { PipeMiddlewareMetadata } from './metadata-types';
-import type { PipeMetadataChain } from './validation-shared-types';
+import type { PipeMiddlewareMetadata } from './metadata-types.js';
+import type { PipeMetadataChain } from './validation-shared-types.js';
 
 declare const pipeDiagnosticBrand: unique symbol;
 

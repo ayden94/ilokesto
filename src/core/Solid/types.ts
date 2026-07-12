@@ -1,7 +1,7 @@
 import type { Store } from '@ilokesto/store';
 import type { Accessor } from 'solid-js';
 
-import type { ReducerAction } from '../../types/ReduceFn';
+import type { ReducerAction } from '../../types/ReduceFn.js';
 
 export type Selector<T, S> = (state: T) => S;
 export type SetStateAction<T> = Parameters<Store<T>['setState']>[0];

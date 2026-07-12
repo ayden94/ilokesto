@@ -3,9 +3,9 @@ import type {
   PipeMetadataCapabilities,
   PipeMiddlewareMetadata,
   PipeRelationshipKey,
-} from './metadata-types';
-import type { PipeDiagnostic, PipeValidationDetail } from './validation-diagnostic-types';
-import type { PipeMetadataChain } from './validation-shared-types';
+} from './metadata-types.js';
+import type { PipeDiagnostic, PipeValidationDetail } from './validation-diagnostic-types.js';
+import type { PipeMetadataChain } from './validation-shared-types.js';
 
 export type PipeDuplicateMiddlewareDiagnostic<
   Current extends PipeMetadataChain,

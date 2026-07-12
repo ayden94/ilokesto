@@ -1,6 +1,6 @@
 import type { Store } from '@ilokesto/store';
 
-import type { ReducerAction } from '../types/ReduceFn';
+import type { ReducerAction } from '../types/ReduceFn.js';
 
 export type StoreActionMetadata = Readonly<{
   type: string;

@@ -1,4 +1,4 @@
-import type { PipeMiddlewareMetadata } from './metadata-types';
+import type { PipeMiddlewareMetadata } from './metadata-types.js';
 
 declare const pipeMiddlewareMetadataBrand: unique symbol;
 

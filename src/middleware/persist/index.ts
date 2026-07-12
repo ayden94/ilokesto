@@ -1,19 +1,19 @@
 import { Store } from '@ilokesto/store';
-import { getStore } from '../../lib/getStore';
-import { definePipeableMiddleware } from '../../utils/pipe/metadata';
-import type { PipeableMiddleware } from '../../utils/pipe/metadata';
+import { getStore } from '../../lib/getStore.js';
+import { definePipeableMiddleware } from '../../utils/pipe/metadata.js';
+import type { PipeableMiddleware } from '../../utils/pipe/metadata.js';
 import type {
   PipeAnyMiddleware,
   PipeMiddleware,
   PipeMiddlewareMetadata,
-} from '../../utils/pipe/types';
+} from '../../utils/pipe/types.js';
 import type {
   MigrationFn,
   PersistConfig,
   PersistDecoderStateValidation,
   SafePersistConfig,
-} from './Persist';
-import { getSafeStorage, getStorage, parseOptions, setStorage } from './persistUtils';
+} from './Persist.js';
+import { getSafeStorage, getStorage, parseOptions, setStorage } from './persistUtils.js';
 
 type PersistMetadata = PipeMiddlewareMetadata<
   '@ilokesto/state/persist',

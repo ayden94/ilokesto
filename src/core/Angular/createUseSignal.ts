@@ -1,14 +1,14 @@
 import type { Store } from '@ilokesto/store';
 import { DestroyRef, computed, inject, signal } from '@angular/core';
 
-import { dispatchStoreAction } from '../../lib/actionMetadata';
-import type { ReducerAction } from '../../types/ReduceFn';
+import { dispatchStoreAction } from '../../lib/actionMetadata.js';
+import type { ReducerAction } from '../../types/ReduceFn.js';
 import type {
   ActionWriter,
   AngularOptions,
   Selector,
   StateWriter,
-} from './types';
+} from './types.js';
 
 const identity = <Value>(value: Value): Value => value;
 

@@ -5,11 +5,11 @@ import type {
   PipeCapabilityShapes,
   PipeMetadataCapabilities,
   PipeMiddlewareMetadata,
-} from './metadata-types';
-import type { PipeableMiddleware } from './pipeable-types';
-import type { PipeMiddlewareAppendValidation } from './validation-types';
+} from './metadata-types.js';
+import type { PipeableMiddleware } from './pipeable-types.js';
+import type { PipeMiddlewareAppendValidation } from './validation-types.js';
 
-export { pipeRelationshipKeys } from './metadata-types';
+export { pipeRelationshipKeys } from './metadata-types.js';
 export type {
   PipeCapabilitiesAfterAppend,
   PipeCapability,
@@ -18,7 +18,7 @@ export type {
   PipeMetadataCapabilities,
   PipeMiddlewareMetadata,
   PipeRelationshipKey,
-} from './metadata-types';
+} from './metadata-types.js';
 
 type PipeMetadataFor<Middleware> = Middleware extends PipeableMiddleware<
   object,
@@ -267,4 +267,4 @@ export type {
   PipeMiddlewareConflictDiagnostic,
   PipeMiddlewareOrderDiagnostic,
   PipeMissingCapabilityDiagnostic,
-} from './validation-types';
+} from './validation-types.js';

@@ -2,14 +2,14 @@ import type { Store } from '@ilokesto/store';
 
 import type { Readable, Subscriber, Unsubscriber, Updater } from 'svelte/store';
 
-import { dispatchStoreAction } from '../../lib/actionMetadata';
-import type { ReducerAction } from '../../types/ReduceFn';
+import { dispatchStoreAction } from '../../lib/actionMetadata.js';
+import type { ReducerAction } from '../../types/ReduceFn.js';
 import type {
   ActionWriter,
   Selector,
   UseReducer,
   UseState,
-} from './types';
+} from './types.js';
 
 const identity = <Value>(value: Value): Value => value;
 

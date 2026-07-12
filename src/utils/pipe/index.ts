@@ -1,1 +1,1 @@
-export { pipe } from './createPipeBuilder';
+export { pipe } from './createPipeBuilder.js';

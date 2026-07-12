@@ -1,12 +1,12 @@
 import { Store } from '@ilokesto/store';
-import { getStore } from '../lib/getStore';
-import { definePipeableMiddleware } from '../utils/pipe/metadata';
-import type { PipeableMiddleware } from '../utils/pipe/metadata';
+import { getStore } from '../lib/getStore.js';
+import { definePipeableMiddleware } from '../utils/pipe/metadata.js';
+import type { PipeableMiddleware } from '../utils/pipe/metadata.js';
 import type {
   PipeAnyMiddleware,
   PipeCapability,
   PipeMiddlewareMetadata,
-} from '../utils/pipe/types';
+} from '../utils/pipe/types.js';
 
 export type HistoryOptions = {
   readonly limit?: number;

@@ -1,8 +1,8 @@
-export { adaptor } from './adaptor';
-export { pipe } from './pipe';
-export { PipeConfigurationError } from './pipe/errors';
-export type { PipeConfigurationErrorCode } from './pipe/errors';
-export { definePipeableMiddleware } from './pipe/metadata';
+export { adaptor } from './adaptor.js';
+export { pipe } from './pipe/index.js';
+export { PipeConfigurationError } from './pipe/errors.js';
+export type { PipeConfigurationErrorCode } from './pipe/errors.js';
+export { definePipeableMiddleware } from './pipe/metadata.js';
 export type {
   Pipe,
   PipeAnyMiddleware,
@@ -12,4 +12,4 @@ export type {
   PipeMiddleware,
   PipeMiddlewareConflictDiagnostic,
   PipeMiddlewareMetadata,
-} from './pipe/types';
+} from './pipe/types.js';

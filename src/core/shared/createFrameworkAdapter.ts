@@ -1,8 +1,8 @@
 import type { Store } from '@ilokesto/store';
 
-import { getStore } from '../../lib/getStore';
-import type { ReduceFn, ReducerAction } from '../../types/ReduceFn';
-import { getInitialState } from './getInitialState';
+import { getStore } from '../../lib/getStore.js';
+import type { ReduceFn, ReducerAction } from '../../types/ReduceFn.js';
+import { getInitialState } from './getInitialState.js';
 
 const isReduceFn = <T, Action extends ReducerAction>(
   value: Store<T> | T | ReduceFn<T, Action>,

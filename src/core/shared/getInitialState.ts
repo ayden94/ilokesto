@@ -1,6 +1,6 @@
 import { Store } from '@ilokesto/store';
 
-import type { ReduceFn, ReducerAction } from '../../types/ReduceFn';
+import type { ReduceFn, ReducerAction } from '../../types/ReduceFn.js';
 
 export function getInitialState<T, Action extends ReducerAction>(
   firstArg: T | Store<T> | ReduceFn<T, Action>,

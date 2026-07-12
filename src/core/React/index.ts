@@ -1,9 +1,9 @@
 import type { Store } from '@ilokesto/store';
-import type { ReduceFn, ReducerAction } from '../../types/ReduceFn';
-import type { UseReducer, UseState } from './types';
+import type { ReduceFn, ReducerAction } from '../../types/ReduceFn.js';
+import type { UseReducer, UseState } from './types.js';
 
-import { createFrameworkAdapter } from '../shared/createFrameworkAdapter';
-import { createUseState } from './createUseState';
+import { createFrameworkAdapter } from '../shared/createFrameworkAdapter.js';
+import { createUseState } from './createUseState.js';
 
 export function create<T, Action extends ReducerAction>(
   reduceFn: ReduceFn<T, Action>,

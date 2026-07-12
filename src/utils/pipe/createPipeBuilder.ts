@@ -1,18 +1,18 @@
 import { Store } from '@ilokesto/store';
 
-import { PipeConfigurationError } from './errors';
+import { PipeConfigurationError } from './errors.js';
 import {
   capturePipeableMiddleware,
   getCapturedPipeMiddleware,
   getPipeableMiddlewareMetadata,
-} from './metadata';
+} from './metadata.js';
 import type {
   Pipe,
   PipeBuilder,
   PipeCapability,
   PipeMiddlewareMetadata,
-} from './types';
-import { validatePipeMiddlewareAppend, validatePipeMiddlewareChain } from './validation';
+} from './types.js';
+import { validatePipeMiddlewareAppend, validatePipeMiddlewareChain } from './validation.js';
 
 function applyMiddleware(middleware: object, store: Store<unknown>): Store<unknown> {
   const callable = getCapturedPipeMiddleware(middleware);

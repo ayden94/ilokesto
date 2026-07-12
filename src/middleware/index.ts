@@ -1,11 +1,11 @@
-export { debounce } from './debounce';
-export { throttle } from './throttle';
-export { devtools } from './devtools';
-export { dispose } from '../lib/storeCleanup';
-export { history, HistoryConfigurationError } from './history';
-export type { HistoryControls, HistoryOptions, HistoryStore } from './history';
-export { logger } from './logger';
-export { persist } from './persist';
+export { debounce } from './debounce.js';
+export { throttle } from './throttle.js';
+export { devtools } from './devtools.js';
+export { dispose } from '../lib/storeCleanup.js';
+export { history, HistoryConfigurationError } from './history.js';
+export type { HistoryControls, HistoryOptions, HistoryStore } from './history.js';
+export { logger } from './logger.js';
+export { persist } from './persist/index.js';
 export type {
   PersistConfig,
   PersistDecoder,
@@ -15,5 +15,5 @@ export type {
   SafePersistCookieConfig,
   SafePersistLocalConfig,
   SafePersistSessionConfig,
-} from './persist/Persist';
-export { validate } from './validate';
+} from './persist/Persist.js';
+export { validate } from './validate.js';

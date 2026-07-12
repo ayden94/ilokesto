@@ -1,8 +1,8 @@
 import type { Store } from '@ilokesto/store';
-import { getStore } from '../lib/getStore';
-import { definePipeableMiddleware } from '../utils/pipe/metadata';
-import type { PipeableMiddleware } from '../utils/pipe/metadata';
-import type { PipeMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/types';
+import { getStore } from '../lib/getStore.js';
+import { definePipeableMiddleware } from '../utils/pipe/metadata.js';
+import type { PipeableMiddleware } from '../utils/pipe/metadata.js';
+import type { PipeMiddleware, PipeMiddlewareMetadata } from '../utils/pipe/types.js';
 
 type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 

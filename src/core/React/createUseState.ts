@@ -1,10 +1,10 @@
 import type { Store } from '@ilokesto/store';
 import { useMemo, useSyncExternalStore } from 'react';
 
-import { dispatchStoreAction } from '../../lib/actionMetadata';
-import type { ReducerAction } from '../../types/ReduceFn';
-import { deepCompare } from '../shared/deepCompare';
-import type { UseReducer, UseState } from './types';
+import { dispatchStoreAction } from '../../lib/actionMetadata.js';
+import type { ReducerAction } from '../../types/ReduceFn.js';
+import { deepCompare } from '../shared/deepCompare.js';
+import type { UseReducer, UseState } from './types.js';
 
 type Selector<T, S> = (state: T) => S;
 

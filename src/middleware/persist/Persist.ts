@@ -1,4 +1,4 @@
-import type { PersistDecoderStateDiagnostic as PipePersistDecoderStateDiagnostic } from '../../utils/pipe/types';
+import type { PersistDecoderStateDiagnostic as PipePersistDecoderStateDiagnostic } from '../../utils/pipe/types.js';
 
 export type PersistMigration<Input = unknown, Output = unknown> = (state: Input) => Output;
 

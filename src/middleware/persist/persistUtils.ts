@@ -1,4 +1,4 @@
-import type { MigrationFn, PersistDecoder, PersistUtils } from './Persist';
+import type { MigrationFn, PersistDecoder, PersistUtils } from './Persist.js';
 
 type PersistedPayload<T> = { state: T; version: number };
 type SafeStorageOptions<State> = PersistUtils['common'] & {

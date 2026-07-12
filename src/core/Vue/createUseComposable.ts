@@ -1,9 +1,9 @@
 import type { Store } from '@ilokesto/store';
 import { computed, getCurrentScope, onScopeDispose, shallowRef } from 'vue';
 
-import { dispatchStoreAction } from '../../lib/actionMetadata';
-import type { ReducerAction } from '../../types/ReduceFn';
-import type { ActionWriter, Selector, StateWriter } from './types';
+import { dispatchStoreAction } from '../../lib/actionMetadata.js';
+import type { ReducerAction } from '../../types/ReduceFn.js';
+import type { ActionWriter, Selector, StateWriter } from './types.js';
 
 const identity = <Value>(value: Value): Value => value;
 

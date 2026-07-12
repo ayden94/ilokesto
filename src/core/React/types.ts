@@ -1,6 +1,6 @@
 import { SetStateAction } from 'react';
 
-import type { ReducerAction } from '../../types/ReduceFn';
+import type { ReducerAction } from '../../types/ReduceFn.js';
 
 export type UseState<T> = {
   (): readonly [T, (nextState: SetStateAction<T>) => void];

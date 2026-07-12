@@ -1,6 +1,6 @@
 import { Store } from '@ilokesto/store';
-import { getDispatchedStoreAction } from './actionMetadata';
-import type { ReduceFn, ReducerAction } from '../types/ReduceFn';
+import { getDispatchedStoreAction } from './actionMetadata.js';
+import type { ReduceFn, ReducerAction } from '../types/ReduceFn.js';
 
 type StoreSetStateAction<T> = Parameters<Store<T>['setState']>[0];
 

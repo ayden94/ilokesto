@@ -99,7 +99,7 @@ test('Given generated declarations, when public fixtures compile in isolated pro
   expect(rootDeclaration).not.toContain('declare function pipe');
   expect(pipeTypeDeclaration).toBeDefined();
   expect(pipeTypeDeclaration ?? '').not.toContain('create');
-  expect(publicDeclaration).toContain("export { pipe } from './pipe';");
+  expect(publicDeclaration).toContain("export { pipe } from './pipe/index.js';");
   expect(publicDeclaration).toContain('PipeConfigurationError');
   expect(publicDeclaration).not.toMatch(/\bPipeableMiddleware\b/);
   expect(publicDeclaration).not.toContain('PipeMetadataSnapshot');

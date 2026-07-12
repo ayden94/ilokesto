@@ -1,7 +1,7 @@
-import { PipeConfigurationError } from './errors';
-import { getPipeableMiddlewareMetadata } from './metadata';
-import type { PipeMetadataSnapshot } from './metadata';
-import { pipeRelationshipKeys } from './types';
+import { PipeConfigurationError } from './errors.js';
+import { getPipeableMiddlewareMetadata } from './metadata.js';
+import type { PipeMetadataSnapshot } from './metadata.js';
+import { pipeRelationshipKeys } from './types.js';
 
 type MiddlewareEdge = {
   readonly from: string;

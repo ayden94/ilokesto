@@ -1,11 +1,11 @@
-import { PipeConfigurationError } from './errors';
+import { PipeConfigurationError } from './errors.js';
 import type {
   PipeCapability,
   PipeDuplicatePolicy,
   PipeMiddlewareMetadata,
-} from './metadata-types';
-import type { PipeableMiddleware } from './pipeable-types';
-import type { PipeAnyMiddleware, PipeMiddleware } from './types';
+} from './metadata-types.js';
+import type { PipeableMiddleware } from './pipeable-types.js';
+import type { PipeAnyMiddleware, PipeMiddleware } from './types.js';
 
 export type PipeMetadataSnapshot = {
   readonly adds: readonly string[];
@@ -17,7 +17,7 @@ export type PipeMetadataSnapshot = {
   readonly requires: readonly string[];
 };
 
-export type { PipeableMiddleware } from './pipeable-types';
+export type { PipeableMiddleware } from './pipeable-types.js';
 
 const pipeMiddlewareMetadata = new WeakMap<object, PipeMetadataSnapshot>();
 const capturedPipeMiddleware = new WeakMap<object, object>();
