@@ -4,7 +4,6 @@ import type {
   HistoryControls,
   HistoryOptions,
   HistoryStore,
-  PersistConfig,
   PersistDecoder,
   PersistDecoderStateDiagnostic,
   PersistMigration,
@@ -32,7 +31,6 @@ type PublicMiddlewareTypes =
   | HistoryControls
   | HistoryOptions
   | HistoryStore<{ readonly count: number }>
-  | PersistConfig<{ readonly count: number }, []>
   | PersistDecoder<{ readonly count: number }>
   | PersistDecoderStateDiagnostic<{ readonly count: number }, { readonly count: number }>
   | PersistMigration

@@ -27,15 +27,13 @@ test('Given current safe local, cookie, and session payloads, when persist hydra
     browserStorage.cookieDocument.writes = 0;
 
     // When
-    const local = persist({ count: 0 }, { decode: decodeCounter, local: 'safe-current-local' });
-    const session = persist(
-      { count: 0 },
-      { decode: decodeCounter, session: 'safe-current-session' },
-    );
-    const cookie = persist(
-      { count: 0 },
-      { cookie: 'safe-current-cookie', decode: decodeCounter },
-    );
+    const local = pipe.use(persist({ decode: decodeCounter, local: 'safe-current-local' })).create({ count: 0 });
+    const session = pipe.use(
+      persist({ decode: decodeCounter, session: 'safe-current-session' }),
+    ).create({ count: 0 });
+    const cookie = pipe.use(
+      persist({ cookie: 'safe-current-cookie', decode: decodeCounter }),
+    ).create({ count: 0 });
 
     // Then
     expect(local.getState()).toEqual({ count: 4 });
@@ -55,23 +53,20 @@ test('Given a safe V0 payload and two migrations, when the final candidate decod
     const calls: string[] = [];
 
     // When
-    const store = persist(
-      { count: 0 },
-      {
-        decode: decodeCounter,
-        local: 'safe-old',
-        migrate: [
-          (value: unknown) => {
-            calls.push('v1');
-            return { text: JSON.stringify(value) };
-          },
-          (value: { readonly text: string }) => {
-            calls.push('v2');
-            return { count: value.text.length > 0 ? 4 : 0 };
-          },
-        ],
-      },
-    );
+    const store = pipe.use(persist({
+      decode: decodeCounter,
+      local: 'safe-old',
+      migrate: [
+        (value: unknown) => {
+          calls.push('v1');
+          return { text: JSON.stringify(value) };
+        },
+        (value: { readonly text: string }) => {
+          calls.push('v2');
+          return { count: value.text.length > 0 ? 4 : 0 };
+        },
+      ],
+    })).create({ count: 0 });
 
     // Then
     expect(calls).toEqual(['v1', 'v2']);
@@ -89,7 +84,7 @@ test('Given safe current hydration, when the Store later changes, then only the 
   withBrowserFakes<CounterState>((storage) => {
     storage.setItem('safe-later', JSON.stringify({ state: { count: 2 }, version: 0 }));
     storage.writes = 0;
-    const store = persist({ count: 0 }, { decode: decodeCounter, local: 'safe-later' });
+    const store = pipe.use(persist({ decode: decodeCounter, local: 'safe-later' })).create({ count: 0 });
 
     // When
     store.setState({ count: 9 });
@@ -103,24 +98,25 @@ test('Given safe current hydration, when the Store later changes, then only the 
   });
 });
 
-test('Given legacy direct and curried persistence, when hydration and migration run, then eager legacy behavior remains unchanged', () => {
+test('Given curried persistence, when hydration runs, then eager behavior remains unchanged', () => {
   // Given
   withBrowserFakes<CounterState>((storage) => {
-    storage.setItem('legacy-direct', JSON.stringify({ state: { count: 1 }, version: 0 }));
     storage.setItem('legacy-curried', JSON.stringify({ state: { count: 2 }, version: 0 }));
     storage.setItem('legacy-migrate', JSON.stringify({ state: { count: 3 }, version: 0 }));
     storage.writes = 0;
 
     // When
-    const direct = persist({ count: 0 }, { local: 'legacy-direct' });
-    const curried = pipe.use(persist({ local: 'legacy-curried' })).create<CounterState>({ count: 0 });
-    const migrated = persist(
-      { count: 0 },
-      { local: 'legacy-migrate', migrate: [(state: CounterState) => ({ count: state.count + 1 })] },
-    );
+    const curried = pipe.use(persist({
+      decode: decodeCounter,
+      local: 'legacy-curried',
+    })).create<CounterState>({ count: 0 });
+    const migrated = pipe.use(persist({
+      decode: decodeCounter,
+      local: 'legacy-migrate',
+      migrate: [(state: unknown) => ({ count: (state as CounterState).count + 1 })],
+    })).create({ count: 0 });
 
     // Then
-    expect(direct.getState()).toEqual({ count: 1 });
     expect(curried.getState()).toEqual({ count: 2 });
     expect(migrated.getState()).toEqual({ count: 4 });
     expect(storage.writes).toBe(1);

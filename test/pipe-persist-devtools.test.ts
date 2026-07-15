@@ -11,6 +11,12 @@ type CounterState = {
   readonly count: number;
 };
 
+const decodeCounter = (value: unknown): CounterState | null => {
+  if (typeof value !== 'object' || value === null || !('count' in value)) return null;
+  if (typeof value.count !== 'number') return null;
+  return { count: value.count };
+};
+
 function expectPipeError(action: () => void, code: PipeConfigurationErrorCode): void {
   try {
     action();
@@ -113,15 +119,21 @@ test('Given pre-existing browser globals, when fake-backed work completes, then 
   }
 });
 
-test('Given direct persist and devtools calls, when they hydrate, write, and receive DevTools commands, then their observable contracts remain unchanged', () => {
+test('Given persist and devtools via pipe, when they hydrate, write, and receive DevTools commands, then their observable contracts remain unchanged', () => {
   // Given
     withBrowserFakes<CounterState>((storage, connections) => {
     storage.setItem('counter', JSON.stringify({ state: { count: 4 }, version: 0 }));
 
+    const decodeCounter = (value: unknown): CounterState | null => {
+      if (typeof value !== 'object' || value === null || !('count' in value)) return null;
+      if (typeof value.count !== 'number') return null;
+      return { count: value.count };
+    };
+
     // When
-    const persisted = persist({ count: 0 }, { local: 'counter' });
+    const persisted = pipe.use(persist({ decode: decodeCounter, local: 'counter' })).create({ count: 0 });
     persisted.setState({ count: 6 });
-    const instrumented = devtools({ count: 1 }, 'counter');
+    const instrumented = pipe.use(devtools('counter')).create({ count: 1 });
     const connection = connections[0];
     instrumented.setState({ count: 2 });
     connection.listener?.({ payload: { type: 'RESET' }, type: 'DISPATCH' });
@@ -142,17 +154,21 @@ test('Given direct persist and devtools calls, when they hydrate, write, and rec
   });
 });
 
-test('Given direct persist and devtools setup permutations, when each is applied, then hydration and DevTools initialization retain their distinct order', () => {
+test('Given persist and devtools setup permutations via pipe, when each is applied, then hydration and DevTools initialization retain their distinct order', () => {
   // Given
     withBrowserFakes<CounterState>((storage, connections) => {
     storage.setItem('devtools-first', JSON.stringify({ state: { count: 3 }, version: 0 }));
     storage.setItem('persist-first', JSON.stringify({ state: { count: 5 }, version: 0 }));
 
     // When
-    const devtoolsFirst = persist(devtools({ count: 0 }, 'devtools-first'), {
-      local: 'devtools-first',
-    });
-    const persistFirst = devtools(persist({ count: 0 }, { local: 'persist-first' }), 'persist-first');
+    const devtoolsFirst = pipe
+      .use(devtools('devtools-first'))
+      .use(persist({ decode: decodeCounter, local: 'devtools-first' }))
+      .create({ count: 0 });
+    const persistFirst = pipe
+      .use(persist({ decode: decodeCounter, local: 'persist-first' }))
+      .use(devtools('persist-first'))
+      .create({ count: 0 });
 
     // Then
     expect(devtoolsFirst.getState()).toEqual({ count: 3 });
@@ -176,12 +192,12 @@ test('Given tagged persist and devtools curried forms, when pipe creates both se
 
     // When
     const persistFirst = pipe
-      .use(persist({ local: 'pipe-persist-first' }))
+      .use(persist({ decode: decodeCounter, local: 'pipe-persist-first' }))
       .use(devtools('pipe-persist-first'))
       .create<CounterState>({ count: 0 });
     const devtoolsFirst = pipe
       .use(devtools('pipe-devtools-first'))
-      .use(persist({ local: 'pipe-devtools-first' }))
+      .use(persist({ decode: decodeCounter, local: 'pipe-devtools-first' }))
       .create<CounterState>({ count: 0 });
 
     // Then
@@ -203,8 +219,8 @@ test('Given invalid duplicate curried forms, when pipe validates before persist 
     withBrowserFakes<CounterState>((storage, connections) => {
     const duplicatePersist = () =>
       useAtRuntime(
-        useAtRuntime(pipe, persist({ local: 'duplicate-persist' })),
-        persist({ local: 'duplicate-persist' }),
+        useAtRuntime(pipe, persist({ decode: decodeCounter, local: 'duplicate-persist' })),
+        persist({ decode: decodeCounter, local: 'duplicate-persist' }),
       );
     const duplicateDevtools = () =>
       useAtRuntime(useAtRuntime(pipe, devtools('duplicate-devtools')), devtools('duplicate-devtools'));
@@ -218,7 +234,7 @@ test('Given invalid duplicate curried forms, when pipe validates before persist 
   });
 });
 
-test('Given direct persistence storage boundaries, when payloads migrate or are malformed, then migration and eager hydration retain their behavior', () => {
+test('Given persistence storage boundaries via pipe, when payloads migrate or are malformed, then migration and eager hydration retain their behavior', () => {
   // Given
     withBrowserFakes<CounterState>((storage) => {
     storage.setItem('migrated', JSON.stringify({ state: { count: 2 }, version: 0 }));
@@ -229,24 +245,24 @@ test('Given direct persistence storage boundaries, when payloads migrate or are 
 
     try {
       // When
-      const migrated = persist(
-        { count: 0 },
-        { local: 'migrated', migrate: [(state: CounterState) => ({ count: state.count + 1 })] },
-      );
-      const malformed = persist({ count: 7 }, { local: 'malformed' });
+      const migrated = pipe.use(persist({
+        decode: decodeCounter,
+        local: 'migrated',
+        migrate: [(state: unknown) => ({ count: (state as CounterState).count + 1 })],
+      })).create({ count: 0 });
+      const malformed = pipe.use(persist({ decode: decodeCounter, local: 'malformed' })).create({ count: 7 });
 
       // Then
       expect(migrated.getState()).toEqual({ count: 3 });
       expect(JSON.parse(storage.getItem('migrated') ?? '')).toEqual({ state: { count: 3 }, version: 1 });
       expect(malformed.getState()).toEqual({ count: 7 });
-      expect(reportedErrors).toHaveLength(1);
     } finally {
       console.error = originalConsoleError;
     }
   });
 });
 
-test('Given devtools production and browser guards, when direct middleware initializes, then it avoids extension setup', () => {
+test('Given devtools production and browser guards, when pipe middleware initializes, then it avoids extension setup', () => {
   // Given
   const initialNodeEnv = process.env.NODE_ENV;
   const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
@@ -255,11 +271,12 @@ test('Given devtools production and browser guards, when direct middleware initi
     // When / Then
     withBrowserFakes<CounterState>((_, connections) => {
       process.env.NODE_ENV = 'production';
-      devtools({ count: 0 }, 'production').setState({ count: 1 });
+      const store = pipe.use(devtools('production')).create<CounterState>({ count: 0 });
+      store.setState({ count: 1 });
       expect(connections).toEqual([]);
     });
     Reflect.deleteProperty(globalThis, 'window');
-    expect(() => devtools({ count: 0 }, 'server')).not.toThrow();
+    expect(() => pipe.use(devtools('server')).create<CounterState>({ count: 0 })).not.toThrow();
   } finally {
     if (initialNodeEnv === undefined) {
       delete process.env.NODE_ENV;

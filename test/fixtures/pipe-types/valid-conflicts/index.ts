@@ -18,7 +18,7 @@ const debounceMiddleware = debounce();
 const throttleMiddleware = throttle();
 const devtoolsMiddleware = devtools('fixture');
 const loggerMiddleware = logger();
-const persistMiddleware = persist({ local: 'fixture' });
+const persistMiddleware = persist({ decode: () => null, local: 'fixture' });
 const validateMiddleware = validate({
   '~standard': {
     validate: (value: unknown) => ({ value }),

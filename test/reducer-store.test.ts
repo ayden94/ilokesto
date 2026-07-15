@@ -4,6 +4,7 @@ import { Store } from '@ilokesto/store';
 import { getStoreActionMetadata, type StoreActionMetadata } from '../src/lib/actionMetadata';
 import { create as createSvelteStore } from '../src/core/Svelte';
 import { logger } from '../src/middleware/logger';
+import { pipe } from '../src/utils/pipe';
 import type { ReduceFn } from '../src/types/ReduceFn';
 
 type CounterState =
@@ -145,11 +146,10 @@ test('Given a reducer store, when direct or functional state updates run, then t
 
 test('Given logger middleware, when a reducer action is followed by a plain update, then only the action receives a reducer label', () => {
   // Given
-  const store = new Store<CounterState>({ kind: 'active', count: 1 });
-  const reducerStore = createSvelteStore(reduceCounter, store);
+  const loggedStore = pipe.use(logger({ timestamp: false })).create<CounterState>({ kind: 'active', count: 1 });
+  const reducerStore = createSvelteStore(reduceCounter, loggedStore);
   const action: CounterAction = { type: 'increment', amount: 1 };
   const replacement: CounterState = { kind: 'idle', count: 0 };
-  logger(store, { timestamp: false });
 
   const labels: string[] = [];
   const groupSpy = spyOn(console, 'group').mockImplementation((...args: readonly unknown[]) => {
@@ -161,13 +161,13 @@ test('Given logger middleware, when a reducer action is followed by a plain upda
   try {
     // When
     reducerStore.dispatch(action);
-    store.setState(replacement);
+    loggedStore.setState(replacement);
 
     // Then
     expect(labels).toHaveLength(2);
     expect(labels[0]).toContain('increment');
     expect(labels[1]).toContain('anonymous action');
-    expect(getStoreActionMetadata(store)).toBeUndefined();
+    expect(getStoreActionMetadata(loggedStore)).toBeUndefined();
   } finally {
     groupSpy.mockRestore();
     logSpy.mockRestore();

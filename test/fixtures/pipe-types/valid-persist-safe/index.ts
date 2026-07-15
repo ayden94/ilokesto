@@ -44,15 +44,13 @@ const taggedCounterMiddleware = definePipeableMiddleware(counterMiddleware, {
   id: '@fixture/counter',
 } as const);
 
-const directLocal: Store<CounterState> = persist({ count: 0 }, safeLocalConfig);
-const directCookie: Store<CounterState> = persist(
-  new Store({ count: 0 }),
-  { cookie: 'safe-cookie', decode: decodeCounter },
-);
-const directSession: Store<CounterState> = persist(
-  { count: 0 },
-  { decode: decodeCounter, session: 'safe-session' },
-);
+const directLocal: Store<CounterState> = pipe.use(persist(safeLocalConfig)).create({ count: 0 });
+const directCookie: Store<CounterState> = pipe
+  .use(persist({ cookie: 'safe-cookie', decode: decodeCounter }))
+  .create({ count: 0 });
+const directSession: Store<CounterState> = pipe
+  .use(persist({ decode: decodeCounter, session: 'safe-session' }))
+  .create({ count: 0 });
 const curriedLocal: Store<CounterState> = pipe.use(persist(safeLocalConfig)).create({ count: 0 });
 const curriedCookie: Store<CounterState> = pipe
   .use(persist({ cookie: 'safe-cookie-pipe', decode: decodeCounter }))

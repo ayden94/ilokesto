@@ -1,5 +1,4 @@
 import { expect, test } from 'bun:test';
-import { Store } from '@ilokesto/store';
 
 import { restoreBrowserGlobal } from './helpers/browserFakes';
 import { devtools, dispose } from '../src/middleware';
@@ -9,7 +8,7 @@ type CounterState = {
   readonly count: number;
 };
 
-test('Given multiple DevTools listeners, when Stores are disposed, then each listener unsubscribes once and failures do not skip later cleanup', () => {
+test('Given multiple DevTools listeners on separate Stores, when Stores are disposed, then each listener unsubscribes once and failures do not skip later cleanup', () => {
   // Given
   const windowDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'window');
   const unsubscribeCalls: string[] = [];
@@ -30,9 +29,8 @@ test('Given multiple DevTools listeners, when Stores are disposed, then each lis
       },
     },
   });
-  const firstStore = new Store<CounterState>({ count: 0 });
-  devtools(firstStore, 'first'); devtools(firstStore, 'second');
-  const independentStore = devtools({ count: 0 }, 'independent');
+  const firstStore = pipe.use(devtools('first')).create<CounterState>({ count: 0 });
+  const independentStore = pipe.use(devtools('independent')).create<CounterState>({ count: 0 });
 
   try {
     // When
@@ -40,7 +38,7 @@ test('Given multiple DevTools listeners, when Stores are disposed, then each lis
     dispose(independentStore);
 
     // Then
-    expect(unsubscribeCalls).toEqual(['first', 'second', 'independent']);
+    expect(unsubscribeCalls).toEqual(['first', 'independent']);
   } finally {
     restoreBrowserGlobal('window', windowDescriptor);
   }

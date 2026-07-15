@@ -1,7 +1,6 @@
 import { expect, jest, test } from 'bun:test';
-import { Store } from '@ilokesto/store';
 
-import { debounce, history, HistoryConfigurationError } from '../src/middleware';
+import { debounce, history } from '../src/middleware';
 import type { HistoryControls } from '../src/middleware';
 import { PipeConfigurationError } from '../src/utils/pipe/errors';
 import { definePipeableMiddleware, getPipeableMiddlewareMetadata } from '../src/utils/pipe/metadata';
@@ -51,7 +50,7 @@ function expectConflict(action: () => void, middleware: string, conflict: string
 
 test('Given history controls, when setup succeeds, then every control is an immutable enumerable own value property', () => {
   // Given / When
-  const store = history(new Store(0), undefined);
+  const store = pipe.use(history()).create({ value: 0 });
 
   // Then
   expect(Object.keys(store)).toEqual(expect.arrayContaining(controlKeys));
@@ -70,37 +69,8 @@ test('Given history controls, when setup succeeds, then every control is an immu
 test('Given invalid limits, when history is requested, then it rejects before controls are installed', () => {
   // Given / When / Then
   for (const limit of [-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
-    const store = new Store(0);
-    expect(() => history(store, { limit })).toThrow(RangeError);
     expect(() => history({ limit })).toThrow(RangeError);
-    expect(controlKeys.some((key) => key in store)).toBeFalse();
   }
-});
-
-test('Given own or inherited control collisions, when history setup starts, then it rejects atomically with exact error fields', () => {
-  // Given
-  const ownCollision = new Store(0);
-  Object.defineProperty(ownCollision, 'undo', { configurable: true, value: () => undefined });
-  const inheritedCollision = new Store(0);
-  Object.setPrototypeOf(inheritedCollision, Object.create(Object.getPrototypeOf(inheritedCollision), {
-    redo: { value: () => undefined },
-  }));
-
-  // When / Then
-  for (const [store, property] of [[ownCollision, 'undo'], [inheritedCollision, 'redo']] as const) {
-    try {
-      history(store, undefined);
-      throw new TypeError('Expected history control collision');
-    } catch (error) {
-      expect(error).toBeInstanceOf(HistoryConfigurationError);
-      if (error instanceof HistoryConfigurationError) {
-        expect(error.code).toBe('CONTROL_COLLISION');
-        expect(error.property).toBe(property);
-      }
-    }
-  }
-  expect(controlKeys.filter((key) => Object.hasOwn(ownCollision, key))).toEqual(['undo']);
-  expect(controlKeys.some((key) => Object.hasOwn(inheritedCollision, key))).toBeFalse();
 });
 
 test('Given history pipe metadata, when it is registered and composed, then capability shape and duplicate policy are exact', () => {

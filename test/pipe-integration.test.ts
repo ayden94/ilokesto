@@ -14,6 +14,12 @@ import { pipe } from '../src/utils/pipe/index';
 type CounterState = Readonly<{ count: number }>;
 type CounterAction = Readonly<{ type: 'increment' }>;
 
+const decodeCounter = (value: unknown): CounterState | null => {
+  if (typeof value !== 'object' || value === null || !('count' in value)) return null;
+  if (typeof value.count !== 'number') return null;
+  return { count: value.count };
+};
+
 type DevtoolsConnection = {
   readonly inits: CounterState[];
   readonly sends: Array<{ readonly action: string; readonly state: CounterState }>;
@@ -172,18 +178,18 @@ test('Given persist and devtools in either order and a noncanonical five-built-i
 
       // When
       const persistFirst = pipe
-        .use(persist({ local: 'persist-first' }))
+        .use(persist({ decode: decodeCounter, local: 'persist-first' }))
         .use(devtools('persist-first'))
         .create<CounterState>({ count: 0 });
       const devtoolsFirst = pipe
         .use(devtools('devtools-first'))
-        .use(persist({ local: 'devtools-first' }))
+        .use(persist({ decode: decodeCounter, local: 'devtools-first' }))
         .create<CounterState>({ count: 0 });
       const allBuiltIns = pipe
         .use(debounce(10))
         .use(devtools('all-built-ins'))
         .use(validate({ '~standard': { validate: (value: unknown) => ({ value }), vendor: 'test', version: 1 as const } }))
-        .use(persist({ local: 'all-built-ins' }))
+        .use(persist({ decode: decodeCounter, local: 'all-built-ins' }))
         .use(logger({ timestamp: false }))
         .create<CounterState>({ count: 0 });
 

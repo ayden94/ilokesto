@@ -8,6 +8,12 @@ type CounterState = {
   readonly count: number;
 };
 
+const decodeCounter = (value: unknown): CounterState | null => {
+  if (typeof value !== 'object' || value === null || !('count' in value)) return null;
+  if (typeof value.count !== 'number') return null;
+  return { count: value.count };
+};
+
 test('Given validate, history, persist, logger, and DevTools, when accepted and rejected updates plus undo and redo run, then only committed states are observed across the chain', () => {
   // Given
   withBrowserFakes<CounterState>((storage, connections) => {
@@ -34,7 +40,7 @@ test('Given validate, history, persist, logger, and DevTools, when accepted and 
       const store = pipe
         .use(validate(schema))
         .use(history())
-        .use(persist({ local: 'history-observations' }))
+        .use(persist({ decode: decodeCounter, local: 'history-observations' }))
         .use(logger({ timestamp: false }))
         .use(devtools('history-observations'))
         .create<CounterState>({ count: 0 });

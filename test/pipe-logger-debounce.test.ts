@@ -1,7 +1,5 @@
 import { expect, jest, spyOn, test } from 'bun:test';
-import { Store } from '@ilokesto/store';
 
-import { runWithStoreActionMetadata } from '../src/lib/actionMetadata';
 import { debounce, dispose, logger } from '../src/middleware';
 import {
   PipeConfigurationError,
@@ -9,10 +7,6 @@ import {
 } from '../src/utils/pipe/errors';
 import { getPipeableMiddlewareMetadata } from '../src/utils/pipe/metadata';
 import { pipe } from '../src/utils/pipe/index';
-
-type CounterState = {
-  readonly count: number;
-};
 
 type BunFakeTimerMethod =
   | 'advanceTimersByTime'
@@ -59,7 +53,7 @@ function expectPipeConfigurationError(action: () => void, code: PipeConfiguratio
   throw new TypeError('Expected pipe configuration error');
 }
 
-test('Given logger and debounce, when direct and curried forms are used, then it preserves logger and debounce direct and curried contracts', () => {
+test('Given logger and debounce, when curried forms are used via pipe, then it preserves logger and debounce contracts', () => {
   // Given
   callBunFakeTimer('useFakeTimers');
   const labels: string[] = [];
@@ -73,28 +67,6 @@ test('Given logger and debounce, when direct and curried forms are used, then it
   });
 
   try {
-    const loggerStore = new Store<CounterState>({ count: 0 });
-    const debounceStore = new Store<CounterState>({ count: 0 });
-
-    // When
-    const directLoggerStore = logger(loggerStore, { timestamp: false });
-    runWithStoreActionMetadata(loggerStore, { type: 'increment' }, () => {
-      loggerStore.setState((state) => ({ count: state.count + 1 }));
-    });
-    loggerStore.setState({ count: 2 });
-    const directDebounceStore = debounce(debounceStore, 25);
-    debounceStore.setState((state) => ({ count: state.count + 1 }));
-    debounceStore.setState((state) => ({ count: state.count + 2 }));
-    callBunFakeTimer('advanceTimersByTime', [25]);
-
-    // Then
-    expect(directLoggerStore).toBe(loggerStore);
-    expect(directDebounceStore).toBe(debounceStore);
-    expect(labels).toHaveLength(2);
-    expect(labels[0]).toContain('increment');
-    expect(labels[1]).toContain('anonymous action');
-    expect(debounceStore.getState()).toEqual({ count: 3 });
-
     const curriedLogger = logger({ timestamp: false });
     const curriedDebounce = debounce(25);
     expect(getPipeableMiddlewareMetadata(curriedLogger)).toEqual({
@@ -174,10 +146,10 @@ test('Given duplicate logger or debounce pipe middleware, when a chain is built,
   }
 });
 
-test('Given a debounced Store, when timers expire and disposal interrupts later updates, then expiry unregisters cleanup and the Store remains reusable', () => {
+test('Given a debounced Store via pipe, when timers expire and disposal interrupts later updates, then expiry unregisters cleanup and the Store remains reusable', () => {
   // Given
   callBunFakeTimer('useFakeTimers');
-  const store = debounce({ count: 0 }, 25);
+  const store = pipe.use(debounce(25)).create({ count: 0 });
 
   try {
     // When

@@ -19,11 +19,10 @@ function useAtRuntime(builder: object, middleware: object): object {
   return Reflect.apply(use, builder, [middleware]);
 }
 
-test('Given a direct throttle, when updates arrive during and after its wait window, then it commits only leading updates synchronously', () => {
+test('Given a throttled Store via pipe, when updates arrive during and after its wait window, then it commits only leading updates synchronously', () => {
   // Given
   jest.useFakeTimers();
-  const store = new Store<CounterState>({ count: 0 });
-  const throttledStore = throttle(store, 25);
+  const store = pipe.use(throttle(25)).create<CounterState>({ count: 0 });
   const clearTimeoutSpy = spyOn(globalThis, 'clearTimeout');
   let droppedUpdaterCalls = 0;
 
@@ -38,7 +37,6 @@ test('Given a direct throttle, when updates arrive during and after its wait win
     jest.advanceTimersByTime(24);
 
     // Then
-    expect(throttledStore).toBe(store);
     expect(store.getState()).toEqual({ count: 1 });
     expect(droppedUpdaterCalls).toBe(0);
 
@@ -101,7 +99,7 @@ test('Given curried throttles, when default and custom waits elapse, then they r
 test('Given a zero-wait throttle, when a second update occurs before queued timers run, then it remains closed until timer execution', () => {
   // Given
   jest.useFakeTimers();
-  const store = throttle<CounterState>({ count: 0 }, 0);
+  const store = pipe.use(throttle(0)).create<CounterState>({ count: 0 });
 
   try {
     // When
@@ -133,10 +131,8 @@ test('Given invalid waits or duplicate throttle middleware, when setup is attemp
   try {
     // When / Then
     for (const wait of [-1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
-      expect(() => throttle(store, wait)).toThrow(RangeError);
       expect(() => throttle(wait)).toThrow(RangeError);
     }
-    expect(pushMiddlewareSpy).not.toHaveBeenCalled();
     expect(timeoutSpy).not.toHaveBeenCalled();
     expect(store.getState()).toEqual({ count: 0 });
     expect(() => useAtRuntime(useAtRuntime(pipe, throttle(10)), throttle(10))).toThrow(
@@ -154,7 +150,7 @@ test('Given invalid waits or duplicate throttle middleware, when setup is attemp
 test('Given a throttled Store is disposed during a wait window, when it is updated again, then disposal clears the gate and later cycles remain disposable', () => {
   // Given
   jest.useFakeTimers();
-  const store = throttle<CounterState>({ count: 0 }, 25);
+  const store = pipe.use(throttle(25)).create<CounterState>({ count: 0 });
 
   try {
     // When

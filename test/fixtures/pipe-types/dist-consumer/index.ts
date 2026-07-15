@@ -18,7 +18,6 @@ import type {
   HistoryControls,
   HistoryOptions,
   HistoryStore,
-  PersistConfig,
   PersistDecoder,
   PersistDecoderStateDiagnostic,
   PersistMigration,
@@ -30,7 +29,6 @@ import type {
 import type {
   Pipe,
   PipeAnyMiddleware,
-  PipeBuilder,
   PipeCapability,
   PipeDuplicatePolicy,
   PipeMiddleware,
@@ -41,7 +39,6 @@ type CounterState = {
   readonly count: number;
 };
 
-type LegacyPersistConfig = PersistConfig<CounterState, []>;
 type PersistDecoderDiagnostic = PersistDecoderStateDiagnostic<CounterState, CounterState>;
 
 type IncrementCapability = PipeCapability<
@@ -72,7 +69,6 @@ const stateIdentityMiddleware = definePipeableMiddleware(stateIdentity, {
 const metadata: PipeMiddlewareMetadata = { id: '@consumer/metadata' };
 const duplicatePolicy: PipeDuplicatePolicy = 'reject';
 const root: Pipe = pipe;
-type PublicPipeBuilder = PipeBuilder;
 const builder = root.use(incrementMiddleware);
 const configurationError = new PipeConfigurationError('INVALID_METADATA', 'consumer error', {
   id: '@consumer/error',
@@ -108,7 +104,6 @@ const safeSessionConfig: SafePersistSessionConfig<CounterState> = {
   session: 'dist-safe-session',
 };
 const safePersistConfig: SafePersistConfig<CounterState> = safeLocalConfig;
-const legacyPersistConfig: LegacyPersistConfig = { local: 'dist-legacy' };
 const migration: PersistMigration<unknown, CounterState> = () => ({ count: 0 });
 declare const historyControls: HistoryControls;
 declare const persistDecoderDiagnostic: PersistDecoderDiagnostic;
@@ -118,17 +113,15 @@ const store = builder
   .use(logger())
   .use(debounce())
   .use(devtools('dist-consumer'))
-  .use(persist({ local: 'dist-consumer' }))
   .use(validate(counterSchema))
+  .use(persist(safeLocalConfig))
   .create({ count: 0 });
-const historyStore: HistoryStore<CounterState> = history({ count: 0 }, historyOptions);
-const throttledStore = throttle({ count: 0 }, 10);
-const safeDirectStore = persist({ count: 0 }, safePersistConfig);
-const safeCookieStore = persist({ count: 0 }, safeCookieConfig);
-const safeSessionStore = persist({ count: 0 }, safeSessionConfig);
+const historyStore: HistoryStore<CounterState> = pipe.use(history(historyOptions)).create({ count: 0 });
+const throttledStore = pipe.use(throttle(10)).create({ count: 0 });
+const safeDirectStore = persist(safePersistConfig);
+const safeCookieStore = persist(safeCookieConfig);
+const safeSessionStore = persist(safeSessionConfig);
 const safeCurriedStore = pipe.use(persist(safeLocalConfig)).create({ count: 0 });
-const legacyDirectStore = persist({ count: 0 }, legacyPersistConfig);
-const legacyCurriedStore = pipe.use(persist(legacyPersistConfig)).create({ count: 0 });
 
 function configurationErrorCode(error: unknown): string {
   if (error instanceof PipeConfigurationError) {
@@ -149,9 +142,7 @@ historyControls.clearHistory();
 persistDecoderDiagnostic.decoded.count;
 migration(undefined);
 throttledStore.getState().count;
-safeDirectStore.getState().count;
-safeCookieStore.getState().count;
-safeSessionStore.getState().count;
+safeDirectStore;
+safeCookieStore;
+safeSessionStore;
 safeCurriedStore.getState().count;
-legacyDirectStore.getState().count;
-legacyCurriedStore.getState().count;

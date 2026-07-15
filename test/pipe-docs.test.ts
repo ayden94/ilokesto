@@ -26,12 +26,9 @@ type DocumentExamples = {
 };
 
 const requiredMiddlewareExampleIds = [
-  'history-direct',
   'history-pipe',
-  'throttle-direct',
   'throttle-pipe',
   'dispose-store',
-  'safe-persist-direct',
   'safe-persist-pipe',
 ] as const;
 
@@ -187,7 +184,7 @@ test('Given marked Korean pipe examples, when checked, then includes required mi
   assertNoHistoryWithDelayedMiddleware(readFileSync(koreanReadmePath, 'utf8'), 'Korean README');
 
   // When / Then
-  expect(examples).toHaveLength(requiredMiddlewareExampleIds.length + 3);
+  expect(examples).toHaveLength(requiredMiddlewareExampleIds.length + 2);
 }, { timeout: 180_000 });
 
 test('Given bilingual pipe documentation, when their marked examples are compared, then documents equivalent bilingual pipe contracts', () => {
@@ -208,10 +205,10 @@ test('Given malformed middleware documentation, when examples are checked, then 
   expect(() => extractMarkedPipeExamples('<!-- pipe-example:Malformed_ID -->\n```ts\nconst marker = 1;\n```', 'English README'))
     .toThrow('Each pipe example marker must use a stable lowercase kebab-case ID');
   expect(() => assertRequiredMiddlewareExamples([], 'English README')).toThrow(
-    'English README must contain middleware example marker: history-direct',
+    'English README must contain middleware example marker: history-pipe',
   );
   expect(() => extractMarkedPipeExamples('<!-- pipe-example:duplicate -->\n```ts\nconst a = 1;\n```\n<!-- pipe-example:duplicate -->\n```ts\nconst b = 2;\n```', 'English README'))
     .toThrow('Duplicate pipe example marker: duplicate');
-  expect(() => assertNoHistoryWithDelayedMiddleware("```ts\nimport { history, throttle } from '@ilokesto/state/middleware';\nhistory({ count: 0 });\nthrottle({ count: 0 }, 100);\n```", 'English README'))
+  expect(() => assertNoHistoryWithDelayedMiddleware("```ts\nimport { history, throttle } from '@ilokesto/state/middleware';\nimport { pipe } from '@ilokesto/state/utils';\npipe.use(history()).use(throttle(100)).create({ count: 0 });\n```", 'English README'))
     .toThrow('English README must not present history with debounce or throttle in one TypeScript example');
 }, { timeout: 20_000 });

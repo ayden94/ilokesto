@@ -21,11 +21,6 @@ const safeConfig: SafePersistConfig<ExtendedCounterState> = {
   local: 'safe-config-variable',
 };
 
-const rejectedDirectInline = persist(
-  { count: 0, label: 'extra' },
-  { decode: decodeCounter, local: 'direct-inline' },
-);
-const rejectedDirectVariable = persist({ count: 0 }, safeConfig);
 const rejectedCurriedInline = pipe
   .use(persist({ decode: decodeCounter, local: 'curried-inline' }))
   .create<ExtendedCounterState>({ count: 0, label: 'extra' });
@@ -33,7 +28,5 @@ const rejectedCurriedVariable = pipe
   .use(persist(safeConfig))
   .create<CounterState>({ count: 0 });
 
-rejectedDirectInline;
-rejectedDirectVariable;
 rejectedCurriedInline;
 rejectedCurriedVariable;

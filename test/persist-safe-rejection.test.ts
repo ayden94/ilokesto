@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 
 import { persist } from '../src/middleware';
+import { pipe } from '../src/utils/pipe';
 import { nonFunctionMigrations, sparseMigrations } from './fixtures/persist-corrupted-migrations.js';
 import { withBrowserFakes } from './helpers/browserFakes';
 
@@ -32,9 +33,7 @@ for (const [label, encoded] of invalidPayloads) {
       let decodeCalls = 0;
 
       // When
-      const store = persist(
-        { count: 7 },
-        {
+      const store = pipe.use(persist({
           decode: () => {
             decodeCalls += 1;
             return { count: 99 };
@@ -44,8 +43,7 @@ for (const [label, encoded] of invalidPayloads) {
             migrationCalls += 1;
             return { count: 88 };
           }],
-        },
-      );
+        })).create({ count: 7 });
 
       // Then
       expect(store.getState()).toEqual({ count: 7 });
@@ -64,17 +62,14 @@ test('Given an empty safe migration tuple and V1 storage, when persist hydrates,
     let decodeCalls = 0;
 
     // When
-    const store = persist(
-      { count: 7 },
-      {
+    const store = pipe.use(persist({
         decode: () => {
           decodeCalls += 1;
           return { count: 5 };
         },
         local: 'safe-empty-future',
         migrate: [],
-      },
-    );
+      })).create({ count: 7 });
 
     // Then
     expect(store.getState()).toEqual({ count: 7 });
@@ -96,17 +91,14 @@ for (const [label, migrations] of [
       let decodeCalls = 0;
 
       // When
-      const store = persist(
-        { count: 7 },
-        {
+      const store = pipe.use(persist({
           decode: () => {
             decodeCalls += 1;
             return { count: 5 };
           },
           local: key,
           migrate: migrations,
-        },
-      );
+        })).create({ count: 7 });
 
       // Then
       expect(store.getState()).toEqual({ count: 7 });
@@ -124,9 +116,7 @@ test('Given a throwing migration, when safe persist hydrates, then decode is ski
     let decodeCalls = 0;
 
     // When
-    const store = persist(
-      { count: 7 },
-      {
+    const store = pipe.use(persist({
         decode: () => {
           decodeCalls += 1;
           return { count: 5 };
@@ -135,8 +125,7 @@ test('Given a throwing migration, when safe persist hydrates, then decode is ski
         migrate: [() => {
           throw new TypeError('migration failed');
         }],
-      },
-    );
+      })).create({ count: 7 });
 
     // Then
     expect(store.getState()).toEqual({ count: 7 });
@@ -157,14 +146,11 @@ test('Given a successful old migration and null decode, when safe persist hydrat
     };
 
     // When
-    const store = persist(
-      { count: 7 },
-      {
+    const store = pipe.use(persist({
         decode: decodeCandidate,
         local: 'safe-old-decode-null',
         migrate: [(state: unknown) => ({ candidate: state })],
-      },
-    );
+      })).create({ count: 7 });
 
     // Then
     expect(decodedCandidate).toEqual({ candidate: { count: 5 } });
@@ -193,7 +179,7 @@ for (const [label, decode] of decoderRejections) {
       storage.writes = 0;
 
       // When
-      const store = persist({ count: 7 }, { decode, local: key });
+      const store = pipe.use(persist({ decode, local: key })).create({ count: 7 });
 
       // Then
       expect(store.getState()).toEqual({ count: 7 });
