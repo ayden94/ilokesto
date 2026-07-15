@@ -213,43 +213,27 @@ import { create } from '@ilokesto/state/react';
 import { logger, persist } from '@ilokesto/state/middleware';
 import { pipe } from '@ilokesto/state/utils';
 
+const decodeCounter = (value: unknown): { readonly count: number } | null => {
+  if (typeof value !== 'object' || value === null) return null;
+  if (!('count' in value) || typeof value.count !== 'number') return null;
+  return { count: value.count };
+};
+
 const counterStore = pipe
   .use(logger({ timestamp: true }))
-  .use(persist({ local: 'counter' }))
+  .use(persist({ local: 'counter', decode: decodeCounter }))
   .create({ count: 0 });
 
 export const useCounter = create(counterStore);
 ```
 
-`.create()` accepts plain state only. It does not accept an existing `Store`. Direct middleware calls are still available when you already have plain state or a Store and do not need pipe composition.
-
-<!-- pipe-example:direct-middleware -->
-```ts
-import { logger } from '@ilokesto/state/middleware';
-
-const loggedStore = logger({ count: 0 }, { timestamp: true });
-loggedStore.getState().count;
-```
+`.create()` accepts plain state only. It does not accept an existing `Store`.
 
 ### History, timing, and disposal
 
 `history()` records successful synchronous state changes. It adds `undo()`, `redo()`,
 `canUndo()`, `canRedo()`, and `clearHistory()` to the returned store. `undo()` and `redo()`
 apply a recorded state through the store, so compatible middleware can observe those changes.
-
-<!-- pipe-example:history-direct -->
-```ts
-import { history } from '@ilokesto/state/middleware';
-
-const counterStore = history({ count: 0 }, { limit: 20 });
-
-counterStore.setState({ count: 1 });
-counterStore.undo();
-counterStore.redo();
-counterStore.clearHistory();
-```
-
-Use the curried form with `pipe` when composing it with compatible middleware.
 
 <!-- pipe-example:history-pipe -->
 ```ts
@@ -269,17 +253,7 @@ order. Delayed updates do not provide the synchronous commit boundary history ne
 that conflict and never reorders middleware to make a chain valid.
 
 `throttle()` uses leading-drop behavior: the first update passes through immediately, then later
-updates are dropped until the wait period ends. It accepts the same direct and curried pipe forms.
-
-<!-- pipe-example:throttle-direct -->
-```ts
-import { throttle } from '@ilokesto/state/middleware';
-
-const counterStore = throttle({ count: 0 }, 250);
-
-counterStore.setState({ count: 1 });
-counterStore.setState({ count: 2 });
-```
+updates are dropped until the wait period ends.
 
 <!-- pipe-example:throttle-pipe -->
 ```ts
@@ -299,8 +273,9 @@ that store and may be called again safely.
 <!-- pipe-example:dispose-store -->
 ```ts
 import { dispose, throttle } from '@ilokesto/state/middleware';
+import { pipe } from '@ilokesto/state/utils';
 
-const counterStore = throttle({ count: 0 }, 250);
+const counterStore = pipe.use(throttle(250)).create({ count: 0 });
 
 dispose(counterStore);
 ```
@@ -312,31 +287,6 @@ parse, migrate, decode: it parses a stored payload, migrates an older payload to
 version, then calls `decode` on the migration result. Invalid payloads, failed migrations, failed
 decodes, and future versions fall back to the initial state. A successful migration is written
 back with the current version. Current-version payloads are decoded without a rewrite.
-
-<!-- pipe-example:safe-persist-direct -->
-```ts
-import { persist } from '@ilokesto/state/middleware';
-
-type CounterState = { readonly count: number };
-
-const decodeCounter = (value: unknown): CounterState | null => {
-  if (typeof value !== 'object' || value === null) return null;
-  if (!('count' in value) || typeof value.count !== 'number') return null;
-
-  return { count: value.count };
-};
-
-const counterStore = persist(
-  { count: 0 },
-  {
-    local: 'counter',
-    migrate: [(stored: unknown) => stored],
-    decode: decodeCounter,
-  },
-);
-
-counterStore.getState().count;
-```
 
 <!-- pipe-example:safe-persist-pipe -->
 ```ts
@@ -357,8 +307,7 @@ const counterStore = pipe
   .create<CounterState>({ count: 0 });
 ```
 
-The older decoder-less `persist({ local: 'counter' })` form is deprecated but remains available
-for source compatibility. It does not validate stored values, so use a decoder for new code.
+`decode` is required. Stored values are never trusted without validation.
 
 Every middleware passed to `.use()` must be registered with `definePipeableMiddleware`, including custom middleware. Its metadata requires an `id`; duplicate IDs reject by default. Set `duplicate: 'allow'` on every occurrence only when repetition is intentional.
 

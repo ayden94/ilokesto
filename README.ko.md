@@ -211,43 +211,27 @@ import { create } from '@ilokesto/state/react';
 import { logger, persist } from '@ilokesto/state/middleware';
 import { pipe } from '@ilokesto/state/utils';
 
+const decodeCounter = (value: unknown): { readonly count: number } | null => {
+  if (typeof value !== 'object' || value === null) return null;
+  if (!('count' in value) || typeof value.count !== 'number') return null;
+  return { count: value.count };
+};
+
 const counterStore = pipe
   .use(logger({ timestamp: true }))
-  .use(persist({ local: 'counter' }))
+  .use(persist({ local: 'counter', decode: decodeCounter }))
   .create({ count: 0 });
 
 export const useCounter = create(counterStore);
 ```
 
-`.create()`는 일반 상태만 받습니다. 기존 `Store`는 받을 수 없습니다. 파이프 조합이 필요 없고 일반 상태나 Store가 이미 있다면 미들웨어를 직접 호출할 수 있습니다.
-
-<!-- pipe-example:direct-middleware -->
-```ts
-import { logger } from '@ilokesto/state/middleware';
-
-const loggedStore = logger({ count: 0 }, { timestamp: true });
-loggedStore.getState().count;
-```
+`.create()`는 일반 상태만 받습니다. 기존 `Store`는 받을 수 없습니다.
 
 ### 히스토리, 시간 제어, 정리
 
 `history()`는 성공한 동기 상태 변경을 기록합니다. 반환된 스토어에는 `undo()`, `redo()`,
 `canUndo()`, `canRedo()`, `clearHistory()`가 추가됩니다. `undo()`와 `redo()`는 기록한 상태를
 스토어에 적용하므로, 호환되는 미들웨어는 이 변경을 관찰할 수 있습니다.
-
-<!-- pipe-example:history-direct -->
-```ts
-import { history } from '@ilokesto/state/middleware';
-
-const counterStore = history({ count: 0 }, { limit: 20 });
-
-counterStore.setState({ count: 1 });
-counterStore.undo();
-counterStore.redo();
-counterStore.clearHistory();
-```
-
-호환되는 미들웨어와 조합할 때는 `pipe`에서 커리된 형태를 사용하세요.
 
 <!-- pipe-example:history-pipe -->
 ```ts
@@ -267,17 +251,7 @@ counterStore.undo();
 이 충돌을 거부하며, 유효한 체인으로 만들기 위해 미들웨어 순서를 자동으로 바꾸지 않습니다.
 
 `throttle()`은 선행 통과 후 드롭 방식으로 동작합니다. 첫 번째 업데이트는 즉시 통과하고, 대기
-시간이 끝날 때까지 이후 업데이트는 드롭됩니다. 직접 형태와 커리된 pipe 형태를 모두 지원합니다.
-
-<!-- pipe-example:throttle-direct -->
-```ts
-import { throttle } from '@ilokesto/state/middleware';
-
-const counterStore = throttle({ count: 0 }, 250);
-
-counterStore.setState({ count: 1 });
-counterStore.setState({ count: 2 });
-```
+시간이 끝날 때까지 이후 업데이트는 드롭됩니다.
 
 <!-- pipe-example:throttle-pipe -->
 ```ts
@@ -297,8 +271,9 @@ const counterStore = pipe
 <!-- pipe-example:dispose-store -->
 ```ts
 import { dispose, throttle } from '@ilokesto/state/middleware';
+import { pipe } from '@ilokesto/state/utils';
 
-const counterStore = throttle({ count: 0 }, 250);
+const counterStore = pipe.use(throttle(250)).create({ count: 0 });
 
 dispose(counterStore);
 ```
@@ -310,31 +285,6 @@ decode 순서로 동작합니다. 저장된 payload를 파싱하고, 이전 버�
 migrate한 뒤, 그 결과에 `decode`를 호출합니다. 잘못된 payload, 실패한 migration, 실패한 decode,
 그리고 미래 버전은 초기 상태로 돌아갑니다. 성공한 migration은 현재 버전으로 다시 저장됩니다.
 현재 버전 payload는 다시 쓰지 않고 decode합니다.
-
-<!-- pipe-example:safe-persist-direct -->
-```ts
-import { persist } from '@ilokesto/state/middleware';
-
-type CounterState = { readonly count: number };
-
-const decodeCounter = (value: unknown): CounterState | null => {
-  if (typeof value !== 'object' || value === null) return null;
-  if (!('count' in value) || typeof value.count !== 'number') return null;
-
-  return { count: value.count };
-};
-
-const counterStore = persist(
-  { count: 0 },
-  {
-    local: 'counter',
-    migrate: [(stored: unknown) => stored],
-    decode: decodeCounter,
-  },
-);
-
-counterStore.getState().count;
-```
 
 <!-- pipe-example:safe-persist-pipe -->
 ```ts
@@ -355,8 +305,7 @@ const counterStore = pipe
   .create<CounterState>({ count: 0 });
 ```
 
-기존의 decoder 없는 `persist({ local: 'counter' })` 형태는 deprecated 되었지만 소스 호환성을
-위해 계속 사용할 수 있습니다. 저장된 값을 검증하지 않으므로 새 코드에서는 decoder를 사용하세요.
+`decode`는 필수입니다. 저장된 값을 검증 없이 신뢰하지 않습니다.
 
 `.use()`에 전달하는 모든 미들웨어는 사용자 미들웨어를 포함해 `definePipeableMiddleware`로 등록되어야 합니다. 메타데이터에는 `id`가 필요하며, 같은 ID는 기본적으로 거부됩니다. 반복이 의도된 경우에만 모든 항목에 `duplicate: 'allow'`를 설정하세요.
 
