@@ -66,23 +66,15 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
   return store;
 };
 
-export function debounce<T>(initialState: T | Store<T>, wait: number | undefined): Store<T>;
-export function debounce(wait?: number): DebouncePipeMiddleware;
-export function debounce<T>(first?: T | Store<T> | number, second?: number) {
-  if (arguments.length <= 1) {
-    const wait = typeof first === 'number' ? first : undefined;
-
-    const middleware: PipeAnyMiddleware = (initialState) => applyDebounce(initialState, wait);
-    return definePipeableMiddleware(middleware, {
-      adds: [],
-      after: [],
-      before: [],
-      conflicts: [],
-      duplicate: 'reject',
-      id: '@ilokesto/state/debounce',
-      requires: [],
-    } as const);
-  }
-
-  return applyDebounce(first as T | Store<T>, second);
+export function debounce(wait?: number): DebouncePipeMiddleware {
+  const middleware: PipeAnyMiddleware = (initialState) => applyDebounce(initialState, wait);
+  return definePipeableMiddleware(middleware, {
+    adds: [],
+    after: [],
+    before: [],
+    conflicts: [],
+    duplicate: 'reject',
+    id: '@ilokesto/state/debounce',
+    requires: [],
+  } as const);
 }

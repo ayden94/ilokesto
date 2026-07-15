@@ -189,34 +189,18 @@ function applyHistory<State>(
   return store;
 }
 
-export function history<State>(
-  initialState: State | Store<State>,
-  options: HistoryOptions | undefined,
-): HistoryStore<State>;
-export function history(options?: HistoryOptions): HistoryPipeMiddleware;
-export function history<State>(
-  first?: State | Store<State> | HistoryOptions,
-  second?: HistoryOptions,
-) {
-  if (arguments.length <= 1) {
-    const limit = resolveHistoryLimit(first);
-    const middleware: PipeAnyMiddleware<readonly [], readonly [HistoryCapability]> = (store) =>
-      applyHistory(store, limit);
+export function history(options?: HistoryOptions): HistoryPipeMiddleware {
+  const limit = resolveHistoryLimit(options);
+  const middleware: PipeAnyMiddleware<readonly [], readonly [HistoryCapability]> = (store) =>
+    applyHistory(store, limit);
 
-    return definePipeableMiddleware(middleware, {
-      adds: [historyCapability],
-      after: [],
-      before: [],
-      conflicts: ['@ilokesto/state/debounce', '@ilokesto/state/throttle'],
-      duplicate: 'reject',
-      id: '@ilokesto/state/history',
-      requires: [],
-    } as const);
-  }
-
-  const limit = resolveHistoryLimit(second);
-  if (first instanceof Store) {
-    return applyHistory(first, limit);
-  }
-  return applyHistory(first, limit);
+  return definePipeableMiddleware(middleware, {
+    adds: [historyCapability],
+    after: [],
+    before: [],
+    conflicts: ['@ilokesto/state/debounce', '@ilokesto/state/throttle'],
+    duplicate: 'reject',
+    id: '@ilokesto/state/history',
+    requires: [],
+  } as const);
 }

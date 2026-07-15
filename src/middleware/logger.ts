@@ -91,25 +91,17 @@ const applyLogger = <T>(
   return store;
 };
 
-export function logger<T>(initialState: T | Store<T>, options: LoggerOptions | undefined): Store<T>;
-export function logger(options?: LoggerOptions): LoggerPipeMiddleware;
-export function logger<T>(first?: T | Store<T> | LoggerOptions, second?: LoggerOptions) {
-  if (arguments.length <= 1) {
-    const options = first as LoggerOptions | undefined;
-
-    const middleware: PipeAnyMiddleware = (initialState) => applyLogger(initialState, options);
-    return definePipeableMiddleware(middleware, {
-      adds: [],
-      after: [],
-      before: [],
-      conflicts: [],
-      duplicate: 'reject',
-      id: '@ilokesto/state/logger',
-      requires: [],
-    } as const);
-  }
-
-  return applyLogger(first as T | Store<T>, second);
+export function logger(options?: LoggerOptions): LoggerPipeMiddleware {
+  const middleware: PipeAnyMiddleware = (initialState) => applyLogger(initialState, options);
+  return definePipeableMiddleware(middleware, {
+    adds: [],
+    after: [],
+    before: [],
+    conflicts: [],
+    duplicate: 'reject',
+    id: '@ilokesto/state/logger',
+    requires: [],
+  } as const);
 }
 
 function getObjectDiff(prev: unknown, next: unknown) {

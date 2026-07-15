@@ -7,7 +7,6 @@ export type { HistoryControls, HistoryOptions, HistoryStore } from './history.js
 export { logger } from './logger.js';
 export { persist } from './persist/index.js';
 export type {
-  PersistConfig,
   PersistDecoder,
   PersistDecoderStateDiagnostic,
   PersistMigration,

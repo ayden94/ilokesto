@@ -3,17 +3,14 @@ import { getStore } from '../../lib/getStore.js';
 import { definePipeableMiddleware } from '../../utils/pipe/metadata.js';
 import type { PipeableMiddleware } from '../../utils/pipe/metadata.js';
 import type {
-  PipeAnyMiddleware,
   PipeMiddleware,
   PipeMiddlewareMetadata,
 } from '../../utils/pipe/types.js';
 import type {
   MigrationFn,
-  PersistConfig,
-  PersistDecoderStateValidation,
   SafePersistConfig,
 } from './Persist.js';
-import { getSafeStorage, getStorage, parseOptions, setStorage } from './persistUtils.js';
+import { getSafeStorage, parseOptions, setStorage } from './persistUtils.js';
 
 type PersistMetadata = PipeMiddlewareMetadata<
   '@ilokesto/state/persist',
@@ -23,40 +20,22 @@ type PersistMetadata = PipeMiddlewareMetadata<
   readonly []
 >;
 
-type LegacyPersistConfig<T, Steps extends Array<MigrationFn>> = PersistConfig<T, Steps> & {
-  readonly decode?: never;
-};
-
-type CurriedPersist = (<T>(initialState: T | Store<T>) => Store<T>) &
-  PipeableMiddleware<PipeAnyMiddleware, PersistMetadata>;
-
 type SafeCurriedPersist<State> = PipeableMiddleware<
   PipeMiddleware<State>,
   PersistMetadata,
   'persist-decoder'
 >;
 
-type RuntimePersistConfig<T, Steps extends Array<MigrationFn>> =
-  | PersistConfig<T, Steps>
-  | SafePersistConfig<T, readonly MigrationFn[]>;
-
-const isSafePersistConfig = <T, Steps extends Array<MigrationFn>>(
-  options: RuntimePersistConfig<T, Steps>,
-): options is SafePersistConfig<T, readonly MigrationFn[]> =>
-  'decode' in options && typeof options.decode === 'function';
-
-const applyPersist = <T, P extends Array<MigrationFn>>(
+const applyPersist = <T>(
   initialState: T | Store<T>,
-  options: RuntimePersistConfig<T, P>,
+  options: SafePersistConfig<T, readonly MigrationFn[]>,
 ): Store<T> => {
   const store = getStore(initialState);
   const baseSetState = store.setState.bind(store);
   const optionObj = parseOptions(options);
   const currentState = store.getState() as T;
   const initialValue = optionObj.storageType
-    ? isSafePersistConfig(options)
-      ? getSafeStorage({ ...optionObj, decode: options.decode, initState: currentState }).state
-      : getStorage({ ...optionObj, migrate: options.migrate, initState: currentState }).state
+    ? getSafeStorage({ ...optionObj, decode: options.decode, initState: currentState }).state
     : currentState;
 
   baseSetState(initialValue);
@@ -79,52 +58,26 @@ const applyPersist = <T, P extends Array<MigrationFn>>(
   return store;
 };
 
-export function persist<
-  StoreState,
-  DecodedState,
-  const Steps extends readonly MigrationFn[],
->(
-  initialState: (StoreState | Store<StoreState>) &
-    PersistDecoderStateValidation<DecodedState, StoreState>,
-  options: SafePersistConfig<DecodedState, Steps>,
-): Store<DecodedState>;
 export function persist<DecodedState, const Steps extends readonly MigrationFn[]>(
   options: SafePersistConfig<DecodedState, Steps>,
 ): SafeCurriedPersist<DecodedState>;
-/** @deprecated Decoder-less persist is retained for source compatibility. */
-export function persist<T, Steps extends Array<MigrationFn>>(
-  initialState: T | Store<T>,
-  options: LegacyPersistConfig<T, Steps>,
-): Store<T>;
-/** @deprecated Decoder-less persist is retained for source compatibility. */
-export function persist<Steps extends Array<MigrationFn>>(
-  options: LegacyPersistConfig<unknown, Steps>,
-): CurriedPersist;
-export function persist<T, Steps extends Array<MigrationFn>>(
-  first:
-    | T
-    | Store<T>
-    | PersistConfig<unknown, Steps>
-    | SafePersistConfig<unknown, readonly MigrationFn[]>,
-  second?: PersistConfig<T, Steps> | SafePersistConfig<T, readonly MigrationFn[]>,
+export function persist<DecodedState, const Steps extends readonly MigrationFn[]>(
+  options: SafePersistConfig<DecodedState, Steps>,
 ): object {
-  if (arguments.length === 1) {
-    const options = first as RuntimePersistConfig<unknown, Steps>;
-
-    return definePipeableMiddleware(
-      <State>(initialState: State | Store<State>) =>
-        applyPersist<State, Steps>(initialState, options as RuntimePersistConfig<State, Steps>),
-      {
-        adds: [],
-        after: [],
-        before: [],
-        conflicts: [],
-        duplicate: 'reject',
-        id: '@ilokesto/state/persist',
-        requires: [],
-      } as const,
-    );
-  }
-
-  return applyPersist(first as T | Store<T>, second as RuntimePersistConfig<T, Steps>);
+  return definePipeableMiddleware(
+    <State>(initialState: State | Store<State>) =>
+      applyPersist<State>(
+        initialState,
+        options as unknown as SafePersistConfig<State, readonly MigrationFn[]>,
+      ),
+    {
+      adds: [],
+      after: [],
+      before: [],
+      conflicts: [],
+      duplicate: 'reject',
+      id: '@ilokesto/state/persist',
+      requires: [],
+    } as const,
+  );
 }

@@ -48,17 +48,6 @@ const cacheStoredValue = (
   }
 };
 
-const readPersistedPayload = <T>(
-  storageType: PersistUtils['common']['storageType'],
-  storageKey: string,
-): PersistedPayload<T> | null => {
-  const storedValue = readStorageValue(storageType, storageKey);
-
-  cacheStoredValue(storageType, storageKey, storedValue);
-
-  return parsePersistedPayload<T>(storedValue);
-};
-
 const hasOwn = <Key extends PropertyKey>(
   value: object,
   key: Key,
@@ -117,102 +106,11 @@ const migrateSafeCandidate = (
   return { candidate, migrated: payload.version < migrations.length };
 };
 
-const parsePersistedPayload = <T>(storedValue: string | null): PersistedPayload<T> | null => {
-  if (storedValue === null) return null;
-
-  const parsed = JSON.parse(storedValue) as Partial<PersistedPayload<T>>;
-  if (typeof parsed !== 'object' || parsed === null) return null;
-  if (typeof parsed.version !== 'number' || !Number.isFinite(parsed.version)) return null;
-  if (!('state' in parsed)) return null;
-
-  return { state: parsed.state as T, version: parsed.version };
-};
-
 export function getCookie(name: string) {
   const cookies = document.cookie.split('; ');
   const cookie = cookies.find((c) => c.startsWith(`${name}=`));
   return cookie ? cookie.split('=')[1] : null;
 }
-
-export const execMigrate: PersistUtils['execMigration'] = ({
-  storageKey,
-  storageType,
-  migrate,
-}) => {
-  if (!migrate || migrate.length === 0) return null;
-  if (storageType !== 'local' && storageType !== 'cookie') return null;
-
-  const storedPayload = readPersistedPayload<unknown>(storageType, storageKey);
-
-  if (!storedPayload) return null;
-
-  const initialVersion =
-    Number.isInteger(storedPayload.version) && storedPayload.version >= 0
-      ? storedPayload.version
-      : 0;
-  let version = initialVersion;
-  let state: unknown = storedPayload.state;
-  const migrations = migrate as ReadonlyArray<MigrationFn>;
-
-  while (version < migrations.length) {
-    state = migrations[version](state);
-    version += 1;
-  }
-
-  if (version === initialVersion) {
-    return { state: state as typeof storedPayload.state, version };
-  }
-
-  const encodedState = JSON.stringify({ state, version });
-  if (storageType === 'local') {
-    localStorage.setItem(storageKey, encodedState);
-  } else {
-    document.cookie = `${storageKey}=${encodedState}`;
-  }
-
-  storageWriteCache.set(getStorageCacheKey(storageType, storageKey), encodedState);
-
-  return { state: state as typeof storedPayload.state, version };
-};
-
-export const getStorage: PersistUtils['getStorage'] = ({
-  storageKey,
-  storageType,
-  migrate,
-  initState,
-}) => {
-  try {
-    const shouldUseMigratePath =
-      !!migrate && migrate.length > 0 && (storageType === 'local' || storageType === 'cookie');
-
-    if (shouldUseMigratePath) {
-      const migratedPayload = execMigrate({ storageKey, storageType, migrate });
-
-      if (migratedPayload) {
-        return {
-          state: migratedPayload.state as typeof initState,
-          version: migratedPayload.version,
-        };
-      }
-
-      return { state: initState, version: 0 };
-    }
-
-    const storedPayload = readPersistedPayload<unknown>(storageType, storageKey);
-
-    if (storedPayload) {
-      return { state: storedPayload.state as typeof initState, version: storedPayload.version };
-    }
-  } catch (error) {
-    if (error instanceof Error && typeof window !== 'undefined') {
-      console.error('Caro-Kann : Failed to read from storage');
-    } else if (typeof window !== 'undefined') {
-      console.error('Caro-Kann : Failed to read from storage');
-    }
-  }
-
-  return { state: initState, version: 0 };
-};
 
 export const getSafeStorage = <State>({
   storageKey,
@@ -238,8 +136,7 @@ export const getSafeStorage = <State>({
     }
 
     return { state: decoded, version: migrate.length };
-  } catch (error) {
-    if (error instanceof Error) return fallback;
+  } catch {
     return fallback;
   }
 };
@@ -283,9 +180,7 @@ export const setStorage: PersistUtils['setStorage'] = ({
 
     storageWriteCache.set(cacheKey, encodedState);
   } catch (error) {
-    if (error instanceof Error && typeof window !== 'undefined') {
-      console.error('Caro-Kann : Failed to write to storage', error);
-    } else if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
       console.error('Caro-Kann : Failed to write to storage', error);
     }
   }

@@ -27,8 +27,8 @@ type StandardSchemaV1<Input = unknown, Output = Input> = {
       value: unknown,
     ) => StandardSchemaResult<Output> | Promise<StandardSchemaResult<Output>>;
     readonly types?: {
-      readonly input: NoInfer<Input>;
-      readonly output: NoInfer<Output>;
+      readonly input: Input;
+      readonly output: Output;
     };
   };
 };
@@ -77,27 +77,15 @@ const applyValidate = <T>(initialState: T | Store<T>, schema: StandardSchemaV1<T
   return store;
 };
 
-export function validate<T>(
-  initialState: T | Store<T>,
-  schema: StandardSchemaV1<NoInfer<T>, NoInfer<T>>,
-): Store<T>;
 export function validate<Schema extends StandardSchemaV1>(
   schema: Schema,
-): ValidatePipeMiddleware<StandardSchemaState<Schema>>;
-export function validate<T>(
-  first: T | Store<T> | StandardSchemaV1<T, T>,
-  second?: StandardSchemaV1<T, T>,
-) {
-  if (arguments.length === 1) {
-    const schema = first as StandardSchemaV1<T, T>;
-    const middleware: PipeMiddleware<T> = (store) => applyValidate(store, schema);
+): ValidatePipeMiddleware<StandardSchemaState<Schema>> {
+  const middleware: PipeMiddleware<StandardSchemaState<Schema>> = (store) =>
+    applyValidate(store, schema as StandardSchemaV1<StandardSchemaState<Schema>, StandardSchemaState<Schema>>);
 
-    return definePipeableMiddleware(middleware, {
-      conflicts: [],
-      duplicate: 'reject',
-      id: '@ilokesto/state/validate',
-    } as const);
-  }
-
-  return applyValidate(first as T | Store<T>, second as StandardSchemaV1<T, T>);
+  return definePipeableMiddleware(middleware, {
+    conflicts: [],
+    duplicate: 'reject',
+    id: '@ilokesto/state/validate',
+  } as const);
 }

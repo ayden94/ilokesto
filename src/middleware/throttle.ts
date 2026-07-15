@@ -50,16 +50,7 @@ function applyThrottle<T>(initialState: T | Store<T>, wait = 300): Store<T> {
   return store;
 }
 
-export function throttle<T>(initialState: T | Store<T>, wait: number | undefined): Store<T>;
-export function throttle(wait?: number): ThrottlePipeMiddleware;
-export function throttle<T>(
-  ...args: [initialState: T | Store<T>, wait: number | undefined] | [wait?: number]
-) {
-  if (args.length === 2) {
-    return applyThrottle(...args);
-  }
-
-  const [wait] = args;
+export function throttle(wait?: number): ThrottlePipeMiddleware {
   validateWait(wait);
   const middleware: PipeAnyMiddleware = (initialState) => applyThrottle(initialState, wait);
   return definePipeableMiddleware(middleware, {

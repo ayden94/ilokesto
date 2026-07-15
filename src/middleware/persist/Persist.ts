@@ -40,30 +40,6 @@ type MigrationTupleValidation<
 type ValidMigrationTuple<Steps extends readonly MigrationFn[]> = Steps &
   MigrationTupleValidation<Steps>;
 
-type MigrationPipe<
-  Steps extends Array<MigrationFn>,
-  PreviousOutput = unknown,
-> = Steps extends [infer First, ...infer Rest extends Array<MigrationFn>]
-  ? First extends PersistMigration<infer Input, infer Output>
-    ? Input extends PreviousOutput
-      ? [First, ...MigrationPipe<Rest, Output>] extends Steps
-        ? [First, ...MigrationPipe<Rest, Output>]
-        : never
-      : never
-    : never
-  : [];
-
-type Migrate<T, Steps extends Array<MigrationFn>> = Steps extends [
-  ...infer _Rest,
-  infer Last,
-]
-  ? Last extends PersistMigration<never, infer LastOutput>
-    ? T extends LastOutput
-      ? MigrationPipe<Steps>
-      : never
-    : never
-  : never;
-
 export type SafePersistLocalConfig<
   State,
   Steps extends readonly MigrationFn[],
@@ -96,52 +72,15 @@ export type SafePersistConfig<
   | SafePersistCookieConfig<State, Steps>
   | SafePersistSessionConfig<State>;
 
-type StorageConfig<T = unknown, Steps extends Array<MigrationFn> = Array<MigrationFn>> = {
-  local: {
-    local: string;
-    session?: never;
-    cookie?: never;
-    migrate?: Migrate<T, Steps>;
-  };
-  session: {
-    local?: never;
-    session: string;
-    cookie?: never;
-    migrate?: never;
-  };
-  cookie: {
-    local?: never;
-    session?: never;
-    cookie: string;
-    migrate?: Migrate<T, Steps>;
-  };
-};
-
-export type PersistConfig<T, Steps extends Array<MigrationFn>> = StorageConfig<
-  T,
-  Steps
->[keyof StorageConfig];
-
 export type PersistUtils = {
   common: {
     storageKey: string;
-    storageType: keyof StorageConfig | null;
+    storageType: 'local' | 'session' | 'cookie' | null;
   };
-  getStorage: <T, Steps extends Array<MigrationFn>>(
-    props: PersistUtils['common'] & {
-      migrate?: Migrate<T, Steps>;
-      initState: T;
-    },
-  ) => { state: T; version: number };
   setStorage: <T>(
     props: PersistUtils['common'] & {
       storageVersion: number;
       value: T;
     },
   ) => void;
-  execMigration: <T, Steps extends Array<MigrationFn>>(
-    props: PersistUtils['common'] & {
-      migrate?: Migrate<T, Steps>;
-    },
-  ) => { state: unknown; version: number } | null;
 };
