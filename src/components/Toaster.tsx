@@ -164,7 +164,6 @@ function TopLayerContainer({
   return (
     <div
       ref={ref}
-      popover="manual"
       className={className}
       style={{
         ...style,
@@ -174,6 +173,7 @@ function TopLayerContainer({
         overflow: "visible",
         inset: "unset",
       }}
+      {...({ popover: "manual" } as React.HTMLAttributes<HTMLDivElement>)}
     >
       {children}
     </div>
