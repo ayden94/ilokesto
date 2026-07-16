@@ -12,7 +12,7 @@
 - 현재 상태 조회: `getState()`
 - 초기 상태 조회: `getInitialState()`
 - 값 또는 updater 함수로 상태 변경: `setState()`
-- 미들웨어 등록: `setMiddleware()`
+- 미들웨어 등록: `pushMiddleware()` / `unshiftMiddleware()`
 - 구독 / 해제: `subscribe()`
 - 같은 참조로 업데이트하면 notify 생략
 - notify 중 구독 해제가 일어나도 안전하게 순회
@@ -95,19 +95,30 @@ store.setState((prev) => ({
 
 `setState()`에 전달한 함수는 항상 updater로 해석됩니다. 따라서 현재 API는 **함수 자체를 상태값으로 다루는 패턴**과는 맞지 않습니다.
 
-### `store.setMiddleware(middleware: (nextState: SetStateAction<T>, next: Dispatch<SetStateAction<T>>) => void): void`
+### `store.pushMiddleware(middleware: (nextState: SetStateAction<T>, next: Dispatch<SetStateAction<T>>) => void): void`
 
-스토어에 미들웨어를 추가합니다. 미들웨어는 `setState` 동작을 감싸며 등록된 순서대로 실행됩니다.
+체인 끝에 미들웨어를 추가합니다. 미들웨어는 `setState` 동작을 감싸며 등록된 순서대로 실행됩니다.
 
 ```ts
-store.setMiddleware((nextState, next) => {
+store.pushMiddleware((nextState, next) => {
   console.log("업데이트 전:", nextState);
   next(nextState);
   console.log("업데이트 후");
 });
 ```
 
-미들웨어는 `nextState: SetStateAction<T>`와 체인을 이어갈 `next: Dispatch<SetStateAction<T>>` 함수를 인자로 받습니다. 먼저 등록한 미들웨어가 가장 바깥쪽 래퍼가 되므로, `before -> next -> after` 패턴은 실제 상태 반영을 감싸는 중첩 함수 호출처럼 동작합니다. 마지막 `next` 호출이 실제로 상태를 적용하고 구독자에게 알림을 보냅니다.
+### `store.unshiftMiddleware(middleware: (nextState: SetStateAction<T>, next: Dispatch<SetStateAction<T>>) => void): void`
+
+체인 앞에 미들웨어를 추가합니다. 기존에 등록된 미들웨어보다 먼저 실행되어야 할 때 사용합니다.
+
+```ts
+store.unshiftMiddleware((nextState, next) => {
+  console.log("가장 바깥쪽 미들웨어");
+  next(nextState);
+});
+```
+
+미들웨어는 `nextState: SetStateAction<T>`와 체인을 이어갈 `next: Dispatch<SetStateAction<T>>` 함수를 인자로 받습니다. 배열의 첫 번째 미들웨어가 가장 바깥쪽 래퍼가 되므로, `before -> next -> after` 패턴은 실제 상태 반영을 감싸는 중첩 함수 호출처럼 동작합니다. 마지막 `next` 호출이 실제로 상태를 적용하고 구독자에게 알림을 보냅니다.
 
 ### `store.subscribe(listener: () => void): () => void`
 
