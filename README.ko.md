@@ -176,6 +176,22 @@ src/
 
 한 줄로 말하면, 코어는 lifecycle과 hosting을 담당하고 adapter 패키지는 의미론과 표현을 담당합니다.
 
+## Provider 마운트 전 Overlay 열기
+
+`store.open()`은 `OverlayProvider`가 마운트되기 전에 호출할 수 있습니다 — 아이템은 즉시 store에 저장되고, `useSyncExternalStore`가 Provider의 첫 렌더에서 이를 가져옵니다. 이벤트 이미터가 필요하지 않습니다:
+
+```tsx
+const store = createOverlayStore();
+
+// Provider가 존재하기 전에 호출
+store.open({ id: 'early', type: 'modal' });
+
+// 나중에 — 첫 마운트 시 아이템이 렌더됩니다
+<OverlayProvider adapters={adapters} store={store}>
+  <App />
+</OverlayProvider>
+```
+
 ## Adapter Lifecycle Hooks
 
 Adapter는 `OverlayRenderProps`에서 제공하는 `useLifecycle` prop으로 사이드이펙트 콜백을 등록할 수 있습니다:

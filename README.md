@@ -176,6 +176,22 @@ src/
 
 In short, the core owns lifecycle and hosting, while adapter packages own semantics and presentation.
 
+## Opening Overlays Before Provider Mount
+
+`store.open()` can be called before `OverlayProvider` is mounted — the item is stored immediately, and `useSyncExternalStore` picks it up on the Provider's first render. No event emitter is needed:
+
+```tsx
+const store = createOverlayStore();
+
+// Called before any Provider exists
+store.open({ id: 'early', type: 'modal' });
+
+// Later — the item renders on first mount
+<OverlayProvider adapters={adapters} store={store}>
+  <App />
+</OverlayProvider>
+```
+
 ## Adapter Lifecycle Hooks
 
 Adapters can register side-effect callbacks via the `useLifecycle` prop provided in `OverlayRenderProps`:
