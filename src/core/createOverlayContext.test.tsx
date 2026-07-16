@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { createOverlayContext } from "./createOverlayContext";
 import type { OverlayAdapterMap } from "../contracts/adapter";
@@ -8,6 +8,15 @@ const stubAdapters: OverlayAdapterMap = {
 };
 
 describe("createOverlayContext", () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
   it("returns Provider, useOverlay, useOverlayItems, useOverlayItem", () => {
     const ctx = createOverlayContext();
 
