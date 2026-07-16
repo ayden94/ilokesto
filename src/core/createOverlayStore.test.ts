@@ -157,6 +157,86 @@ describe("createOverlayStore", () => {
     });
   });
 
+  describe("closeAll", () => {
+    it("transitions all open items to closing", () => {
+      const store = createOverlayStore();
+      store.open({ id: "first", type: "modal" });
+      store.open({ id: "second", type: "modal" });
+
+      store.closeAll();
+
+      const items = store.getSnapshot();
+      expect(items).toHaveLength(2);
+      expect(items.every((i) => i.status === "closing")).toBe(true);
+    });
+
+    it("does not remove items from snapshot (unlike clear)", () => {
+      const store = createOverlayStore();
+      store.open({ type: "modal" });
+      store.open({ type: "modal" });
+
+      store.closeAll();
+
+      expect(store.getSnapshot()).toHaveLength(2);
+    });
+
+    it("does not settle promises (promises remain pending)", () => {
+      const store = createOverlayStore();
+      const { promise } = store.open<string>({ type: "modal" });
+
+      store.closeAll();
+
+      let settled = false;
+      promise.then(
+        () => { settled = true; },
+        () => { settled = true; }
+      );
+
+      expect(settled).toBe(false);
+    });
+
+    it("resolves all promises after closeAll then remove each", async () => {
+      const store = createOverlayStore();
+      const { id: id1, promise: p1 } = store.open<string>({ type: "modal" });
+      const { id: id2, promise: p2 } = store.open<string>({ type: "modal" });
+
+      store.closeAll();
+      store.remove(id1);
+      store.remove(id2);
+
+      await expect(p1).resolves.toBeUndefined();
+      await expect(p2).resolves.toBeUndefined();
+    });
+
+    it("preserves closeResult on already-closing items", () => {
+      const store = createOverlayStore();
+      const { id } = store.open({ type: "modal" });
+
+      store.close(id, "first");
+      store.closeAll();
+
+      const item = store.getSnapshot().find((i) => i.id === id);
+      expect(item?.closeResult).toBe("first");
+    });
+
+    it("does not set closeResult on items closed by closeAll", () => {
+      const store = createOverlayStore();
+      store.open({ id: "a", type: "modal" });
+
+      store.closeAll();
+
+      const item = store.getSnapshot().find((i) => i.id === "a");
+      expect(item?.closeResult).toBeUndefined();
+    });
+
+    it("does nothing when no items exist", () => {
+      const store = createOverlayStore();
+
+      expect(() => store.closeAll()).not.toThrow();
+      expect(store.getSnapshot()).toHaveLength(0);
+    });
+  });
+
   describe("clear", () => {
     it("removes all items from snapshot", () => {
       const store = createOverlayStore();

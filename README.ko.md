@@ -96,6 +96,24 @@ function LoginButton() {
 
 2단계 dismiss lifecycle은 유지됩니다: `reject`는 상태를 `closing`으로만 전환하고, 어댑터가 exit 애니메이션을 재생한 후 `remove(id)`를 호출할 때 Promise가 실제로 reject 됩니다.
 
+## 모든 Overlay 닫기
+
+`closeAll()`은 모든 open overlay를 한 번에 `closing` 상태로 전환합니다. `clear()`와 달리 아이템을 store에서 제거하거나 Promise를 해소하지 않습니다 — 어댑터가 각 overlay의 언마운트 시점을 여전히 제어합니다.
+
+| | `closeAll()` | `clear()` |
+|---|---|---|
+| 상태 | 모든 `open` → `closing` | 아이템 즉시 제거 |
+| store 아이템 | 유지 | 비워짐 |
+| Promise | 대기 (`remove` 시 해소) | 즉시 해소 |
+| 사용 시나리오 | 일괄 exit 애니메이션 | 긴급 정리 |
+
+```tsx
+function CloseAllButton() {
+  const { closeAll } = useOverlay();
+  return <button onClick={closeAll}>모두 닫기</button>;
+}
+```
+
 ## Source Layout
 
 ```text
@@ -116,7 +134,7 @@ src/
 
 ### `src/core`
 
-- `createOverlayStore.ts` → provider 단위 overlay store를 만들고 `open`, `close`, `reject`, `remove`, `clear` 수명주기를 관리합니다
+- `createOverlayStore.ts` → provider 단위 overlay store를 만들고 `open`, `close`, `closeAll`, `reject`, `remove`, `clear` 수명주기를 관리합니다
 - `OverlayProvider.tsx` → store를 만들거나 주입받아 context로 노출하고 built-in `OverlayHost`를 마운트합니다
 - `OverlayHost.tsx` → 현재 overlay item 목록을 읽고 각 item을 `adapters[item.type]`에 위임해 렌더링합니다
 - `useOverlay.ts` → overlay를 열고 닫고 거부하고 제거하는 명령형 API를 제공합니다
