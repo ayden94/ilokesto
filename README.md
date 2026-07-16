@@ -8,11 +8,35 @@ This package provides a provider-scoped overlay core with a built-in host, item 
 
 ## Features
 
-- Provider-scoped overlay runtime instead of a global singleton
-- Built-in host that renders overlay items through an adapter registry
-- Sync and async overlay opening through the same store lifecycle
-- Clean separation between runtime core and shared contracts
-- A small public API for opening, closing, removing, and observing overlays
+- **Provider-scoped runtime** — no global singleton; each `OverlayProvider` has its own store
+- **Isolated contexts** — `createOverlayContext()` for multiple independent overlay stacks
+- **Promise-based async overlays** — `display()` returns a Promise that resolves after exit animation
+- **Two-phase dismiss** — `close()` triggers animation, `remove()` actually unmounts
+- **Reject support** — `reject(id, reason)` rejects the Promise on `remove()` for error flows
+- **Batch close** — `closeAll()` transitions all overlays to `closing` for batch exit animation
+- **Adapter lifecycle hooks** — `onOpen`, `onClosing`, `onUnmount` via `useLifecycle`
+- **Adapter plugins** — Provider-level common policies (logging, analytics, accessibility)
+- **ID deduplication** — `open({ id })` is idempotent; no dangling promises
+- **Single-item subscription** — `useOverlayItem(id)` with `Object.is` bailout
+- **Open before Provider mount** — `store.open()` works without a mounted Provider
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Basic Usage](#basic-usage)
+- [Promise-Based Overlays](#promise-based-overlays)
+- [Two-Phase Dismiss Lifecycle](#two-phase-dismiss-lifecycle)
+- [Rejecting an Overlay](#rejecting-an-overlay)
+- [Closing All Overlays](#closing-all-overlays)
+- [Overlay ID and Deduplication](#overlay-id-and-deduplication)
+- [Opening Overlays Before Provider Mount](#opening-overlays-before-provider-mount)
+- [Isolated Overlay Contexts](#isolated-overlay-contexts)
+- [Adapter Lifecycle Hooks](#adapter-lifecycle-hooks)
+- [Adapter Plugins](#adapter-plugins)
+- [API Reference](#api-reference)
+- [Source Layout](#source-layout)
+- [Development](#development)
+- [License](#license)
 
 ## Installation
 
@@ -32,14 +56,17 @@ npm install @ilokesto/overlay react
 import { OverlayProvider, useOverlay, type OverlayAdapterMap } from '@ilokesto/overlay';
 
 const adapters: OverlayAdapterMap = {
-  modal: ({ isOpen, close, title }) => {
-    if (!isOpen) {
-      return null;
-    }
+  modal: ({ isOpen, close, useLifecycle, ...props }) => {
+    useLifecycle({
+      onOpen: () => { document.body.style.overflow = 'hidden'; },
+      onUnmount: () => { document.body.style.overflow = ''; },
+    });
+
+    if (!isOpen) return null;
 
     return (
       <div role="dialog" aria-modal="true">
-        <h1>{String(title)}</h1>
+        <h1>{String(props.title)}</h1>
         <button onClick={() => close(true)}>Confirm</button>
       </div>
     );
@@ -55,7 +82,7 @@ function ExampleButton() {
       props: { title: 'Delete this item?' },
     });
 
-    console.log(result);
+    console.log(result); // true or undefined
   };
 
   return <button onClick={handleClick}>Open</button>;
@@ -70,17 +97,46 @@ export function App() {
 }
 ```
 
-## Overlay ID and Deduplication
+## Promise-Based Overlays
 
-When `open()` is called with an explicit `id`, the store guards against duplicates:
+`display()` returns a `Promise<TResult | undefined>` that resolves when the overlay is fully removed (after exit animation):
 
-- If an overlay with the same `id` is already open (or closing), `open()` returns the **existing** `OverlayRequest` — the same `id` and the same `Promise`.
-- No second item is added to the store.
-- The `Promise` is not duplicated, so there is no dangling promise.
+```tsx
+const confirmed = await display<boolean>({ type: 'modal', props: { ... } });
+// confirmed === true  → user clicked confirm
+// confirmed === false → user clicked cancel
+// confirmed === undefined → overlay was removed without close
+```
 
-This makes `open({ id, ... })` idempotent — calling it multiple times with the same `id` while the overlay is active has no side effect.
+For fire-and-forget usage, use `open()` which returns just the `id`:
 
-Once the overlay is removed (or cleared), the `id` is released and can be reused for a new overlay.
+```tsx
+const id = open({ type: 'toast', props: { message: 'Hello' } });
+```
+
+## Two-Phase Dismiss Lifecycle
+
+The dismiss lifecycle has two phases, giving adapters full control over exit animation timing:
+
+| Step | Function | What happens |
+|---|---|---|
+| 1 | `close(id, result)` | Status transitions to `closing`. `isOpen` becomes `false`. Adapter plays exit animation. |
+| 2 | `remove(id)` | Item is removed from the store. Promise resolves with `closeResult`. |
+
+The adapter receives both `close` and `remove` as props. It calls `close()` to trigger the animation, then `remove()` on animation end:
+
+```tsx
+const adapter = ({ isOpen, close, remove }) => {
+  return (
+    <div
+      className={isOpen ? 'fade-in' : 'fade-out'}
+      onAnimationEnd={() => { if (!isOpen) remove(); }}
+    >
+      <button onClick={() => close(true)}>Confirm</button>
+    </div>
+  );
+};
+```
 
 ## Rejecting an Overlay
 
@@ -95,7 +151,6 @@ function LoginButton() {
   const handleLogin = () => {
     const id = open({ type: 'modal', props: { title: 'Sign in' } });
 
-    // Simulate a timeout that rejects the overlay
     setTimeout(() => {
       reject(id, new Error('Login timed out'));
       remove(id);
@@ -126,56 +181,17 @@ function CloseAllButton() {
 }
 ```
 
-## Source Layout
+## Overlay ID and Deduplication
 
-```text
-src/
-  core/
-    createOverlayStore.ts
-    createOverlayContext.tsx
-    OverlayProvider.tsx
-    OverlayHost.tsx
-    useOverlay.ts
-    useOverlayItems.ts
-    useOverlayItem.ts
-  contracts/
-    adapter.ts
-    overlay.ts
-    plugin.ts
-  index.ts
-```
+When `open()` is called with an explicit `id`, the store guards against duplicates:
 
-## Responsibilities
+- If an overlay with the same `id` is already open (or closing), `open()` returns the **existing** `OverlayRequest` — the same `id` and the same `Promise`.
+- No second item is added to the store.
+- The `Promise` is not duplicated, so there is no dangling promise.
 
-### `src/core`
+This makes `open({ id, ... })` idempotent — calling it multiple times with the same `id` while the overlay is active has no side effect.
 
-- `createOverlayStore.ts` → creates the provider-scoped overlay store and manages `open`, `close`, `closeAll`, `reject`, `remove`, and `clear`
-- `createOverlayContext.tsx` → factory that creates an isolated React context with its own Provider, useOverlay, useOverlayItems, and useOverlayItem
-- `OverlayProvider.tsx` → re-exports the default context instance (Provider + hooks) for backward compatibility
-- `OverlayHost.tsx` → reads the current overlay items, dispatches each item to `adapters[item.type]`, and calls adapter lifecycle hooks on status transitions
-- `useOverlay.ts` → exposes the command API for opening, closing, rejecting, and dismissing overlays
-- `useOverlayItems.ts` → subscribes to the current overlay item list with `useSyncExternalStore`
-- `useOverlayItem.ts` → subscribes to a single overlay item by id with `useSyncExternalStore`
-
-### `src/contracts`
-
-- `adapter.ts` → adapter-facing rendering contracts such as `OverlayRenderProps`, `OverlayAdapterComponent`, and `OverlayAdapterMap`
-- `overlay.ts` → overlay runtime contracts such as `OverlayItem`, `OverlayStoreApi`, `DisplayOptions`, and `OverlayProviderProps`
-
-### `src/index.ts`
-
-- Re-exports the runtime APIs from `core/*`
-- Re-exports shared contract types from `contracts/*`
-
-## Dependency Direction
-
-- `core/*` depends on `contracts/*`
-- `contracts/overlay.ts` depends on `contracts/adapter.ts`
-- `contracts/adapter.ts` does not depend on runtime code
-- Adapter packages such as modal or toast should depend on `@ilokesto/overlay`
-- `@ilokesto/overlay` should not import modal or toast implementations directly
-
-In short, the core owns lifecycle and hosting, while adapter packages own semantics and presentation.
+Once the overlay is removed (or cleared), the `id` is released and can be reused for a new overlay.
 
 ## Opening Overlays Before Provider Mount
 
@@ -193,6 +209,38 @@ store.open({ id: 'early', type: 'modal' });
 </OverlayProvider>
 ```
 
+## Isolated Overlay Contexts
+
+By default, `OverlayProvider`, `useOverlay`, `useOverlayItems`, and `useOverlayItem` all share a single React context. If you need multiple independent overlay stacks (e.g., a main app and an embedded widget), use `createOverlayContext()`:
+
+```tsx
+import { createOverlayContext } from '@ilokesto/overlay';
+
+const mainOverlay = createOverlayContext();
+const widgetOverlay = createOverlayContext();
+
+// Each context has its own Provider, store, and hooks — fully isolated.
+<MainApp>
+  <mainOverlay.Provider adapters={adapters}>
+    <Sidebar />
+  </mainOverlay.Provider>
+</MainApp>
+
+<Widget>
+  <widgetOverlay.Provider adapters={adapters}>
+    <WidgetContent />
+  </widgetOverlay.Provider>
+</Widget>
+```
+
+Each context instance provides:
+- `Provider` — context provider with built-in `OverlayHost`
+- `useOverlay` — command API (open, close, closeAll, reject, remove, clear)
+- `useOverlayItems` — subscribes to the full item list
+- `useOverlayItem(id)` — subscribes to a single item
+
+The default exports (`OverlayProvider`, `useOverlay`, etc.) are a pre-created instance of `createOverlayContext()` for backward compatibility.
+
 ## Adapter Lifecycle Hooks
 
 Adapters can register side-effect callbacks via the `useLifecycle` prop provided in `OverlayRenderProps`:
@@ -200,15 +248,9 @@ Adapters can register side-effect callbacks via the `useLifecycle` prop provided
 ```tsx
 const modalAdapter: OverlayAdapterComponent = ({ useLifecycle, isOpen, close }) => {
   useLifecycle({
-    onOpen: (id) => {
-      document.body.style.overflow = 'hidden';
-    },
-    onClosing: (id) => {
-      // status just transitioned to "closing"
-    },
-    onUnmount: (id) => {
-      document.body.style.overflow = '';
-    },
+    onOpen: (id) => { document.body.style.overflow = 'hidden'; },
+    onClosing: (id) => { /* status just transitioned to "closing" */ },
+    onUnmount: (id) => { document.body.style.overflow = ''; },
   });
 
   if (!isOpen) return null;
@@ -252,50 +294,83 @@ const loggingPlugin: OverlayPlugin = {
 
 This means an adapter can override specific phases (e.g., custom focus trap) while plugins handle the rest (e.g., logging).
 
-## Adapter Packages
+## API Reference
 
-This package is intentionally generic.
+### `createOverlayStore()`
 
-- A modal package can use the overlay runtime and inject modal adapters
-- A toast package can use the same runtime and inject toast adapters
-- Policies such as focus trapping, scroll lock, backdrop behavior, deduplication, timers, and animations belong in the adapter layer, not in the overlay core
+Creates a provider-scoped overlay store. Returns `OverlayStoreApi` with `open`, `close`, `closeAll`, `reject`, `remove`, `clear`, `subscribe`, `getSnapshot`, `getInitialSnapshot`.
 
-## Isolated Overlay Contexts
+### `createOverlayContext()`
 
-By default, `OverlayProvider`, `useOverlay`, `useOverlayItems`, and `useOverlayItem` all share a single React context. If you need multiple independent overlay stacks (e.g., a main app and an embedded widget), use `createOverlayContext()`:
+Creates an isolated React context. Returns `{ Provider, useOverlay, useOverlayItems, useOverlayItem }`.
 
-```tsx
-import { createOverlayContext } from '@ilokesto/overlay';
+### `OverlayProvider`
 
-const mainOverlay = createOverlayContext();
-const widgetOverlay = createOverlayContext();
+Context provider with built-in `OverlayHost`. Props: `adapters`, `children`, `store?`, `plugins?`.
 
-// Each context has its own Provider, store, and hooks — fully isolated.
-<MainApp>
-  <mainOverlay.Provider adapters={adapters}>
-    <Sidebar />
-  </mainOverlay.Provider>
-</MainApp>
+### `useOverlay()`
 
-<Widget>
-  <widgetOverlay.Provider adapters={adapters}>
-    <WidgetContent />
-  </widgetOverlay.Provider>
-</Widget>
+Returns `{ display, open, close, closeAll, reject, remove, clear }`.
+
+### `useOverlayItems()`
+
+Returns `ReadonlyArray<OverlayItem>` — the current overlay item list.
+
+### `useOverlayItem(id)`
+
+Returns `OverlayItem | undefined` — subscribes to a single item by id with `Object.is` bailout.
+
+### Types
+
+- `OverlayStoreApi`, `OverlayProviderProps`, `OverlayItem`, `OverlayRequest`, `DisplayOptions`, `OverlayId`, `OverlayStatus`, `OverlayState`
+- `OverlayAdapterComponent`, `OverlayAdapterMap`, `OverlayRenderProps`, `OverlayAdapterHooks`
+- `OverlayPlugin`
+- `OverlayContextInstance`, `OverlayContextValue`
+- `UseOverlayReturn`
+
+## Source Layout
+
+```text
+src/
+  core/
+    createOverlayStore.ts
+    createOverlayContext.tsx
+    OverlayProvider.tsx
+    OverlayHost.tsx
+    useOverlay.ts
+    useOverlayItems.ts
+    useOverlayItem.ts
+  contracts/
+    adapter.ts
+    overlay.ts
+    plugin.ts
+  index.ts
 ```
 
-Each context instance provides:
-- `Provider` — context provider with built-in `OverlayHost`
-- `useOverlay` — command API (open, close, closeAll, reject, remove, clear)
-- `useOverlayItems` — subscribes to the full item list
-- `useOverlayItem(id)` — subscribes to a single item
+### Responsibilities
 
-The default exports (`OverlayProvider`, `useOverlay`, etc.) are a pre-created instance of `createOverlayContext()` for backward compatibility.
+**`src/core`** — runtime implementation:
+- `createOverlayStore.ts` — store with `open`, `close`, `closeAll`, `reject`, `remove`, `clear`
+- `createOverlayContext.tsx` — factory for isolated React contexts
+- `OverlayProvider.tsx` — default context instance re-export (backward compatible)
+- `OverlayHost.tsx` — renders items via adapters, calls lifecycle hooks on status transitions
+- `useOverlay.ts` — command API hook
+- `useOverlayItems.ts` / `useOverlayItem.ts` — subscription hooks with `useSyncExternalStore`
 
-## Exports
+**`src/contracts`** — shared types:
+- `adapter.ts` — `OverlayRenderProps`, `OverlayAdapterComponent`, `OverlayAdapterMap`, `OverlayAdapterHooks`
+- `overlay.ts` — `OverlayItem`, `OverlayStoreApi`, `DisplayOptions`, `OverlayProviderProps`
+- `plugin.ts` — `OverlayPlugin`
 
-- `@ilokesto/overlay` → `createOverlayStore`, `createOverlayContext`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
-- `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts` (including `OverlayAdapterHooks`), `src/contracts/overlay.ts`, `src/contracts/plugin.ts` (`OverlayPlugin`), `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`
+### Dependency Direction
+
+- `core/*` depends on `contracts/*`
+- `contracts/overlay.ts` depends on `contracts/adapter.ts`
+- `contracts/adapter.ts` does not depend on runtime code
+- Adapter packages (modal, toast) should depend on `@ilokesto/overlay`
+- `@ilokesto/overlay` should not import modal or toast implementations directly
+
+The core owns lifecycle and hosting; adapter packages own semantics and presentation.
 
 ## Development
 
