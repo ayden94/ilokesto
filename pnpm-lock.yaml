@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@ilokesto/store':
-        specifier: 1.1.1
-        version: 1.1.1
+        specifier: ^1.1.2
+        version: 1.1.2
       immer:
         specifier: ^9.0.12
         version: 9.0.21
@@ -75,8 +75,8 @@ packages:
     resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
     engines: {node: '>=6.9.0'}
 
-  '@ilokesto/store@1.1.1':
-    resolution: {integrity: sha512-fcotz5vU2TLzAywMsNRu7P6hmdVy6aBdhfrvx6NBjWKPIYwaLhaLANj7lLaxJEzujTB1zMPoDAp14t8E0frHfg==}
+  '@ilokesto/store@1.1.2':
+    resolution: {integrity: sha512-MDH/Ng9JM/btv2RSY/xyY49QXKhjaGQBtXbTWHscAWt+Mv4OQtsWXmUajXmaHLEyx3g2QxN9nOYCYqhzGYUG2g==}
 
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
@@ -281,7 +281,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
-  '@ilokesto/store@1.1.1': {}
+  '@ilokesto/store@1.1.2': {}
 
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
