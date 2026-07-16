@@ -138,7 +138,6 @@ src/
     useOverlay.ts
     useOverlayItems.ts
     useOverlayItem.ts
-    useOverlayLifecycle.ts
   contracts/
     adapter.ts
     overlay.ts
@@ -156,7 +155,6 @@ src/
 - `useOverlay.ts` → exposes the command API for opening, closing, rejecting, and dismissing overlays
 - `useOverlayItems.ts` → subscribes to the current overlay item list with `useSyncExternalStore`
 - `useOverlayItem.ts` → subscribes to a single overlay item by id with `useSyncExternalStore`
-- `useOverlayLifecycle.ts` → internal hook that lets adapters register `onOpen`, `onClosing`, and `onUnmount` callbacks
 
 ### `src/contracts`
 

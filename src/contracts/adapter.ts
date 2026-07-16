@@ -1,10 +1,10 @@
 import type { ComponentType } from "react";
-import type { OverlayItem } from "./overlay";
+import type { OverlayId, OverlayItem } from "./overlay";
 
 export interface OverlayAdapterHooks {
-  onOpen?: (id: string, item: OverlayItem) => void;
-  onClosing?: (id: string, item: OverlayItem) => void;
-  onUnmount?: (id: string) => void;
+  onOpen?: (id: OverlayId, item: OverlayItem) => void;
+  onClosing?: (id: OverlayId, item: OverlayItem) => void;
+  onUnmount?: (id: OverlayId) => void;
 }
 
 export interface OverlayRenderProps<TResult = unknown> {

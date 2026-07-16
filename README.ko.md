@@ -138,7 +138,6 @@ src/
     useOverlay.ts
     useOverlayItems.ts
     useOverlayItem.ts
-    useOverlayLifecycle.ts
   contracts/
     adapter.ts
     overlay.ts
@@ -156,7 +155,6 @@ src/
 - `useOverlay.ts` → overlay를 열고 닫고 거부하고 제거하는 명령형 API를 제공합니다
 - `useOverlayItems.ts` → `useSyncExternalStore`로 현재 overlay item 목록을 구독합니다
 - `useOverlayItem.ts` → `useSyncExternalStore`로 단일 overlay item을 id로 구독합니다
-- `useOverlayLifecycle.ts` → adapter가 `onOpen`, `onClosing`, `onUnmount` 콜백을 등록할 수 있는 내부 훅입니다
 
 ### `src/contracts`
 
