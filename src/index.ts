@@ -6,6 +6,7 @@ export { OverlayHost } from "./core/OverlayHost";
 
 export type {
   OverlayAdapterComponent,
+  OverlayAdapterHooks,
   OverlayAdapterMap,
   OverlayRenderProps,
 } from "./contracts/adapter";

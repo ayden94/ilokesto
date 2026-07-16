@@ -138,6 +138,7 @@ src/
     useOverlay.ts
     useOverlayItems.ts
     useOverlayItem.ts
+    useOverlayLifecycle.ts
   contracts/
     adapter.ts
     overlay.ts
@@ -151,10 +152,11 @@ src/
 - `createOverlayStore.ts` → creates the provider-scoped overlay store and manages `open`, `close`, `closeAll`, `reject`, `remove`, and `clear`
 - `createOverlayContext.tsx` → factory that creates an isolated React context with its own Provider, useOverlay, useOverlayItems, and useOverlayItem
 - `OverlayProvider.tsx` → re-exports the default context instance (Provider + hooks) for backward compatibility
-- `OverlayHost.tsx` → reads the current overlay items and dispatches each item to `adapters[item.type]`
+- `OverlayHost.tsx` → reads the current overlay items, dispatches each item to `adapters[item.type]`, and calls adapter lifecycle hooks on status transitions
 - `useOverlay.ts` → exposes the command API for opening, closing, rejecting, and dismissing overlays
 - `useOverlayItems.ts` → subscribes to the current overlay item list with `useSyncExternalStore`
 - `useOverlayItem.ts` → subscribes to a single overlay item by id with `useSyncExternalStore`
+- `useOverlayLifecycle.ts` → internal hook that lets adapters register `onOpen`, `onClosing`, and `onUnmount` callbacks
 
 ### `src/contracts`
 
@@ -175,6 +177,39 @@ src/
 - `@ilokesto/overlay` should not import modal or toast implementations directly
 
 In short, the core owns lifecycle and hosting, while adapter packages own semantics and presentation.
+
+## Adapter Lifecycle Hooks
+
+Adapters can register side-effect callbacks via the `useLifecycle` prop provided in `OverlayRenderProps`:
+
+```tsx
+const modalAdapter: OverlayAdapterComponent = ({ useLifecycle, isOpen, close }) => {
+  useLifecycle({
+    onOpen: (id) => {
+      document.body.style.overflow = 'hidden';
+    },
+    onClosing: (id) => {
+      // status just transitioned to "closing"
+    },
+    onUnmount: (id) => {
+      document.body.style.overflow = '';
+    },
+  });
+
+  if (!isOpen) return null;
+  return <div role="dialog">...</div>;
+};
+```
+
+The host calls hooks based on status transitions:
+
+| Hook | When | Guaranteed |
+|---|---|---|
+| `onOpen(id, item)` | First mount with `status: "open"` | Once per open |
+| `onClosing(id, item)` | `open → closing` transition | Once per close |
+| `onUnmount(id)` | Component unmount (after `remove`) | Once per lifecycle |
+
+If an adapter does not call `useLifecycle`, no hooks fire — the behavior is opt-in.
 
 ## Adapter Packages
 
@@ -219,7 +254,7 @@ The default exports (`OverlayProvider`, `useOverlay`, etc.) are a pre-created in
 ## Exports
 
 - `@ilokesto/overlay` → `createOverlayStore`, `createOverlayContext`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
-- `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`
+- `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts` (including `OverlayAdapterHooks`), `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`
 
 ## Development
 
