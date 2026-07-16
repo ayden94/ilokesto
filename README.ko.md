@@ -375,7 +375,7 @@ React 어댑터는 이전에 **깊은 비교** (`deepCompare`)를 사용하여 s
 | `useStore(s => ({ a: s.a, b: s.b }))` | 깊은 비교 (값이 같으면 항상 같음) | shallow 비교 (1단계 값이 같으면 같음) |
 | selector 결과의 중첩 객체 | 깊은 비교 | 참조 비교 (`Object.is`) |
 | state의 `Map` / `Set` | 잘못된 비교 | 올바른 shallow 비교 |
-| state의 `Date` | 잘못된 비교 | 같은 프로토타입 = 같음 (시간 비교는 selector에서 `getTime()` 사용) |
+| state의 `Date` | 잘못된 비교 | `getTime()` 기반 올바른 shallow 비교 |
 
 ### 깊은 비교가 필요한 경우
 

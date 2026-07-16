@@ -377,7 +377,7 @@ The React adapter previously used **deep comparison** (`deepCompare`) to determi
 | `useStore(s => ({ a: s.a, b: s.b }))` | Deep-compared (always equal if values match) | Shallow-compared (equal if 1st-level values match) |
 | Nested object in selector result | Deep-compared | Reference-compared (`Object.is`) |
 | `Map` / `Set` in state | Incorrect comparison | Correct shallow comparison |
-| `Date` in state | Incorrect comparison | Same prototype = equal (use `getTime()` in selector for time-based comparison) |
+| `Date` in state | Incorrect comparison | Correct shallow comparison via `getTime()` |
 
 ### If you need deep comparison
 

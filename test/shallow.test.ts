@@ -91,10 +91,10 @@ describe("shallow", () => {
     expect(shallow(setA, setB)).toBe(false);
   });
 
-  it("returns true for Date with same prototype (shallow limitation — use getTime() in selector)", () => {
+  it("returns false for Date with different time", () => {
     const dateA = new Date(2024, 0, 1);
     const dateB = new Date(2024, 0, 2);
-    expect(shallow(dateA, dateB)).toBe(true);
+    expect(shallow(dateA, dateB)).toBe(false);
   });
 
   it("returns true for Date with same time", () => {

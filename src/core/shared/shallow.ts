@@ -65,6 +65,10 @@ export function shallow<T>(valueA: T, valueB: T): boolean {
     return false;
   }
 
+  if (valueA instanceof Date && valueB instanceof Date) {
+    return valueA.getTime() === valueB.getTime();
+  }
+
   if (isIterable(valueA) && isIterable(valueB)) {
     if (hasIterableEntries(valueA) && hasIterableEntries(valueB)) {
       return compareEntries(valueA, valueB);
