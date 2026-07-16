@@ -14,12 +14,13 @@ function wrapper({ children }: { children: React.ReactNode }) {
 }
 
 describe("useOverlay", () => {
-  it("returns display, open, close, reject, remove, clear", () => {
+  it("returns display, open, close, closeAll, reject, remove, clear", () => {
     const { result } = renderHook(() => useOverlay(), { wrapper });
 
     expect(result.current.display).toBeInstanceOf(Function);
     expect(result.current.open).toBeInstanceOf(Function);
     expect(result.current.close).toBeInstanceOf(Function);
+    expect(result.current.closeAll).toBeInstanceOf(Function);
     expect(result.current.reject).toBeInstanceOf(Function);
     expect(result.current.remove).toBeInstanceOf(Function);
     expect(result.current.clear).toBeInstanceOf(Function);

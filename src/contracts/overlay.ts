@@ -43,6 +43,7 @@ export interface OverlayRequest<TResult = unknown> {
 export interface OverlayStoreApi {
   open: <TResult = unknown>(options: DisplayOptions) => OverlayRequest<TResult>;
   close: (id: OverlayId, result?: unknown) => void;
+  closeAll: () => void;
   reject: (id: OverlayId, reason?: unknown) => void;
   remove: (id?: OverlayId) => void;
   clear: () => void;

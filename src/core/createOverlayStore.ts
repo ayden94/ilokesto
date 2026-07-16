@@ -85,6 +85,22 @@ export function createOverlayStore(): OverlayStoreApi {
     }));
   }
 
+  function closeAll(): void {
+    store.setState((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => {
+        if (item.status === "closing") {
+          return item;
+        }
+
+        return {
+          ...item,
+          status: "closing",
+        };
+      }),
+    }));
+  }
+
   function reject(id: OverlayId, reason?: unknown): void {
     store.setState((prev) => ({
       ...prev,
@@ -150,6 +166,7 @@ export function createOverlayStore(): OverlayStoreApi {
   return {
     open,
     close,
+    closeAll,
     reject,
     remove,
     clear,

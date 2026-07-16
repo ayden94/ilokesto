@@ -96,6 +96,24 @@ function LoginButton() {
 
 The two-phase dismiss lifecycle is preserved: `reject` only transitions the status to `closing`; the adapter plays its exit animation and then calls `remove(id)`, which is when the Promise actually rejects.
 
+## Closing All Overlays
+
+`closeAll()` transitions every open overlay to `closing` in one call. Unlike `clear()`, it does **not** remove items from the store or settle promises — the adapter still controls the unmount timing for each overlay.
+
+| | `closeAll()` | `clear()` |
+|---|---|---|
+| Status | All `open` → `closing` | Items removed immediately |
+| Items in store | Remains | Emptied |
+| Promises | Pending (settled on `remove`) | Settled immediately |
+| Use case | Batch exit animation | Emergency cleanup |
+
+```tsx
+function CloseAllButton() {
+  const { closeAll } = useOverlay();
+  return <button onClick={closeAll}>Close all</button>;
+}
+```
+
 ## Source Layout
 
 ```text
@@ -116,7 +134,7 @@ src/
 
 ### `src/core`
 
-- `createOverlayStore.ts` → creates the provider-scoped overlay store and manages `open`, `close`, `reject`, `remove`, and `clear`
+- `createOverlayStore.ts` → creates the provider-scoped overlay store and manages `open`, `close`, `closeAll`, `reject`, `remove`, and `clear`
 - `OverlayProvider.tsx` → creates or receives a store, exposes it through context, and mounts the built-in `OverlayHost`
 - `OverlayHost.tsx` → reads the current overlay items and dispatches each item to `adapters[item.type]`
 - `useOverlay.ts` → exposes the command API for opening, closing, rejecting, and dismissing overlays
