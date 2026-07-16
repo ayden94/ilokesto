@@ -8,6 +8,7 @@ export interface UseOverlayReturn {
   ) => Promise<TResult | undefined>;
   readonly open: (options: DisplayOptions) => OverlayId;
   readonly close: (id: OverlayId, result?: unknown) => void;
+  readonly reject: (id: OverlayId, reason?: unknown) => void;
   readonly remove: (id?: OverlayId) => void;
   readonly clear: () => void;
 }
@@ -38,6 +39,13 @@ export function useOverlay(): UseOverlayReturn {
     [store]
   );
 
+  const reject = useCallback(
+    (id: OverlayId, reason?: unknown): void => {
+      store.reject(id, reason);
+    },
+    [store]
+  );
+
   const remove = useCallback(
     (id?: OverlayId): void => {
       store.remove(id);
@@ -49,5 +57,5 @@ export function useOverlay(): UseOverlayReturn {
     store.clear();
   }, [store]);
 
-  return { display, open, close, remove, clear };
+  return { display, open, close, reject, remove, clear };
 }

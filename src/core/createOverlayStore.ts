@@ -8,7 +8,10 @@ import type {
   OverlayStoreApi,
 } from "../contracts/overlay";
 
-type PendingResolver = (value: unknown | undefined) => void;
+type PendingSettler = {
+  readonly resolve: (value: unknown | undefined) => void;
+  readonly reject: (reason?: unknown) => void;
+};
 
 function createOverlayItem(options: DisplayOptions, id: OverlayId): OverlayItem {
   return {
@@ -22,7 +25,7 @@ function createOverlayItem(options: DisplayOptions, id: OverlayId): OverlayItem 
 
 export function createOverlayStore(): OverlayStoreApi {
   const store = new Store<OverlayState>({ items: [] });
-  const pendingResolvers = new Map<OverlayId, PendingResolver>();
+  const pendingSettlers = new Map<OverlayId, PendingSettler>();
   let counter = 0;
 
   function nextId(): OverlayId {
@@ -30,23 +33,31 @@ export function createOverlayStore(): OverlayStoreApi {
     return `overlay-${counter}-${Date.now()}`;
   }
 
-  function settle(id: OverlayId, value: unknown | undefined): void {
-    const resolver = pendingResolvers.get(id);
+  function settle(id: OverlayId, item: OverlayItem): void {
+    const settler = pendingSettlers.get(id);
 
-    if (!resolver) {
+    if (!settler) {
       return;
     }
 
-    pendingResolvers.delete(id);
-    resolver(value);
+    pendingSettlers.delete(id);
+
+    if (item.rejected) {
+      settler.reject(item.rejectReason);
+    } else {
+      settler.resolve(item.closeResult);
+    }
   }
 
   function open<TResult = unknown>(options: DisplayOptions): OverlayRequest<TResult> {
     const id = options.id ?? nextId();
     const item = createOverlayItem(options, id);
 
-    const promise = new Promise<TResult | undefined>((resolve) => {
-      pendingResolvers.set(id, resolve as PendingResolver);
+    const promise = new Promise<TResult | undefined>((resolve, reject) => {
+      pendingSettlers.set(id, {
+        resolve: resolve as PendingSettler["resolve"],
+        reject: reject as PendingSettler["reject"],
+      });
     });
 
     store.setState((prev) => ({
@@ -74,6 +85,24 @@ export function createOverlayStore(): OverlayStoreApi {
     }));
   }
 
+  function reject(id: OverlayId, reason?: unknown): void {
+    store.setState((prev) => ({
+      ...prev,
+      items: prev.items.map((item) => {
+        if (item.id !== id || item.status === "closing") {
+          return item;
+        }
+
+        return {
+          ...item,
+          status: "closing",
+          rejectReason: reason,
+          rejected: true,
+        };
+      }),
+    }));
+  }
+
   function remove(id?: OverlayId): void {
     const targetId = id ?? store.getState().items.at(-1)?.id;
 
@@ -87,8 +116,7 @@ export function createOverlayStore(): OverlayStoreApi {
       return;
     }
 
-    // Resolve with closeResult if it was set during close(), or undefined if removed abruptly
-    settle(targetId, targetItem.closeResult);
+    settle(targetId, targetItem);
 
     store.setState((prev) => ({
       ...prev,
@@ -98,9 +126,7 @@ export function createOverlayStore(): OverlayStoreApi {
 
   function clear(): void {
     for (const item of store.getState().items) {
-      // For clear, we might want to resolve with undefined or closeResult if it was closing.
-      // Usually clear means abrupt termination.
-      settle(item.id, item.closeResult);
+      settle(item.id, item);
     }
 
     store.setState((prev) => ({
@@ -124,6 +150,7 @@ export function createOverlayStore(): OverlayStoreApi {
   return {
     open,
     close,
+    reject,
     remove,
     clear,
     subscribe,

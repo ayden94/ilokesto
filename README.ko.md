@@ -70,6 +70,32 @@ export function App() {
 }
 ```
 
+## Overlay 거부하기
+
+`reject(id, reason)`은 overlay를 `closing` 상태로 전환합니다(`close`와 동일). 하지만 어댑터가 이후 `remove(id)`를 호출할 때 `display()` Promise가 resolve되는 대신 reason과 함께 **reject** 됩니다.
+
+overlay가 실패할 수 있는 흐름을 나타낼 때 유용합니다. 예를 들어 타임아웃으로 취소된 로그인 다이얼로그:
+
+```tsx
+function LoginButton() {
+  const { open, reject, remove } = useOverlay();
+
+  const handleLogin = () => {
+    const id = open({ type: 'modal', props: { title: 'Sign in' } });
+
+    // 타임아웃으로 overlay를 거부하는 시뮬레이션
+    setTimeout(() => {
+      reject(id, new Error('Login timed out'));
+      remove(id);
+    }, 5000);
+  };
+
+  return <button onClick={handleLogin}>Sign in</button>;
+}
+```
+
+2단계 dismiss lifecycle은 유지됩니다: `reject`는 상태를 `closing`으로만 전환하고, 어댑터가 exit 애니메이션을 재생한 후 `remove(id)`를 호출할 때 Promise가 실제로 reject 됩니다.
+
 ## Source Layout
 
 ```text
@@ -90,10 +116,10 @@ src/
 
 ### `src/core`
 
-- `createOverlayStore.ts` → provider 단위 overlay store를 만들고 `open`, `close`, `remove`, `clear` 수명주기를 관리합니다
+- `createOverlayStore.ts` → provider 단위 overlay store를 만들고 `open`, `close`, `reject`, `remove`, `clear` 수명주기를 관리합니다
 - `OverlayProvider.tsx` → store를 만들거나 주입받아 context로 노출하고 built-in `OverlayHost`를 마운트합니다
 - `OverlayHost.tsx` → 현재 overlay item 목록을 읽고 각 item을 `adapters[item.type]`에 위임해 렌더링합니다
-- `useOverlay.ts` → overlay를 열고 닫고 제거하는 명령형 API를 제공합니다
+- `useOverlay.ts` → overlay를 열고 닫고 거부하고 제거하는 명령형 API를 제공합니다
 - `useOverlayItems.ts` → `useSyncExternalStore`로 현재 overlay item 목록을 구독합니다
 
 ### `src/contracts`
