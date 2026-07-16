@@ -283,6 +283,21 @@ export function createToastRuntime(toasterId: ToasterId): ToastRuntimeApi {
     }
   }
 
+  function closeAll(): void {
+    const items = store.getSnapshot();
+
+    for (const item of items) {
+      if (item.status === "closing") {
+        continue;
+      }
+
+      clearTimer(dismissTimers, item.id);
+      overlayStore.close(item.id);
+      store.dismiss(item.id);
+      scheduleRemove(item);
+    }
+  }
+
   function remove(id?: ToastId): void {
     const targets = id === undefined ? store.getSnapshot().map((item) => item.id) : [id];
 
@@ -350,6 +365,7 @@ export function createToastRuntime(toasterId: ToasterId): ToastRuntimeApi {
     configureView,
     promiseToast,
     dismiss,
+    closeAll,
     remove,
     clear,
     updateHeight,

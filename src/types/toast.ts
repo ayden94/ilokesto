@@ -113,6 +113,7 @@ export interface ToastRuntimeApi {
     options?: ToastOptions,
   ): Promise<TData>;
   dismiss(id?: ToastId): void;
+  closeAll(): void;
   remove(id?: ToastId): void;
   clear(): void;
   updateHeight(id: ToastId, height: number): void;

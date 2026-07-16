@@ -134,6 +134,50 @@ describe("createToastRuntime", () => {
     });
   });
 
+  describe("closeAll", () => {
+    it("transitions all visible toasts to closing", () => {
+      const runtime = createRuntime();
+
+      runtime.addToast("blank", "A");
+      runtime.addToast("blank", "B");
+      runtime.closeAll();
+
+      const items = runtime.getRawSnapshot();
+      expect(items.every((t) => t.status === "closing")).toBe(true);
+    });
+
+    it("does not remove items from store (unlike clear)", () => {
+      const runtime = createRuntime();
+
+      runtime.addToast("blank", "A");
+      runtime.addToast("blank", "B");
+      runtime.closeAll();
+
+      expect(runtime.getRawSnapshot()).toHaveLength(2);
+    });
+
+    it("ignores already-closing toasts", () => {
+      const runtime = createRuntime();
+      vi.useFakeTimers();
+
+      const id = runtime.addToast("blank", "A", { duration: 100 });
+      vi.advanceTimersByTime(200);
+      runtime.addToast("blank", "B");
+      runtime.closeAll();
+
+      const items = runtime.getRawSnapshot();
+      expect(items).toHaveLength(2);
+      expect(items.every((t) => t.status === "closing")).toBe(true);
+    });
+
+    it("does nothing when no toasts exist", () => {
+      const runtime = createRuntime();
+
+      expect(() => runtime.closeAll()).not.toThrow();
+      expect(runtime.getRawSnapshot()).toHaveLength(0);
+    });
+  });
+
   describe("updateHeight", () => {
     it("updates height for a toast", () => {
       const runtime = createRuntime();
