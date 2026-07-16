@@ -3,7 +3,7 @@ import { useMemo, useSyncExternalStore } from 'react';
 
 import { dispatchStoreAction } from '../../lib/actionMetadata.js';
 import type { ReducerAction } from '../../types/ReduceFn.js';
-import { deepCompare } from '../shared/deepCompare.js';
+import { shallow } from '../shared/shallow.js';
 import type { UseReducer, UseState } from './types.js';
 
 type Selector<T, S> = (state: T) => S;
@@ -17,37 +17,31 @@ export function useStoreState<T, S, Writer>(
 ) {
   const subscribe = useMemo(() => store.subscribe.bind(store), [store]);
 
-  const { getSnapshot, getServerSnapshot } = useMemo(() => {
-    let hasMemo = false;
-    let mStore: T | undefined;
-    let mSelection: S | undefined;
+  const shallowSelector = useMemo(() => {
+    let prev: S | undefined;
+    let hasPrev = false;
 
-    const mSelector = (nStore: T): S => {
-      if (!hasMemo) {
-        hasMemo = true;
-        mStore = nStore;
-        const nSelection = selector(nStore);
-        mSelection = nSelection;
-        return nSelection;
+    return (state: T): S => {
+      const next = selector(state);
+
+      if (hasPrev && shallow(prev as S, next)) {
+        return prev as S;
       }
 
-      const pStore = mStore as T;
-      const pSelection = mSelection as S;
-
-      if (deepCompare(pStore, nStore)) return pSelection;
-
-      const nSelection = selector(nStore);
-
-      mStore = nStore;
-      mSelection = nSelection;
-      return nSelection;
+      hasPrev = true;
+      prev = next;
+      return next;
     };
+  }, [selector]);
 
-    return {
-      getSnapshot: () => mSelector(store.getState()),
-      getServerSnapshot: () => mSelector(store.getInitialState()),
-    };
-  }, [store, selector]);
+  const getSnapshot = useMemo(
+    () => () => shallowSelector(store.getState()),
+    [store, shallowSelector],
+  );
+  const getServerSnapshot = useMemo(
+    () => () => shallowSelector(store.getInitialState()),
+    [store, shallowSelector],
+  );
 
   const value = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 

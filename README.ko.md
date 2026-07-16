@@ -355,6 +355,44 @@ counterStore.getState().count;
 - `@ilokesto/state/middleware` → 미들웨어 헬퍼
 - `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, pipe 타입
 
+## 마이그레이션: deep compare → shallow (v1.1.0)
+
+### 변경 사항
+
+React 어댑터는 이전에 **깊은 비교** (`deepCompare`)를 사용하여 selector 결과가 리렌더를 트리거해야 하는지 판단했습니다. v1.1.0부터는 **shallow 비교**를 사용합니다 — zustand가 사용하는 패턴과 동일합니다.
+
+### 이유
+
+- **성능**: 깊은 비교는 매 렌더마다 실행되어 전체 state를 재귀적으로 순회했습니다. shallow 비교는 1단계만 확인합니다.
+- **정확성**: `deepCompare`는 `Map`, `Set`, `Date`를 올바르게 처리하지 못했고, 순환 참조 시 스택 오버플로우가 발생했습니다. shallow 비교는 `Map`, `Set`, 배열, 일반 객체를 올바르게 처리하며 순환 참조에 안전합니다.
+- **생태계 정합**: zustand v5가 shallow 비교를 표준 패턴으로 사용합니다.
+
+### 사용자에게 미치는 영향
+
+| 패턴 | 이전 (deep) | 이후 (shallow) |
+|---|---|---|
+| `useStore(s => s.count)` | 동작 | 동작 (동일) |
+| `useStore(s => ({ a: s.a, b: s.b }))` | 깊은 비교 (값이 같으면 항상 같음) | shallow 비교 (1단계 값이 같으면 같음) |
+| selector 결과의 중첩 객체 | 깊은 비교 | 참조 비교 (`Object.is`) |
+| state의 `Map` / `Set` | 잘못된 비교 | 올바른 shallow 비교 |
+| state의 `Date` | 잘못된 비교 | 같은 프로토타입 = 같음 (시간 비교는 selector에서 `getTime()` 사용) |
+
+### 깊은 비교가 필요한 경우
+
+`useMemo`로 selector 결과를 메모이제이션하세요:
+
+```ts
+const value = useMemo(() => {
+  return computeDerivedState(store.getState());
+}, [dependency]);
+```
+
+또는 selector에서 원시값을 반환하여 `Object.is`로 충분하게 만드세요:
+
+```ts
+const time = useStore(s => s.date.getTime());
+```
+
 ## 개발
 
 ```bash

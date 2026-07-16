@@ -357,6 +357,44 @@ This is a breaking change. Callable and variadic pipe syntax has been removed. R
 - `@ilokesto/state/middleware` → middleware helpers
 - `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, and pipe types
 
+## Migration: deep compare → shallow (v1.1.0)
+
+### What changed
+
+The React adapter previously used **deep comparison** (`deepCompare`) to determine whether a selector result should trigger a re-render. Starting from v1.1.0, it uses **shallow comparison** instead — matching the pattern used by zustand.
+
+### Why
+
+- **Performance**: deep comparison ran on every render, recursively traversing the entire state. Shallow comparison checks one level only.
+- **Correctness**: `deepCompare` could not handle `Map`, `Set`, or `Date` correctly, and would stack-overflow on circular references. Shallow comparison handles `Map`, `Set`, arrays, and plain objects correctly, and is inherently safe against circular references.
+- **Ecosystem alignment**: zustand v5 uses shallow comparison as the standard pattern.
+
+### What this means for you
+
+| Pattern | Before (deep) | After (shallow) |
+|---|---|---|
+| `useStore(s => s.count)` | Works | Works (same) |
+| `useStore(s => ({ a: s.a, b: s.b }))` | Deep-compared (always equal if values match) | Shallow-compared (equal if 1st-level values match) |
+| Nested object in selector result | Deep-compared | Reference-compared (`Object.is`) |
+| `Map` / `Set` in state | Incorrect comparison | Correct shallow comparison |
+| `Date` in state | Incorrect comparison | Same prototype = equal (use `getTime()` in selector for time-based comparison) |
+
+### If you need deep comparison
+
+Use `useMemo` to memoize your selector result:
+
+```ts
+const value = useMemo(() => {
+  return computeDerivedState(store.getState());
+}, [dependency]);
+```
+
+Or return a primitive from your selector so `Object.is` is sufficient:
+
+```ts
+const time = useStore(s => s.date.getTime());
+```
+
 ## Development
 
 ```bash
