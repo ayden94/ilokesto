@@ -22,4 +22,6 @@ export type {
   OverlayStoreApi,
 } from "./contracts/overlay";
 
+export type { OverlayPlugin } from "./contracts/plugin";
+
 export type { UseOverlayReturn } from "./core/useOverlay";
