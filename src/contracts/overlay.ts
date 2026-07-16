@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { OverlayAdapterMap } from "./adapter";
+import type { OverlayPlugin } from "./plugin";
 
 export type OverlayId = string;
 
@@ -56,4 +57,5 @@ export interface OverlayProviderProps {
   readonly adapters: OverlayAdapterMap;
   readonly children: ReactNode;
   readonly store?: OverlayStoreApi;
+  readonly plugins?: ReadonlyArray<OverlayPlugin>;
 }

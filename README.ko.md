@@ -141,6 +141,7 @@ src/
   contracts/
     adapter.ts
     overlay.ts
+    plugin.ts
   index.ts
 ```
 
@@ -225,6 +226,32 @@ Host는 상태 전환에 따라 훅을 호출합니다:
 
 Adapter가 `useLifecycle`을 호출하지 않으면 훅이 발생하지 않습니다 — opt-in 동작입니다.
 
+## Adapter Plugins
+
+플러그인은 각 어댑터를 개별적으로 수정하지 않고 Provider 단위의 공통 정책(로깅, 분석, 기본 접근성 동작 등)을 제공합니다:
+
+```tsx
+import type { OverlayPlugin } from '@ilokesto/overlay';
+
+const loggingPlugin: OverlayPlugin = {
+  name: 'logging',
+  onOpen: (id, item) => console.log('open', id, item.type),
+  onClosing: (id, item) => console.log('closing', id, item.type),
+  onUnmount: (id) => console.log('unmount', id),
+};
+
+<OverlayProvider adapters={adapters} plugins={[loggingPlugin]}>
+  <App />
+</OverlayProvider>
+```
+
+### 우선순위 규칙
+
+- 어댑터가 `useLifecycle`으로 특정 phase의 훅을 등록하면 **어댑터 훅이 우선** — 해당 phase에서 플러그인은 건너뜁니다.
+- 어댑터가 특정 phase의 훅을 등록하지 않으면 **모든 플러그인이 등록 순서대로 실행**됩니다.
+
+즉, 어댑터가 특정 phase만 오버라이드(예: 커스텀 포커스 트랩)하고 나머지는 플러그인이 처리(예: 로깅)할 수 있습니다.
+
 ## Adapter Packages
 
 이 패키지는 의도적으로 generic하게 설계되어 있습니다.
@@ -268,7 +295,7 @@ const widgetOverlay = createOverlayContext();
 ## Exports
 
 - `@ilokesto/overlay` → `createOverlayStore`, `createOverlayContext`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
-- `@ilokesto/overlay` 타입 → `src/contracts/adapter.ts` (`OverlayAdapterHooks` 포함), `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`에서 다시 export된 타입
+- `@ilokesto/overlay` 타입 → `src/contracts/adapter.ts` (`OverlayAdapterHooks` 포함), `src/contracts/overlay.ts`, `src/contracts/plugin.ts` (`OverlayPlugin`), `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`에서 다시 export된 타입
 
 ## Development
 

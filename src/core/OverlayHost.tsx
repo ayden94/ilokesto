@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useOverlayItems } from "./useOverlayItems";
 import type { OverlayAdapterHooks, OverlayRenderProps } from "../contracts/adapter";
-import type { OverlayItem } from "../contracts/overlay";
+import type { OverlayId, OverlayItem } from "../contracts/overlay";
+import type { OverlayPlugin } from "../contracts/plugin";
 import type { OverlayContextGetter } from "./useOverlay";
 
 interface OverlayHostProps {
@@ -15,7 +16,7 @@ function OverlayItemRenderer({
   readonly item: OverlayItem;
   readonly getContext: OverlayContextGetter;
 }) {
-  const { store, adapters } = getContext();
+  const { store, adapters, plugins } = getContext();
   const Adapter = adapters[item.type];
   const hooksRef = useRef<OverlayAdapterHooks | null>(null);
   const prevStatusRef = useRef<"open" | "closing" | "mounted">("mounted");
@@ -35,21 +36,36 @@ function OverlayItemRenderer({
     hooksRef.current = hooks;
   };
 
+  function runPhase(
+    phase: "onOpen" | "onClosing" | "onUnmount",
+    id: OverlayId,
+    item: OverlayItem
+  ): void {
+    const adapterHook = hooksRef.current?.[phase];
+    if (adapterHook) {
+      adapterHook(id, item);
+      return;
+    }
+    for (const plugin of plugins) {
+      plugin[phase]?.(id, item);
+    }
+  }
+
   useEffect(() => {
     if (prevStatusRef.current === "mounted" && item.status === "open") {
-      hooksRef.current?.onOpen?.(item.id, item);
+      runPhase("onOpen", item.id, item);
     } else if (
       prevStatusRef.current === "open" &&
       item.status === "closing"
     ) {
-      hooksRef.current?.onClosing?.(item.id, item);
+      runPhase("onClosing", item.id, item);
     }
     prevStatusRef.current = item.status;
   }, [item.status, item.id]);
 
   useEffect(() => {
     return () => {
-      hooksRef.current?.onUnmount?.(item.id);
+      runPhase("onUnmount", item.id, item);
     };
   }, [item.id]);
 

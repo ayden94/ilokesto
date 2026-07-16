@@ -7,11 +7,13 @@ import { useOverlayItems as useOverlayItemsImpl } from "./useOverlayItems";
 import { useOverlayItem as useOverlayItemImpl } from "./useOverlayItem";
 import type { OverlayAdapterMap } from "../contracts/adapter";
 import type { OverlayId, OverlayItem, OverlayProviderProps, OverlayStoreApi } from "../contracts/overlay";
+import type { OverlayPlugin } from "../contracts/plugin";
 import type { UseOverlayReturn } from "./useOverlay";
 
 export interface OverlayContextValue {
   readonly store: OverlayStoreApi;
   readonly adapters: OverlayAdapterMap;
+  readonly plugins: ReadonlyArray<OverlayPlugin>;
 }
 
 export interface OverlayContextInstance {
@@ -34,15 +36,20 @@ export function createOverlayContext(): OverlayContextInstance {
     return ctx;
   }
 
-  function Provider({ adapters, children, store: storeProp }: OverlayProviderProps) {
+  function Provider({ adapters, children, store: storeProp, plugins }: OverlayProviderProps) {
     const store = useMemo<OverlayStoreApi>(
       () => storeProp ?? createOverlayStore(),
       [storeProp]
     );
 
+    const pluginsRef = useMemo<ReadonlyArray<OverlayPlugin>>(
+      () => plugins ?? [],
+      [plugins]
+    );
+
     const value = useMemo<OverlayContextValue>(
-      () => ({ store, adapters }),
-      [store, adapters]
+      () => ({ store, adapters, plugins: pluginsRef }),
+      [store, adapters, pluginsRef]
     );
 
     return (

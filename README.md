@@ -141,6 +141,7 @@ src/
   contracts/
     adapter.ts
     overlay.ts
+    plugin.ts
   index.ts
 ```
 
@@ -225,6 +226,32 @@ The host calls hooks based on status transitions:
 
 If an adapter does not call `useLifecycle`, no hooks fire — the behavior is opt-in.
 
+## Adapter Plugins
+
+Plugins provide Provider-level common policies — logging, analytics, or default accessibility behavior — without modifying each adapter individually:
+
+```tsx
+import type { OverlayPlugin } from '@ilokesto/overlay';
+
+const loggingPlugin: OverlayPlugin = {
+  name: 'logging',
+  onOpen: (id, item) => console.log('open', id, item.type),
+  onClosing: (id, item) => console.log('closing', id, item.type),
+  onUnmount: (id) => console.log('unmount', id),
+};
+
+<OverlayProvider adapters={adapters} plugins={[loggingPlugin]}>
+  <App />
+</OverlayProvider>
+```
+
+### Priority Rule
+
+- If an adapter registers a hook for a phase via `useLifecycle`, **that hook takes priority** — plugins are skipped for that phase.
+- If an adapter does not register a hook for a phase, **all plugins fire in registration order**.
+
+This means an adapter can override specific phases (e.g., custom focus trap) while plugins handle the rest (e.g., logging).
+
 ## Adapter Packages
 
 This package is intentionally generic.
@@ -268,7 +295,7 @@ The default exports (`OverlayProvider`, `useOverlay`, etc.) are a pre-created in
 ## Exports
 
 - `@ilokesto/overlay` → `createOverlayStore`, `createOverlayContext`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
-- `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts` (including `OverlayAdapterHooks`), `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`
+- `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts` (including `OverlayAdapterHooks`), `src/contracts/overlay.ts`, `src/contracts/plugin.ts` (`OverlayPlugin`), `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`
 
 ## Development
 
