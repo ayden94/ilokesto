@@ -284,18 +284,7 @@ export function createToastRuntime(toasterId: ToasterId): ToastRuntimeApi {
   }
 
   function closeAll(): void {
-    const items = store.getSnapshot();
-
-    for (const item of items) {
-      if (item.status === "closing") {
-        continue;
-      }
-
-      clearTimer(dismissTimers, item.id);
-      overlayStore.close(item.id);
-      store.dismiss(item.id);
-      scheduleRemove(item);
-    }
+    dismiss();
   }
 
   function remove(id?: ToastId): void {
