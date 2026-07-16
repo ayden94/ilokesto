@@ -124,6 +124,7 @@ src/
     OverlayHost.tsx
     useOverlay.ts
     useOverlayItems.ts
+    useOverlayItem.ts
   contracts/
     adapter.ts
     overlay.ts
@@ -139,6 +140,7 @@ src/
 - `OverlayHost.tsx` → reads the current overlay items and dispatches each item to `adapters[item.type]`
 - `useOverlay.ts` → exposes the command API for opening, closing, rejecting, and dismissing overlays
 - `useOverlayItems.ts` → subscribes to the current overlay item list with `useSyncExternalStore`
+- `useOverlayItem.ts` → subscribes to a single overlay item by id with `useSyncExternalStore`
 
 ### `src/contracts`
 
@@ -170,7 +172,7 @@ This package is intentionally generic.
 
 ## Exports
 
-- `@ilokesto/overlay` → `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`
+- `@ilokesto/overlay` → `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
 - `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, and `UseOverlayReturn`
 
 ## Development

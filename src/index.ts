@@ -3,6 +3,7 @@ export { OverlayProvider } from "./core/OverlayProvider";
 export { OverlayHost } from "./core/OverlayHost";
 export { useOverlay } from "./core/useOverlay";
 export { useOverlayItems } from "./core/useOverlayItems";
+export { useOverlayItem } from "./core/useOverlayItem";
 
 export type {
   OverlayAdapterComponent,
