@@ -8,18 +8,36 @@ Grunfeld의 awaitable dialog 철학을 유지하면서, 기본 motion을 더 부
 
 ## Features
 
-- `display()`를 통한 awaitable modal flow
-- `useModal()` 기반 hook API
-- `modal` / `globalModalStore` 글로벌 facade
-- 더 부드러운 fade/scale 기본 motion이 적용된 inline transport
-- 네이티브 `<dialog>` 기반 optional top-layer transport
-- ESC / backdrop light-dismiss 지원
-- focus restore 및 간단한 focus trap
-- inline body scroll lock
-- `center`, `top`, `bottom-right` 같은 다양한 위치 지정 지원
-- reduced-motion 대응
+- **Awaitable modal flow** — `display()`가 exit 애니메이션 완료 후 resolve되는 Promise 반환
+- **Hook 기반 API** — `useModal()`로 `display`, `close`, `closeAll`, `reject`, `remove`, `clear` 제공
+- **글로벌 facade** — 모듈 레벨에서 사용할 수 있는 `modal`과 `globalModalStore`
+- **inline transport** — 기본 fade/scale motion으로 완전한 제어
+- **top-layer transport** — 네이티브 `<dialog>` + `showModal()`
+- **ESC / backdrop dismiss** — `onDismiss` 콜백과 함께 light dismiss 지원
+- **focus 관리** — auto-focus, focus 복원, Tab focus trap (inline), 네이티브 (top-layer)
+- **scroll lock** — 참조 카운팅 기반 body scroll lock
+- **위치 지정** — `center`, `top`, `bottom`, `left`, `right` 및 코너 변형
+- **reduced motion** — `prefers-reduced-motion: reduce` 시 즉시 제거
+- **closeAll** — exit 애니메이션과 함께 일괄 닫기
+- **reject** — `reject(id, reason)` → Promise 거부로 에러 흐름 처리
+- **onModalClose vs onDismiss** — 모든 close vs light-dismiss를 구분하는 별도 콜백
 
-## Installation
+## 목차
+
+- [설치](#설치)
+- [기본 사용법](#기본-사용법)
+- [Close Lifecycle](#close-lifecycle)
+- [글로벌 Facade](#글로벌-facade)
+- [Top-Layer Transport](#top-layer-transport)
+- [접근성](#접근성)
+- [위치 지정](#위치-지정)
+- [Motion Model](#motion-model)
+- [API 레퍼런스](#api-레퍼런스)
+- [소스 구조](#소스-구조)
+- [개발](#개발)
+- [라이선스](#라이선스)
+
+## 설치
 
 ```bash
 pnpm add @ilokesto/modal react
@@ -31,7 +49,7 @@ pnpm add @ilokesto/modal react
 npm install @ilokesto/modal react
 ```
 
-## Basic Usage
+## 기본 사용법
 
 modal content는 `render`로 제공합니다. render callback은 해당 modal 인스턴스에만 묶인 `close(result)` 함수와 context를 받습니다. 정적인 content도 `render: () => ...` 형태로 전달하세요.
 
@@ -69,10 +87,8 @@ function DeleteButton() {
   const { display } = useModal();
 
   const handleClick = async () => {
-    const modalId = 'delete-confirm';
-
     const confirmed = await display<boolean>({
-      id: modalId,
+      id: 'delete-confirm',
       position: 'center',
       dismissible: true,
       ariaLabelledBy: 'delete-confirm-title',
@@ -119,7 +135,11 @@ modal이 닫힐 때마다 callback이 필요하면 `onModalClose(result)`를 사
 
 `onModalClose`에서 batch-close와 개별 close를 구분해야 한다면, `closeAll()` 호출 전에 플래그를 확인하거나 별도의 `onDismiss` 핸들러를 사용하세요.
 
-## Global Facade
+### reject
+
+`reject(id, reason)`은 modal을 `closing`으로 전환하지만 (`close`와 동일), 어댑터가 이후 `remove(id)`를 호출할 때 `display()` Promise가 `reason`과 함께 **reject** 됩니다. `onModalClose`도 `undefined` 인자로 발생합니다 (reject는 close 경로).
+
+## 글로벌 Facade
 
 모듈 레벨 API를 선호한다면 기본 `ModalProvider`를 한 번 마운트한 뒤 `modal` facade를 사용할 수 있습니다.
 
@@ -131,10 +151,8 @@ function App() {
 }
 
 async function openGlobalConfirm() {
-  const modalId = 'global-confirm';
-
   const result = await modal.display<boolean>({
-    id: modalId,
+    id: 'global-confirm',
     render: (close) => (
       <div>
         <button onClick={() => close(true)}>Confirm</button>
@@ -145,6 +163,8 @@ async function openGlobalConfirm() {
 
   return result;
 }
+
+// 이것도 사용 가능: modal.close, modal.closeAll, modal.reject, modal.remove, modal.clear
 ```
 
 ## Top-Layer Transport
@@ -163,7 +183,7 @@ await display({
 
 이 경로는 내부적으로 네이티브 `<dialog>`를 사용합니다.
 
-## Accessibility
+## 접근성
 
 modal에는 항상 접근 가능한 이름을 제공하세요. 권장 패턴은 화면에 보이는 heading을 렌더링하고 `ariaLabelledBy`로 연결하는 것입니다. 안내 문구나 결과 설명이 있으면 `ariaDescribedBy`도 함께 연결하세요.
 
@@ -206,7 +226,7 @@ await display({
 });
 ```
 
-## Positioning
+## 위치 지정
 
 지원하는 `position` 값:
 
@@ -231,7 +251,38 @@ await display({
 
 즉 awaited result는 첫 close 요청 시점이 아니라, 실제로 modal이 제거된 뒤 resolve됩니다.
 
-## Source Layout
+## API 레퍼런스
+
+### `ModalProvider`
+
+Context provider. `@ilokesto/overlay`의 `OverlayProvider`를 감싸고, modal adapter를 등록하고, 공유 CSS를 주입합니다. Props: `children`, `store?`.
+
+### `useModal()`
+
+`{ display, close, closeAll, reject, remove, clear }`를 반환합니다.
+
+- `display<TResult>(options)` — modal을 열고 `Promise<TResult | undefined>` 반환
+- `close(id, result?)` — modal을 `closing`으로 전환하며 result 설정
+- `closeAll()` — 모든 open modal을 `closing`으로 전환
+- `reject(id, reason?)` — modal을 `closing`으로 전환, `remove` 시 Promise 거부
+- `remove(id?)` — modal을 store에서 제거 (Promise resolve/reject)
+- `clear()` — 모든 modal을 즉시 제거
+
+### `modal` (facade)
+
+모듈 레벨 API. `useModal()`과 동일한 메서드 + `open(options)` (id만 반환).
+
+### `globalModalStore`
+
+미리 생성된 lifecycle store. `<ModalProvider store={...}>`로 전달하여 커스텀 통합에 사용 가능.
+
+### 타입
+
+- `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`
+- `ModalProps`, `ModalAdapterProps`, `ModalPosition`
+- `ModalClose`, `ModalCloseHandler`, `ModalRender`, `ModalRenderContext`
+
+## 소스 구조
 
 ```text
 src/
@@ -244,56 +295,55 @@ src/
   facade/
     modalFacade.ts
   hooks/
+    useIsTopModal.ts
     useModal.ts
+    usePrefersReducedMotion.ts
   shared/
+    lifecycle.ts
     styles.ts
     types.ts
   index.ts
 ```
 
-## Responsibilities
+### 책임 분리
 
-### `src/adapters`
+**`src/adapters`** — 렌더링:
+- `ModalAdapter.tsx` — inline / top-layer transport 선택
+- `ModalAdapterInline.tsx` — inline modal: backdrop, scroll lock, focus, dismiss, 위치 지정, animation
+- `ModalAdapterTopLayer.tsx` — 네이티브 `<dialog>`: cancel/backdrop 처리, 위치 지정, scoped backdrop, animation
 
-- `ModalAdapter.tsx` → inline / top-layer transport를 선택합니다
-- `ModalAdapterInline.tsx` → backdrop, scroll lock, focus 처리, dismiss 동작, 위치 지정, animation이 들어간 inline modal 경로입니다
-- `ModalAdapterTopLayer.tsx` → 네이티브 `<dialog>` 기반 top-layer 경로로, dialog cancel/backdrop handling, 위치 지정, scoped backdrop styling, animation을 담당합니다
+**`src/components`** — provider:
+- `ModalProvider.tsx` — `OverlayProvider` 감싸기, adapter 등록, CSS 주입, 기본 global store 사용
 
-### `src/components`
+**`src/facade`** — 모듈 레벨 API:
+- `modalFacade.ts` — `modal` facade와 `globalModalStore`
 
-- `ModalProvider.tsx` → `OverlayProvider`를 감싸고 modal adapter를 등록하며 공유 CSS를 주입하고 기본적으로 global modal store를 사용합니다
+**`src/hooks`** — React 훅:
+- `useModal.ts` — 명령형 API (`display`, `close`, `closeAll`, `reject`, `remove`, `clear`)
+- `useIsTopModal.ts` — z-index 및 focus 관리를 위한 modal stack 추적
+- `usePrefersReducedMotion.ts` — 레거시 fallback 포함 `prefers-reduced-motion` 감지
 
-### `src/facade`
-
-- `modalFacade.ts` → 모듈 레벨에서 쓸 수 있는 `modal`과 `globalModalStore`를 export합니다
-
-### `src/hooks`
-
-- `useModal.ts` → `display`, `clear`를 노출하는 React 명령형 API입니다
-
-### `src/shared`
-
-- `styles.ts` → 공용 fade/scale animation 스타일
-- `types.ts` → modal props, scoped render callback, adapter props, position contract
-
-### `src/index.ts`
-
-- public provider, hook, facade, types를 다시 export합니다
+**`src/shared`** — 내부:
+- `lifecycle.ts` — `createModalLifecycleStore`로 `OverlayStoreApi`를 래핑하여 `onModalClose` 주입
+- `styles.ts` — 공용 fade/scale animation keyframes
+- `types.ts` — modal props, render callback, adapter props, position contract
 
 ## Exports
 
 - values → `ModalProvider`, `useModal`, `modal`, `globalModalStore`
-- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`, `ModalClose`, `ModalRender`, `ModalRenderContext`
+- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`, `ModalClose`, `ModalCloseHandler`, `ModalRender`, `ModalRenderContext`
 
-## Development
+## 개발
 
 ```bash
 pnpm install
 pnpm run build
+pnpm run typecheck
+pnpm test
 ```
 
-빌드 결과물은 `dist` 디렉터리에 생성됩니다.
+빌드 결과물은 `dist` 디렉터리에 생성됩니다. 테스트는 Vitest와 @testing-library/react로 실행됩니다. E2E 및 접근성 테스트는 Playwright를 사용합니다.
 
-## License
+## 라이선스
 
 MIT

@@ -2,22 +2,40 @@
 
 **English** | [한국어](./README.ko.md)
 
-A React modal package built on top of `@ilokesto/overlay`, following Grunfeld’s awaitable dialog philosophy with smoother default motion.
+A React modal package built on top of `@ilokesto/overlay`, following Grunfeld's awaitable dialog philosophy with smoother default motion.
 
 `@ilokesto/modal` keeps modal policy inside the package: dismiss rules, focus handling, scroll lock, inline vs top-layer transport, backdrop behavior, and enter/exit animation. It uses `@ilokesto/overlay` only for presence lifecycle, so modal content can stay mounted during the closing phase and resolve after the exit motion finishes.
 
 ## Features
 
-- Awaitable modal flows through `display()`
-- Hook-based API with `useModal()`
-- Global facade with `modal` and `globalModalStore`
-- Default inline transport with smoother fade/scale motion
-- Optional native top-layer transport with `<dialog>`
-- ESC and backdrop light-dismiss support
-- Focus restore and simple focus trapping
-- Inline body scroll lock
-- Position options such as `center`, `top`, `bottom-right`, and other edge/corner placements
-- Reduced-motion aware exit behavior
+- **Awaitable modal flows** — `display()` returns a Promise that resolves after exit animation
+- **Hook-based API** — `useModal()` with `display`, `close`, `closeAll`, `reject`, `remove`, `clear`
+- **Global facade** — `modal` and `globalModalStore` for module-level usage
+- **Inline transport** — default fade/scale motion with full control
+- **Top-layer transport** — native `<dialog>` with `showModal()`
+- **ESC and backdrop dismiss** — light dismiss with `onDismiss` callback
+- **Focus management** — auto-focus, focus restore, Tab focus trap (inline), native (top-layer)
+- **Scroll lock** — reference-counted body scroll lock
+- **Positions** — `center`, `top`, `bottom`, `left`, `right`, and corner variants
+- **Reduced motion** — instant removal when `prefers-reduced-motion: reduce`
+- **closeAll** — batch closing with exit animation
+- **reject** — error flows via `reject(id, reason)` → Promise rejection
+- **onModalClose vs onDismiss** — separate callbacks for any-close vs light-dismiss
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Basic Usage](#basic-usage)
+- [Close Lifecycle](#close-lifecycle)
+- [Global Facade](#global-facade)
+- [Top-Layer Transport](#top-layer-transport)
+- [Accessibility](#accessibility)
+- [Positioning](#positioning)
+- [Motion Model](#motion-model)
+- [API Reference](#api-reference)
+- [Source Layout](#source-layout)
+- [Development](#development)
+- [License](#license)
 
 ## Installation
 
@@ -69,10 +87,8 @@ function DeleteButton() {
   const { display } = useModal();
 
   const handleClick = async () => {
-    const modalId = 'delete-confirm';
-
     const confirmed = await display<boolean>({
-      id: modalId,
+      id: 'delete-confirm',
       position: 'center',
       dismissible: true,
       ariaLabelledBy: 'delete-confirm-title',
@@ -119,6 +135,10 @@ Use `onModalClose(result)` when you need a callback whenever the modal is closed
 
 If you need to distinguish batch-close from individual-close in `onModalClose`, check a flag before calling `closeAll()` or use a separate `onDismiss` handler.
 
+### reject
+
+`reject(id, reason)` transitions a modal to `closing` (same as `close`), but when the adapter later calls `remove(id)`, the `display()` Promise is **rejected** with the reason. `onModalClose` also fires with `undefined` (reject is a close path).
+
 ## Global Facade
 
 If you prefer a module-level API, mount a default `ModalProvider` once and then use the exported `modal` facade.
@@ -131,10 +151,8 @@ function App() {
 }
 
 async function openGlobalConfirm() {
-  const modalId = 'global-confirm';
-
   const result = await modal.display<boolean>({
-    id: modalId,
+    id: 'global-confirm',
     render: (close) => (
       <div>
         <button onClick={() => close(true)}>Confirm</button>
@@ -145,6 +163,8 @@ async function openGlobalConfirm() {
 
   return result;
 }
+
+// Also available: modal.close, modal.closeAll, modal.reject, modal.remove, modal.clear
 ```
 
 ## Top-Layer Transport
@@ -231,6 +251,37 @@ Supported `position` values:
 
 That means awaited results resolve after the modal is actually removed, not at the first close request.
 
+## API Reference
+
+### `ModalProvider`
+
+Context provider. Wraps `OverlayProvider` from `@ilokesto/overlay`, registers the modal adapter, injects shared CSS. Props: `children`, `store?`.
+
+### `useModal()`
+
+Returns `{ display, close, closeAll, reject, remove, clear }`.
+
+- `display<TResult>(options)` — opens a modal, returns `Promise<TResult | undefined>`
+- `close(id, result?)` — transitions modal to `closing` with result
+- `closeAll()` — transitions all open modals to `closing`
+- `reject(id, reason?)` — transitions modal to `closing`, Promise rejects on `remove`
+- `remove(id?)` — removes modal from store (resolves/rejects Promise)
+- `clear()` — removes all modals immediately
+
+### `modal` (facade)
+
+Module-level API. Same methods as `useModal()` plus `open(options)` which returns `id` only.
+
+### `globalModalStore`
+
+The pre-created lifecycle store. Can be passed as `<ModalProvider store={...}>` for custom integrations.
+
+### Types
+
+- `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`
+- `ModalProps`, `ModalAdapterProps`, `ModalPosition`
+- `ModalClose`, `ModalCloseHandler`, `ModalRender`, `ModalRenderContext`
+
 ## Source Layout
 
 ```text
@@ -244,55 +295,54 @@ src/
   facade/
     modalFacade.ts
   hooks/
+    useIsTopModal.ts
     useModal.ts
+    usePrefersReducedMotion.ts
   shared/
+    lifecycle.ts
     styles.ts
     types.ts
   index.ts
 ```
 
-## Responsibilities
+### Responsibilities
 
-### `src/adapters`
+**`src/adapters`** — rendering:
+- `ModalAdapter.tsx` — selects inline vs top-layer transport
+- `ModalAdapterInline.tsx` — inline modal: backdrop, scroll lock, focus, dismiss, positioning, animation
+- `ModalAdapterTopLayer.tsx` — native `<dialog>`: cancel/backdrop handling, positioning, scoped backdrop, animation
 
-- `ModalAdapter.tsx` → selects inline vs top-layer transport
-- `ModalAdapterInline.tsx` → inline modal path with backdrop, scroll lock, focus handling, dismiss behavior, positioning, and animation
-- `ModalAdapterTopLayer.tsx` → native `<dialog>` path with dialog cancel/backdrop handling, positioning, scoped backdrop styling, and animation
+**`src/components`** — provider:
+- `ModalProvider.tsx` — wraps `OverlayProvider`, registers adapter, injects CSS, defaults to global store
 
-### `src/components`
+**`src/facade`** — module-level API:
+- `modalFacade.ts` — `modal` facade and `globalModalStore`
 
-- `ModalProvider.tsx` → wraps `OverlayProvider`, registers the modal adapter, injects shared modal CSS, and defaults to the global modal store
+**`src/hooks`** — React hooks:
+- `useModal.ts` — command API (`display`, `close`, `closeAll`, `reject`, `remove`, `clear`)
+- `useIsTopModal.ts` — modal stack tracking for z-index and focus management
+- `usePrefersReducedMotion.ts` — `prefers-reduced-motion` detection with legacy fallback
 
-### `src/facade`
-
-- `modalFacade.ts` → exports `modal` and `globalModalStore` for module-level usage
-
-### `src/hooks`
-
-- `useModal.ts` → React command API for `display` and `clear`
-
-### `src/shared`
-
-- `styles.ts` → shared fade/scale animation styles
-- `types.ts` → modal props, scoped render callback, adapter props, and position contracts
-
-### `src/index.ts`
-
-- re-exports the public provider, hook, facade, and types
+**`src/shared`** — internal:
+- `lifecycle.ts` — `createModalLifecycleStore` wrapping `OverlayStoreApi` with `onModalClose` injection
+- `styles.ts` — shared fade/scale animation keyframes
+- `types.ts` — modal props, render callback, adapter props, position contracts
 
 ## Exports
 
 - values → `ModalProvider`, `useModal`, `modal`, `globalModalStore`
-- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`, `ModalClose`, `ModalRender`, `ModalRenderContext`
+- types → `ModalProviderProps`, `UseModalOptions`, `ModalFacadeOptions`, `ModalProps`, `ModalAdapterProps`, `ModalPosition`, `ModalClose`, `ModalCloseHandler`, `ModalRender`, `ModalRenderContext`
 
 ## Development
 
 ```bash
 pnpm install
 pnpm run build
+pnpm run typecheck
+pnpm test
 ```
 
-Build outputs are generated in the `dist` directory.
+Build outputs are generated in the `dist` directory. Tests run with Vitest and @testing-library/react. E2E and a11y tests use Playwright.
 
 ## License
 
