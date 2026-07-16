@@ -78,19 +78,13 @@ overlay가 실패할 수 있는 흐름을 나타낼 때 유용합니다. 예를 
 
 ```tsx
 function LoginButton() {
-  const { display, reject, remove } = useOverlay();
+  const { open, reject, remove } = useOverlay();
 
-  const handleLogin = async () => {
-    try {
-      const token = await display<string>({ type: 'modal', props: { title: 'Sign in' } });
-      console.log('Token:', token);
-    } catch (error) {
-      console.log('Login failed:', error);
-    }
+  const handleLogin = () => {
+    const id = open({ type: 'modal', props: { title: 'Sign in' } });
 
     // 타임아웃으로 overlay를 거부하는 시뮬레이션
     setTimeout(() => {
-      const [id] = ''; // 실제에서는 open()에서 id를 캡처합니다
       reject(id, new Error('Login timed out'));
       remove(id);
     }, 5000);

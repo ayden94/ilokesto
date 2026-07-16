@@ -78,19 +78,13 @@ This is useful when an overlay represents a flow that can fail — for example, 
 
 ```tsx
 function LoginButton() {
-  const { display, reject, remove } = useOverlay();
+  const { open, reject, remove } = useOverlay();
 
-  const handleLogin = async () => {
-    try {
-      const token = await display<string>({ type: 'modal', props: { title: 'Sign in' } });
-      console.log('Token:', token);
-    } catch (error) {
-      console.log('Login failed:', error);
-    }
+  const handleLogin = () => {
+    const id = open({ type: 'modal', props: { title: 'Sign in' } });
 
     // Simulate a timeout that rejects the overlay
     setTimeout(() => {
-      const [id] = ''; // you would capture the id from open() in practice
       reject(id, new Error('Login timed out'));
       remove(id);
     }, 5000);
