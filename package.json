@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test modal.e2e.ts",

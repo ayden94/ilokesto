@@ -58,6 +58,15 @@ export function createModalLifecycleStore(store: OverlayStoreApi): OverlayStoreA
       notifyModalItemClose(item, result);
       store.close(id, result);
     },
+    closeAll: () => {
+      store.closeAll();
+    },
+    reject: (id, reason) => {
+      const item = store.getSnapshot().find((candidate) => candidate.id === id);
+
+      notifyModalItemClose(item, undefined);
+      store.reject(id, reason);
+    },
     remove: (id) => {
       const items = store.getSnapshot();
       const targetId = id ?? items[items.length - 1]?.id;

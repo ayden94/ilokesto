@@ -106,6 +106,19 @@ Use `onModalClose(result)` when you need a callback whenever the modal is closed
 
 `onDismiss` is narrower: it only fires when a dismissible modal is dismissed by ESC or backdrop click.
 
+### closeAll and onModalClose
+
+`closeAll()` transitions all open modals to `closing` without setting `closeResult`. The lifecycle store does **not** fire `onModalClose` during `closeAll()` itself. However, when the adapter subsequently calls `remove(id)` for each modal (after exit animation), `onModalClose(undefined)` fires indirectly because `closeResult` is `undefined`.
+
+| Sequence | `onModalClose` argument |
+|---|---|
+| `close(id, result)` → `remove(id)` | `result` |
+| `closeAll()` → `remove(id)` | `undefined` |
+| `remove(id)` (without close) | `undefined` |
+| `clear()` | `closeResult` or `undefined` |
+
+If you need to distinguish batch-close from individual-close in `onModalClose`, check a flag before calling `closeAll()` or use a separate `onDismiss` handler.
+
 ## Global Facade
 
 If you prefer a module-level API, mount a default `ModalProvider` once and then use the exported `modal` facade.

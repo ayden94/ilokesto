@@ -106,6 +106,19 @@ modal이 닫힐 때마다 callback이 필요하면 `onModalClose(result)`를 사
 
 `onDismiss`는 더 좁은 이벤트입니다. dismissible modal이 ESC 또는 backdrop click으로 dismiss될 때만 호출됩니다.
 
+### closeAll과 onModalClose
+
+`closeAll()`은 모든 open modal을 `closing`으로 전환하되 `closeResult`를 설정하지 않습니다. lifecycle store는 `closeAll()` 자체에서 `onModalClose`를 발생시키지 **않습니다**. 하지만 어댑터가 이후 exit 애니메이션을 완료하고 각 modal에 대해 `remove(id)`를 호출하면, `closeResult`가 `undefined`이므로 `onModalClose(undefined)`가 간접적으로 발생합니다.
+
+| 시퀀스 | `onModalClose` 인자 |
+|---|---|
+| `close(id, result)` → `remove(id)` | `result` |
+| `closeAll()` → `remove(id)` | `undefined` |
+| `remove(id)` (close 없이) | `undefined` |
+| `clear()` | `closeResult` 또는 `undefined` |
+
+`onModalClose`에서 batch-close와 개별 close를 구분해야 한다면, `closeAll()` 호출 전에 플래그를 확인하거나 별도의 `onDismiss` 핸들러를 사용하세요.
+
 ## Global Facade
 
 모듈 레벨 API를 선호한다면 기본 `ModalProvider`를 한 번 마운트한 뒤 `modal` facade를 사용할 수 있습니다.
