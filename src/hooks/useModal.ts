@@ -6,7 +6,7 @@ export type UseModalOptions<TResult = unknown> = ModalProps<TResult> & {
 };
 
 export function useModal() {
-  const { display, clear } = useOverlay();
+  const { display, close, closeAll, reject, remove, clear } = useOverlay();
 
   return {
     display: <TResult = unknown>(options: UseModalOptions<TResult>) => {
@@ -16,6 +16,10 @@ export function useModal() {
         props: options as unknown as Record<string, unknown>,
       });
     },
+    close,
+    closeAll,
+    reject,
+    remove,
     clear,
   };
 }
