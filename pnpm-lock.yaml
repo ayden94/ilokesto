@@ -9,16 +9,16 @@ importers:
   .:
     dependencies:
       '@ilokesto/overlay':
-        specifier: file:../overlay
-        version: file:../overlay(react@18.2.0)
+        specifier: ^1.1.0
+        version: 1.1.0(react@18.2.0)
       '@ilokesto/store':
-        specifier: 1.1.1
+        specifier: ^1.1.1
         version: 1.1.1
       react:
-        specifier: 18.2.0
+        specifier: ^18.0.0 || ^19.0.0
         version: 18.2.0
       react-dom:
-        specifier: 18.2.0
+        specifier: ^18.0.0 || ^19.0.0
         version: 18.2.0(react@18.2.0)
     devDependencies:
       '@types/node':
@@ -36,10 +36,10 @@ importers:
 
 packages:
 
-  '@ilokesto/overlay@file:../overlay':
-    resolution: {directory: ../overlay, type: directory}
+  '@ilokesto/overlay@1.1.0':
+    resolution: {integrity: sha512-mWeIVMtXTIFGfDTJIDII736sbsSMTRDo3zC4icB4fDbr585LqWtQlE3HdmGCwxNC6UZAFlGQbHAOYoy/X3U74A==}
     peerDependencies:
-      react: 18.2.0
+      react: ^18.0.0 || ^19.0.0
 
   '@ilokesto/store@1.1.1':
     resolution: {integrity: sha512-fcotz5vU2TLzAywMsNRu7P6hmdVy6aBdhfrvx6NBjWKPIYwaLhaLANj7lLaxJEzujTB1zMPoDAp14t8E0frHfg==}
@@ -87,7 +87,7 @@ packages:
 
 snapshots:
 
-  '@ilokesto/overlay@file:../overlay(react@18.2.0)':
+  '@ilokesto/overlay@1.1.0(react@18.2.0)':
     dependencies:
       '@ilokesto/store': 1.1.1
       react: 18.2.0

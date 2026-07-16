@@ -147,12 +147,6 @@ export function createToastRuntime(toasterId: ToasterId): ToastRuntimeApi {
   }
 
   function ensurePresence(id: ToastId): void {
-    const presence = overlayStore.getSnapshot().find((item) => item.id === id);
-
-    if (presence !== undefined) {
-      return;
-    }
-
     overlayStore.open({
       id,
       type: "toast",

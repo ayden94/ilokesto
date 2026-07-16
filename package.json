@@ -34,7 +34,7 @@
   "author": "Jeong Jinho <wpfekdml@me.com>",
   "license": "MIT",
   "dependencies": {
-    "@ilokesto/overlay": "^1.0.1",
+    "@ilokesto/overlay": "^1.1.0",
     "@ilokesto/store": "^1.1.1"
   },
   "peerDependencies": {
