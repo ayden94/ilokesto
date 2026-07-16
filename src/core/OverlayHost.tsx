@@ -1,6 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useOverlayItems } from "./useOverlayItems";
-import type { OverlayRenderProps } from "../contracts/adapter";
+import type { OverlayAdapterHooks, OverlayRenderProps } from "../contracts/adapter";
 import type { OverlayItem } from "../contracts/overlay";
 import type { OverlayContextGetter } from "./useOverlay";
 
@@ -17,6 +17,8 @@ function OverlayItemRenderer({
 }) {
   const { store, adapters } = getContext();
   const Adapter = adapters[item.type];
+  const hooksRef = useRef<OverlayAdapterHooks | null>(null);
+  const prevStatusRef = useRef<"open" | "closing" | "mounted">("mounted");
 
   const close = useCallback(
     (result?: unknown) => {
@@ -29,6 +31,28 @@ function OverlayItemRenderer({
     store.remove(item.id);
   }, [item.id, store]);
 
+  const useLifecycle = (hooks: OverlayAdapterHooks) => {
+    hooksRef.current = hooks;
+  };
+
+  useEffect(() => {
+    if (prevStatusRef.current === "mounted" && item.status === "open") {
+      hooksRef.current?.onOpen?.(item.id, item);
+    } else if (
+      prevStatusRef.current === "open" &&
+      item.status === "closing"
+    ) {
+      hooksRef.current?.onClosing?.(item.id, item);
+    }
+    prevStatusRef.current = item.status;
+  }, [item.status, item.id]);
+
+  useEffect(() => {
+    return () => {
+      hooksRef.current?.onUnmount?.(item.id);
+    };
+  }, [item.id]);
+
   if (!Adapter) {
     return null;
   }
@@ -39,6 +63,7 @@ function OverlayItemRenderer({
     status: item.status,
     close,
     remove,
+    useLifecycle,
   };
 
   return <Adapter {...renderProps} {...item.props} />;

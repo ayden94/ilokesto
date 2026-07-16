@@ -151,7 +151,7 @@ src/
 - `createOverlayStore.ts` → provider 단위 overlay store를 만들고 `open`, `close`, `closeAll`, `reject`, `remove`, `clear` 수명주기를 관리합니다
 - `createOverlayContext.tsx` → 격리된 React context를 생성하는 팩토리. 자체 Provider, useOverlay, useOverlayItems, useOverlayItem을 반환합니다
 - `OverlayProvider.tsx` → 하위 호환을 위해 기본 context 인스턴스(Provider + hooks)를 re-export합니다
-- `OverlayHost.tsx` → 현재 overlay item 목록을 읽고 각 item을 `adapters[item.type]`에 위임해 렌더링합니다
+- `OverlayHost.tsx` → 현재 overlay item 목록을 읽고 각 item을 `adapters[item.type]`에 위임해 렌더링하며, 상태 전환 시 adapter lifecycle 훅을 호출합니다
 - `useOverlay.ts` → overlay를 열고 닫고 거부하고 제거하는 명령형 API를 제공합니다
 - `useOverlayItems.ts` → `useSyncExternalStore`로 현재 overlay item 목록을 구독합니다
 - `useOverlayItem.ts` → `useSyncExternalStore`로 단일 overlay item을 id로 구독합니다
@@ -175,6 +175,39 @@ src/
 - `@ilokesto/overlay` 는 modal/toast 구현을 직접 import하면 안 됩니다
 
 한 줄로 말하면, 코어는 lifecycle과 hosting을 담당하고 adapter 패키지는 의미론과 표현을 담당합니다.
+
+## Adapter Lifecycle Hooks
+
+Adapter는 `OverlayRenderProps`에서 제공하는 `useLifecycle` prop으로 사이드이펙트 콜백을 등록할 수 있습니다:
+
+```tsx
+const modalAdapter: OverlayAdapterComponent = ({ useLifecycle, isOpen, close }) => {
+  useLifecycle({
+    onOpen: (id) => {
+      document.body.style.overflow = 'hidden';
+    },
+    onClosing: (id) => {
+      // status가 "closing"으로 전환됨
+    },
+    onUnmount: (id) => {
+      document.body.style.overflow = '';
+    },
+  });
+
+  if (!isOpen) return null;
+  return <div role="dialog">...</div>;
+};
+```
+
+Host는 상태 전환에 따라 훅을 호출합니다:
+
+| 훅 | 호출 시점 | 보장 |
+|---|---|---|
+| `onOpen(id, item)` | `status: "open"`으로 첫 마운트 | open당 1회 |
+| `onClosing(id, item)` | `open → closing` 전환 | close당 1회 |
+| `onUnmount(id)` | 컴포넌트 언마운트 (`remove` 후) | lifecycle당 1회 |
+
+Adapter가 `useLifecycle`을 호출하지 않으면 훅이 발생하지 않습니다 — opt-in 동작입니다.
 
 ## Adapter Packages
 
@@ -219,7 +252,7 @@ const widgetOverlay = createOverlayContext();
 ## Exports
 
 - `@ilokesto/overlay` → `createOverlayStore`, `createOverlayContext`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
-- `@ilokesto/overlay` 타입 → `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`에서 다시 export된 타입
+- `@ilokesto/overlay` 타입 → `src/contracts/adapter.ts` (`OverlayAdapterHooks` 포함), `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`에서 다시 export된 타입
 
 ## Development
 
