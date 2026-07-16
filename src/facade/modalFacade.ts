@@ -24,6 +24,8 @@ export const modal = {
     }).promise;
   },
   close: (id: string, result?: unknown) => globalModalStore.close(id, result),
+  closeAll: () => globalModalStore.closeAll(),
+  reject: (id: string, reason?: unknown) => globalModalStore.reject(id, reason),
   remove: (id?: string) => globalModalStore.remove(id),
   clear: () => globalModalStore.clear(),
 };
