@@ -124,6 +124,7 @@ src/
     OverlayHost.tsx
     useOverlay.ts
     useOverlayItems.ts
+    useOverlayItem.ts
   contracts/
     adapter.ts
     overlay.ts
@@ -139,6 +140,7 @@ src/
 - `OverlayHost.tsx` → 현재 overlay item 목록을 읽고 각 item을 `adapters[item.type]`에 위임해 렌더링합니다
 - `useOverlay.ts` → overlay를 열고 닫고 거부하고 제거하는 명령형 API를 제공합니다
 - `useOverlayItems.ts` → `useSyncExternalStore`로 현재 overlay item 목록을 구독합니다
+- `useOverlayItem.ts` → `useSyncExternalStore`로 단일 overlay item을 id로 구독합니다
 
 ### `src/contracts`
 
@@ -170,7 +172,7 @@ src/
 
 ## Exports
 
-- `@ilokesto/overlay` → `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`
+- `@ilokesto/overlay` → `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
 - `@ilokesto/overlay` 타입 → `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, `UseOverlayReturn`에서 다시 export된 타입
 
 ## Development
