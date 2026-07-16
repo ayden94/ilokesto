@@ -205,47 +205,25 @@ export function ModalAdapterInline<TResult>({
         }}
         onClick={handleBackdropClick}
       />
-      {role === 'alertdialog' ? (
-        <div
-          ref={containerRef}
-          role="alertdialog"
-          aria-modal="true"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabelledBy}
-          aria-describedby={ariaDescribedBy}
-          tabIndex={-1}
-          className={`ilokesto-modal-panel ${className || ''}`}
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            animation: panelAnimation,
-            ...style,
-          }}
-          onAnimationEnd={handleAnimationEnd}
-        >
-          {content}
-        </div>
-      ) : (
-        <div
-          ref={containerRef}
-          role="dialog"
-          aria-modal="true"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabelledBy}
-          aria-describedby={ariaDescribedBy}
-          tabIndex={-1}
-          className={`ilokesto-modal-panel ${className || ''}`}
-          style={{
-            position: 'relative',
-            zIndex: 1,
-            animation: panelAnimation,
-            ...style,
-          }}
-          onAnimationEnd={handleAnimationEnd}
-        >
-          {content}
-        </div>
-      )}
+      <div
+        ref={containerRef}
+        role={role}
+        aria-modal="true"
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        tabIndex={-1}
+        className={`ilokesto-modal-panel ${className || ''}`}
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          animation: panelAnimation,
+          ...style,
+        }}
+        onAnimationEnd={handleAnimationEnd}
+      >
+        {content}
+      </div>
     </div>
   );
 }

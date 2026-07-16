@@ -174,44 +174,24 @@ export function ModalAdapterTopLayer<TResult>({
           `}
         </style>
       )}
-      {role === 'alertdialog' ? (
-        <dialog
-          ref={dialogRef}
-          role="alertdialog"
-          aria-modal="true"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabelledBy}
-          aria-describedby={ariaDescribedBy}
-          tabIndex={-1}
-          className={classes + dynamicBackdropClass}
-          style={{
-            animation: panelAnimation,
-            ...getDialogPositionStyles(position),
-            ...style,
-          }}
-          onAnimationEnd={handleAnimationEnd}
-        >
-          {content}
-        </dialog>
-      ) : (
-        <dialog
-          ref={dialogRef}
-          aria-modal="true"
-          aria-label={ariaLabel}
-          aria-labelledby={ariaLabelledBy}
-          aria-describedby={ariaDescribedBy}
-          tabIndex={-1}
-          className={classes + dynamicBackdropClass}
-          style={{
-            animation: panelAnimation,
-            ...getDialogPositionStyles(position),
-            ...style,
-          }}
-          onAnimationEnd={handleAnimationEnd}
-        >
-          {content}
-        </dialog>
-      )}
+      <dialog
+        ref={dialogRef}
+        role={role === 'alertdialog' ? 'alertdialog' : undefined}
+        aria-modal="true"
+        aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
+        tabIndex={-1}
+        className={classes + dynamicBackdropClass}
+        style={{
+          animation: panelAnimation,
+          ...getDialogPositionStyles(position),
+          ...style,
+        }}
+        onAnimationEnd={handleAnimationEnd}
+      >
+        {content}
+      </dialog>
     </>
   );
 }
