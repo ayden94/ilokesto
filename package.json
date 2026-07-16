@@ -2,7 +2,10 @@
   "name": "@ilokesto/store",
   "version": "1.1.1",
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
@@ -30,6 +33,8 @@
   "author": "Jeong Jinho <wpfekdml@me.com>",
   "license": "MIT",
   "devDependencies": {
-    "typescript": "^6.0.2"
+    "@types/node": "^26.1.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.10"
   }
 }
