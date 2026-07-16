@@ -216,4 +216,48 @@ describe("Store", () => {
       ]);
     });
   });
+
+  describe("runner caching", () => {
+    it("caches runner and invalidates on pushMiddleware", () => {
+      const store = new Store({ count: 0 });
+      const order: string[] = [];
+
+      store.setState({ count: 1 });
+      expect(store.getState()).toEqual({ count: 1 });
+
+      store.pushMiddleware((nextState, next) => {
+        order.push("mw");
+        next(nextState);
+      });
+
+      store.setState({ count: 2 });
+      expect(order).toEqual(["mw"]);
+      expect(store.getState()).toEqual({ count: 2 });
+    });
+
+    it("caches runner and invalidates on unshiftMiddleware", () => {
+      const store = new Store({ count: 0 });
+      const order: string[] = [];
+
+      store.setState({ count: 1 });
+
+      store.unshiftMiddleware((nextState, next) => {
+        order.push("mw");
+        next(nextState);
+      });
+
+      store.setState({ count: 2 });
+      expect(order).toEqual(["mw"]);
+    });
+
+    it("fast path works without middleware", () => {
+      const store = new Store({ count: 0 });
+
+      store.setState({ count: 1 });
+      store.setState({ count: 2 });
+      store.setState((prev) => ({ count: prev.count + 1 }));
+
+      expect(store.getState()).toEqual({ count: 3 });
+    });
+  });
 });
