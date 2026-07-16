@@ -31,6 +31,53 @@ describe("createOverlayStore", () => {
       const items = store.getSnapshot();
       expect(items[0].id).toBe("custom-id");
     });
+
+    it("returns existing request when open is called with duplicate id", () => {
+      const store = createOverlayStore();
+      const first = store.open({ id: "dup", type: "modal" });
+      const second = store.open({ id: "dup", type: "modal" });
+
+      expect(second.id).toBe(first.id);
+      expect(second.promise).toBe(first.promise);
+    });
+
+    it("does not add a second item when open is called with duplicate id", () => {
+      const store = createOverlayStore();
+      store.open({ id: "dup", type: "modal" });
+      store.open({ id: "dup", type: "modal" });
+
+      expect(store.getSnapshot()).toHaveLength(1);
+    });
+
+    it("does not leave a dangling Promise on duplicate id open", async () => {
+      const store = createOverlayStore();
+      const first = store.open<string>({ id: "dup", type: "modal" });
+      store.open({ id: "dup", type: "modal" });
+
+      store.close("dup", "result");
+      store.remove("dup");
+
+      await expect(first.promise).resolves.toBe("result");
+    });
+
+    it("allows reusing id after the original item is removed", () => {
+      const store = createOverlayStore();
+      store.open({ id: "reuse", type: "modal" });
+      store.remove("reuse");
+
+      store.open({ id: "reuse", type: "modal" });
+
+      expect(store.getSnapshot()).toHaveLength(1);
+      expect(store.getSnapshot()[0].id).toBe("reuse");
+    });
+
+    it("creates separate items when no id is provided", () => {
+      const store = createOverlayStore();
+      store.open({ type: "modal" });
+      store.open({ type: "modal" });
+
+      expect(store.getSnapshot()).toHaveLength(2);
+    });
   });
 
   describe("close", () => {

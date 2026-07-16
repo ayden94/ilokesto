@@ -70,6 +70,18 @@ export function App() {
 }
 ```
 
+## Overlay ID and Deduplication
+
+When `open()` is called with an explicit `id`, the store guards against duplicates:
+
+- If an overlay with the same `id` is already open (or closing), `open()` returns the **existing** `OverlayRequest` — the same `id` and the same `Promise`.
+- No second item is added to the store.
+- The `Promise` is not duplicated, so there is no dangling promise.
+
+This makes `open({ id, ... })` idempotent — calling it multiple times with the same `id` while the overlay is active has no side effect.
+
+Once the overlay is removed (or cleared), the `id` is released and can be reused for a new overlay.
+
 ## Rejecting an Overlay
 
 `reject(id, reason)` transitions an overlay to `closing` (same as `close`), but when the adapter later calls `remove(id)`, the `display()` Promise is **rejected** with the reason instead of being resolved.

@@ -26,6 +26,7 @@ function createOverlayItem(options: DisplayOptions, id: OverlayId): OverlayItem 
 export function createOverlayStore(): OverlayStoreApi {
   const store = new Store<OverlayState>({ items: [] });
   const pendingSettlers = new Map<OverlayId, PendingSettler>();
+  const pendingRequests = new Map<OverlayId, OverlayRequest>();
   let counter = 0;
 
   function nextId(): OverlayId {
@@ -41,6 +42,7 @@ export function createOverlayStore(): OverlayStoreApi {
     }
 
     pendingSettlers.delete(id);
+    pendingRequests.delete(id);
 
     if (item.rejected) {
       settler.reject(item.rejectReason);
@@ -51,6 +53,12 @@ export function createOverlayStore(): OverlayStoreApi {
 
   function open<TResult = unknown>(options: DisplayOptions): OverlayRequest<TResult> {
     const id = options.id ?? nextId();
+
+    const existing = pendingRequests.get(id);
+    if (existing) {
+      return existing as OverlayRequest<TResult>;
+    }
+
     const item = createOverlayItem(options, id);
 
     const promise = new Promise<TResult | undefined>((resolve, reject) => {
@@ -60,12 +68,15 @@ export function createOverlayStore(): OverlayStoreApi {
       });
     });
 
+    const request: OverlayRequest = { id, promise };
+    pendingRequests.set(id, request);
+
     store.setState((prev) => ({
       ...prev,
       items: [...prev.items, item],
     }));
 
-    return { id, promise };
+    return request as OverlayRequest<TResult>;
   }
 
   function close(id: OverlayId, result?: unknown): void {

@@ -70,6 +70,18 @@ export function App() {
 }
 ```
 
+## Overlay ID와 중복 가드
+
+`open()`에 명시적 `id`를 전달하면 store가 중복을 방지합니다:
+
+- 같은 `id`의 overlay가 이미 open(또는 closing) 상태면, `open()`은 **기존** `OverlayRequest`를 반환합니다 — 같은 `id`와 같은 `Promise`.
+- store에 두 번째 아이템이 추가되지 않습니다.
+- `Promise`가 복제되지 않으므로 dangling promise가 발생하지 않습니다.
+
+즉 `open({ id, ... })`는 멱등입니다 — overlay가 활성 상태일 때 같은 `id`로 여러 번 호출해도 부작용이 없습니다.
+
+overlay가 remove(또는 clear)되면 `id`가 해제되어 새 overlay에 재사용할 수 있습니다.
+
 ## Overlay 거부하기
 
 `reject(id, reason)`은 overlay를 `closing` 상태로 전환합니다(`close`와 동일). 하지만 어댑터가 이후 `remove(id)`를 호출할 때 `display()` Promise가 resolve되는 대신 reason과 함께 **reject** 됩니다.
