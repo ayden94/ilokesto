@@ -70,6 +70,38 @@ export function App() {
 }
 ```
 
+## Rejecting an Overlay
+
+`reject(id, reason)` transitions an overlay to `closing` (same as `close`), but when the adapter later calls `remove(id)`, the `display()` Promise is **rejected** with the reason instead of being resolved.
+
+This is useful when an overlay represents a flow that can fail — for example, a login dialog cancelled by a timeout:
+
+```tsx
+function LoginButton() {
+  const { display, reject, remove } = useOverlay();
+
+  const handleLogin = async () => {
+    try {
+      const token = await display<string>({ type: 'modal', props: { title: 'Sign in' } });
+      console.log('Token:', token);
+    } catch (error) {
+      console.log('Login failed:', error);
+    }
+
+    // Simulate a timeout that rejects the overlay
+    setTimeout(() => {
+      const [id] = ''; // you would capture the id from open() in practice
+      reject(id, new Error('Login timed out'));
+      remove(id);
+    }, 5000);
+  };
+
+  return <button onClick={handleLogin}>Sign in</button>;
+}
+```
+
+The two-phase dismiss lifecycle is preserved: `reject` only transitions the status to `closing`; the adapter plays its exit animation and then calls `remove(id)`, which is when the Promise actually rejects.
+
 ## Source Layout
 
 ```text
@@ -90,10 +122,10 @@ src/
 
 ### `src/core`
 
-- `createOverlayStore.ts` → creates the provider-scoped overlay store and manages `open`, `close`, `remove`, and `clear`
+- `createOverlayStore.ts` → creates the provider-scoped overlay store and manages `open`, `close`, `reject`, `remove`, and `clear`
 - `OverlayProvider.tsx` → creates or receives a store, exposes it through context, and mounts the built-in `OverlayHost`
 - `OverlayHost.tsx` → reads the current overlay items and dispatches each item to `adapters[item.type]`
-- `useOverlay.ts` → exposes the command API for opening and dismissing overlays
+- `useOverlay.ts` → exposes the command API for opening, closing, rejecting, and dismissing overlays
 - `useOverlayItems.ts` → subscribes to the current overlay item list with `useSyncExternalStore`
 
 ### `src/contracts`

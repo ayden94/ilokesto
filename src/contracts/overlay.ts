@@ -12,6 +12,17 @@ export interface OverlayItem {
   readonly status: OverlayStatus;
   readonly createdAt: number;
   readonly closeResult?: unknown;
+  /**
+   * Set by `reject(id, reason)`. On `remove(id)`, the pending Promise is
+   * rejected with this reason instead of being resolved.
+   */
+  readonly rejectReason?: unknown;
+  /**
+   * True once `reject(id, reason)` has been called. Distinguishes
+   * `reject(id, undefined)` (should reject) from a plain `remove(id)` (should
+   * resolve), since `rejectReason` itself may be `undefined`.
+   */
+  readonly rejected?: boolean;
 }
 
 export interface OverlayState {
@@ -32,6 +43,7 @@ export interface OverlayRequest<TResult = unknown> {
 export interface OverlayStoreApi {
   open: <TResult = unknown>(options: DisplayOptions) => OverlayRequest<TResult>;
   close: (id: OverlayId, result?: unknown) => void;
+  reject: (id: OverlayId, reason?: unknown) => void;
   remove: (id?: OverlayId) => void;
   clear: () => void;
   subscribe: (listener: () => void) => () => void;
