@@ -1,6 +1,8 @@
 import { useCallback } from "react";
-import { useOverlayContext } from "./OverlayProvider";
 import type { DisplayOptions, OverlayId } from "../contracts/overlay";
+import type { OverlayContextValue } from "./createOverlayContext";
+
+export type OverlayContextGetter = () => OverlayContextValue;
 
 export interface UseOverlayReturn {
   readonly display: <TResult = unknown>(
@@ -14,8 +16,8 @@ export interface UseOverlayReturn {
   readonly clear: () => void;
 }
 
-export function useOverlay(): UseOverlayReturn {
-  const { store } = useOverlayContext();
+export function useOverlay(getContext: OverlayContextGetter): UseOverlayReturn {
+  const { store } = getContext();
 
   const display = useCallback(
     <TResult = unknown>(options: DisplayOptions): Promise<TResult | undefined> => {

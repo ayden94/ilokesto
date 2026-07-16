@@ -1,8 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { OverlayProvider } from "./OverlayProvider";
-import { useOverlay } from "./useOverlay";
-import { useOverlayItems } from "./useOverlayItems";
+import { OverlayProvider, useOverlay, useOverlayItems } from "./OverlayProvider";
 import type { OverlayAdapterMap } from "../contracts/adapter";
 
 const stubAdapters: OverlayAdapterMap = {

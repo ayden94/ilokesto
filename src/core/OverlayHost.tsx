@@ -1,11 +1,21 @@
 import { useCallback } from "react";
-import { useOverlayContext } from "./OverlayProvider";
 import { useOverlayItems } from "./useOverlayItems";
 import type { OverlayRenderProps } from "../contracts/adapter";
 import type { OverlayItem } from "../contracts/overlay";
+import type { OverlayContextGetter } from "./useOverlay";
 
-function OverlayItemRenderer({ item }: { readonly item: OverlayItem }) {
-  const { store, adapters } = useOverlayContext();
+interface OverlayHostProps {
+  readonly useOverlayContext: OverlayContextGetter;
+}
+
+function OverlayItemRenderer({
+  item,
+  getContext,
+}: {
+  readonly item: OverlayItem;
+  readonly getContext: OverlayContextGetter;
+}) {
+  const { store, adapters } = getContext();
   const Adapter = adapters[item.type];
 
   const close = useCallback(
@@ -34,13 +44,17 @@ function OverlayItemRenderer({ item }: { readonly item: OverlayItem }) {
   return <Adapter {...renderProps} {...item.props} />;
 }
 
-export function OverlayHost() {
-  const items = useOverlayItems();
+export function OverlayHost({ useOverlayContext }: OverlayHostProps) {
+  const items = useOverlayItems(useOverlayContext);
 
   return (
     <>
       {items.map((item) => (
-        <OverlayItemRenderer key={item.id} item={item} />
+        <OverlayItemRenderer
+          key={item.id}
+          item={item}
+          getContext={useOverlayContext}
+        />
       ))}
     </>
   );
