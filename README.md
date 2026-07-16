@@ -12,7 +12,7 @@ This package serves as a **vanilla store core** for building React state managem
 - Get current state: `getState()`
 - Get initial state: `getInitialState()`
 - Update state with value or updater function: `setState()`
-- Register middleware: `setMiddleware()`
+- Register middleware: `pushMiddleware()` / `unshiftMiddleware()`
 - Subscribe / Unsubscribe: `subscribe()`
 - Skips notifications when updated with the same reference
 - Safely iterates listeners even if unsubscriptions occur during notification
@@ -95,19 +95,30 @@ It does not notify subscribers if `Object.is(prevState, nextState)` is `true`.
 
 Functions passed to `setState()` are always treated as updaters. As a result, the current API is not suitable for patterns where the state value itself is a function.
 
-### `store.setMiddleware(middleware: (nextState: SetStateAction<T>, next: Dispatch<SetStateAction<T>>) => void): void`
+### `store.pushMiddleware(middleware: (nextState: SetStateAction<T>, next: Dispatch<SetStateAction<T>>) => void): void`
 
-Adds a middleware to the store. Middlewares wrap the `setState` operation and run in the order they were registered.
+Adds a middleware to the end of the chain. Middlewares wrap the `setState` operation and run in the order they were registered.
 
 ```ts
-store.setMiddleware((nextState, next) => {
+store.pushMiddleware((nextState, next) => {
   console.log("Before update:", nextState);
   next(nextState);
   console.log("After update");
 });
 ```
 
-A middleware receives the `nextState: SetStateAction<T>` and a `next: Dispatch<SetStateAction<T>>` function to continue the chain. The first middleware you register becomes the outermost wrapper, so a `before -> next -> after` pattern runs like nested function calls around the final state application. The final `next` call applies the state and notifies subscribers.
+### `store.unshiftMiddleware(middleware: (nextState: SetStateAction<T>, next: Dispatch<SetStateAction<T>>) => void): void`
+
+Adds a middleware to the beginning of the chain. Use this when you need a middleware to run before previously registered ones.
+
+```ts
+store.unshiftMiddleware((nextState, next) => {
+  console.log("Outermost middleware");
+  next(nextState);
+});
+```
+
+A middleware receives the `nextState: SetStateAction<T>` and a `next: Dispatch<SetStateAction<T>>` function to continue the chain. The first middleware in the array becomes the outermost wrapper, so a `before -> next -> after` pattern runs like nested function calls around the final state application. The final `next` call applies the state and notifies subscribers.
 
 ### `store.subscribe(listener: () => void): () => void`
 
