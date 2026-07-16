@@ -14,7 +14,8 @@
     "checkJs": true,
     "esModuleInterop": true,
     "removeComments": true,
-    "types": ["node"]
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"]
 }

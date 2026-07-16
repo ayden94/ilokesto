@@ -160,9 +160,10 @@ src/
 ```bash
 pnpm install
 pnpm run build
+pnpm test
 ```
 
-빌드 결과물은 `dist` 디렉터리에 생성됩니다.
+빌드 결과물은 `dist` 디렉터리에 생성됩니다. 테스트는 Vitest와 @testing-library/react로 실행됩니다.
 
 ## License
 

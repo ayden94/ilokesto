@@ -160,9 +160,10 @@ This package is intentionally generic.
 ```bash
 pnpm install
 pnpm run build
+pnpm test
 ```
 
-Build outputs are generated in the `dist` directory.
+Build outputs are generated in the `dist` directory. Tests run with Vitest and @testing-library/react.
 
 ## License
 
