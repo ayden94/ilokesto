@@ -132,6 +132,7 @@ function CloseAllButton() {
 src/
   core/
     createOverlayStore.ts
+    createOverlayContext.tsx
     OverlayProvider.tsx
     OverlayHost.tsx
     useOverlay.ts
@@ -148,7 +149,8 @@ src/
 ### `src/core`
 
 - `createOverlayStore.ts` → creates the provider-scoped overlay store and manages `open`, `close`, `closeAll`, `reject`, `remove`, and `clear`
-- `OverlayProvider.tsx` → creates or receives a store, exposes it through context, and mounts the built-in `OverlayHost`
+- `createOverlayContext.tsx` → factory that creates an isolated React context with its own Provider, useOverlay, useOverlayItems, and useOverlayItem
+- `OverlayProvider.tsx` → re-exports the default context instance (Provider + hooks) for backward compatibility
 - `OverlayHost.tsx` → reads the current overlay items and dispatches each item to `adapters[item.type]`
 - `useOverlay.ts` → exposes the command API for opening, closing, rejecting, and dismissing overlays
 - `useOverlayItems.ts` → subscribes to the current overlay item list with `useSyncExternalStore`
@@ -182,10 +184,42 @@ This package is intentionally generic.
 - A toast package can use the same runtime and inject toast adapters
 - Policies such as focus trapping, scroll lock, backdrop behavior, deduplication, timers, and animations belong in the adapter layer, not in the overlay core
 
+## Isolated Overlay Contexts
+
+By default, `OverlayProvider`, `useOverlay`, `useOverlayItems`, and `useOverlayItem` all share a single React context. If you need multiple independent overlay stacks (e.g., a main app and an embedded widget), use `createOverlayContext()`:
+
+```tsx
+import { createOverlayContext } from '@ilokesto/overlay';
+
+const mainOverlay = createOverlayContext();
+const widgetOverlay = createOverlayContext();
+
+// Each context has its own Provider, store, and hooks — fully isolated.
+<MainApp>
+  <mainOverlay.Provider adapters={adapters}>
+    <Sidebar />
+  </mainOverlay.Provider>
+</MainApp>
+
+<Widget>
+  <widgetOverlay.Provider adapters={adapters}>
+    <WidgetContent />
+  </widgetOverlay.Provider>
+</Widget>
+```
+
+Each context instance provides:
+- `Provider` — context provider with built-in `OverlayHost`
+- `useOverlay` — command API (open, close, closeAll, reject, remove, clear)
+- `useOverlayItems` — subscribes to the full item list
+- `useOverlayItem(id)` — subscribes to a single item
+
+The default exports (`OverlayProvider`, `useOverlay`, etc.) are a pre-created instance of `createOverlayContext()` for backward compatibility.
+
 ## Exports
 
-- `@ilokesto/overlay` → `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
-- `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, and `UseOverlayReturn`
+- `@ilokesto/overlay` → `createOverlayStore`, `createOverlayContext`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
+- `@ilokesto/overlay` types → contracts from `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`
 
 ## Development
 

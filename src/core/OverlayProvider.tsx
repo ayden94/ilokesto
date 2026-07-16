@@ -1,47 +1,11 @@
-import { createContext, useContext, useMemo } from "react";
-import { createOverlayStore } from "./createOverlayStore";
-import { OverlayHost } from "./OverlayHost";
-import type { OverlayAdapterMap } from "../contracts/adapter";
-import type { OverlayProviderProps, OverlayStoreApi } from "../contracts/overlay";
+import { createOverlayContext } from "./createOverlayContext";
+import type { OverlayContextValue } from "./createOverlayContext";
 
-interface OverlayContextValue {
-  readonly store: OverlayStoreApi;
-  readonly adapters: OverlayAdapterMap;
-}
+const defaultContext = createOverlayContext();
 
-const OverlayContext = createContext<OverlayContextValue | null>(null);
+export const OverlayProvider = defaultContext.Provider;
+export const useOverlay = defaultContext.useOverlay;
+export const useOverlayItems = defaultContext.useOverlayItems;
+export const useOverlayItem = defaultContext.useOverlayItem;
 
-export function useOverlayContext(): OverlayContextValue {
-  const context = useContext(OverlayContext);
-
-  if (context === null) {
-    throw new Error(
-      "useOverlayContext must be used within an <OverlayProvider>."
-    );
-  }
-
-  return context;
-}
-
-export function OverlayProvider({
-  adapters,
-  children,
-  store: storeProp,
-}: OverlayProviderProps) {
-  const store = useMemo<OverlayStoreApi>(
-    () => storeProp ?? createOverlayStore(),
-    [storeProp]
-  );
-
-  const value = useMemo<OverlayContextValue>(
-    () => ({ store, adapters }),
-    [store, adapters]
-  );
-
-  return (
-    <OverlayContext.Provider value={value}>
-      {children}
-      <OverlayHost />
-    </OverlayContext.Provider>
-  );
-}
+export type { OverlayContextValue };

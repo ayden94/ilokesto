@@ -1,9 +1,8 @@
 export { createOverlayStore } from "./core/createOverlayStore";
-export { OverlayProvider } from "./core/OverlayProvider";
+export { createOverlayContext } from "./core/createOverlayContext";
+export type { OverlayContextInstance, OverlayContextValue } from "./core/createOverlayContext";
+export { OverlayProvider, useOverlay, useOverlayItems, useOverlayItem } from "./core/OverlayProvider";
 export { OverlayHost } from "./core/OverlayHost";
-export { useOverlay } from "./core/useOverlay";
-export { useOverlayItems } from "./core/useOverlayItems";
-export { useOverlayItem } from "./core/useOverlayItem";
 
 export type {
   OverlayAdapterComponent,

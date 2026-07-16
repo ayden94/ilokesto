@@ -132,6 +132,7 @@ function CloseAllButton() {
 src/
   core/
     createOverlayStore.ts
+    createOverlayContext.tsx
     OverlayProvider.tsx
     OverlayHost.tsx
     useOverlay.ts
@@ -148,7 +149,8 @@ src/
 ### `src/core`
 
 - `createOverlayStore.ts` → provider 단위 overlay store를 만들고 `open`, `close`, `closeAll`, `reject`, `remove`, `clear` 수명주기를 관리합니다
-- `OverlayProvider.tsx` → store를 만들거나 주입받아 context로 노출하고 built-in `OverlayHost`를 마운트합니다
+- `createOverlayContext.tsx` → 격리된 React context를 생성하는 팩토리. 자체 Provider, useOverlay, useOverlayItems, useOverlayItem을 반환합니다
+- `OverlayProvider.tsx` → 하위 호환을 위해 기본 context 인스턴스(Provider + hooks)를 re-export합니다
 - `OverlayHost.tsx` → 현재 overlay item 목록을 읽고 각 item을 `adapters[item.type]`에 위임해 렌더링합니다
 - `useOverlay.ts` → overlay를 열고 닫고 거부하고 제거하는 명령형 API를 제공합니다
 - `useOverlayItems.ts` → `useSyncExternalStore`로 현재 overlay item 목록을 구독합니다
@@ -182,10 +184,42 @@ src/
 - toast 패키지도 같은 runtime 위에 toast adapter를 주입해서 사용할 수 있습니다
 - focus trap, scroll lock, backdrop 동작, deduplication, timer, animation 같은 정책은 overlay core가 아니라 adapter 레이어에 있어야 합니다
 
+## 격리된 Overlay Context
+
+기본적으로 `OverlayProvider`, `useOverlay`, `useOverlayItems`, `useOverlayItem`은 하나의 React context를 공유합니다. 여러 개의 독립된 overlay 스택이 필요하면 (예: 메인 앱과 임베드된 위젯) `createOverlayContext()`를 사용하세요:
+
+```tsx
+import { createOverlayContext } from '@ilokesto/overlay';
+
+const mainOverlay = createOverlayContext();
+const widgetOverlay = createOverlayContext();
+
+// 각 context는 자체 Provider, store, hooks를 가지며 완전히 격리됩니다.
+<MainApp>
+  <mainOverlay.Provider adapters={adapters}>
+    <Sidebar />
+  </mainOverlay.Provider>
+</MainApp>
+
+<Widget>
+  <widgetOverlay.Provider adapters={adapters}>
+    <WidgetContent />
+  </widgetOverlay.Provider>
+</Widget>
+```
+
+각 context 인스턴스는 다음을 제공합니다:
+- `Provider` — built-in `OverlayHost`가 포함된 context provider
+- `useOverlay` — 명령형 API (open, close, closeAll, reject, remove, clear)
+- `useOverlayItems` — 전체 아이템 목록 구독
+- `useOverlayItem(id)` — 단일 아이템 구독
+
+기본 export (`OverlayProvider`, `useOverlay` 등)는 하위 호환을 위해 `createOverlayContext()`로 미리 생성한 인스턴스입니다.
+
 ## Exports
 
-- `@ilokesto/overlay` → `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
-- `@ilokesto/overlay` 타입 → `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, `UseOverlayReturn`에서 다시 export된 타입
+- `@ilokesto/overlay` → `createOverlayStore`, `createOverlayContext`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`, `useOverlayItem`
+- `@ilokesto/overlay` 타입 → `src/contracts/adapter.ts`, `src/contracts/overlay.ts`, `UseOverlayReturn`, `OverlayContextInstance`, `OverlayContextValue`에서 다시 export된 타입
 
 ## Development
 

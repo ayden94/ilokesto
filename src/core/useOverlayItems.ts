@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from "react";
-import { useOverlayContext } from "./OverlayProvider";
 import type { OverlayItem } from "../contracts/overlay";
+import type { OverlayContextGetter } from "./useOverlay";
 
-export function useOverlayItems(): ReadonlyArray<OverlayItem> {
-  const { store } = useOverlayContext();
+export function useOverlayItems(getContext: OverlayContextGetter): ReadonlyArray<OverlayItem> {
+  const { store } = getContext();
 
   return useSyncExternalStore(
     store.subscribe,
