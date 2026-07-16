@@ -173,7 +173,7 @@ function TopLayerContainer({
         overflow: "visible",
         inset: "unset",
       }}
-      {...{ popover: "manual" } as Record<string, unknown>}
+      {...({ popover: "manual" } as React.HTMLAttributes<HTMLDivElement>)}
     >
       {children}
     </div>
