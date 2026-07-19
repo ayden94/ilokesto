@@ -5,7 +5,10 @@
     "build": "rm -rf dist && tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "repository": {
     "type": "git",
@@ -33,6 +36,7 @@
   "author": "Jeong Jinho <wpfekdml@me.com>",
   "license": "MIT",
   "devDependencies": {
+    "@changesets/cli": "^2.28.0",
     "@types/node": "^26.1.1",
     "typescript": "^6.0.2",
     "vitest": "^4.1.10"
