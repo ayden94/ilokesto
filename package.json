@@ -10,7 +10,10 @@
     "test:e2e": "playwright test modal.e2e.ts",
     "test:a11y": "playwright test modal.a11y.ts",
     "test:pack": "pnpm run build && publint && attw --pack . --profile esm-only && node scripts/validate-package.mjs",
-    "test:ci": "pnpm test && pnpm test:e2e && pnpm test:a11y && pnpm test:pack"
+    "test:ci": "pnpm test && pnpm test:e2e && pnpm test:a11y && pnpm test:pack",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
   },
   "repository": {
     "type": "git",
@@ -65,6 +68,7 @@
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
     "vite": "^5.4.21",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "@changesets/cli": "^2.28.0"
   }
 }
