@@ -1,0 +1,24 @@
+---
+title: "Core concepts"
+description: "Understand provider scoping, overlay items, adapters, and the close/remove lifecycle."
+---
+
+# Core concepts
+
+`@ilokesto/overlay` has four moving parts: a provider-scoped store, overlay items, an adapter registry, and a host. This small model is enough to support modal-like, toast-like, and custom overlay behavior without putting those policies in the core.
+
+## Provider-scoped store
+
+`OverlayProvider` creates a store with `createOverlayStore()` unless you pass one explicitly. Because the store belongs to the provider, test fixtures, nested app shells, micro-frontends, or isolated product areas can own separate overlay stacks. There is no global singleton hidden behind `useOverlay`.
+
+## Overlay items
+
+Each `OverlayItem` has `id`, `type`, `props`, `status`, `createdAt`, and an optional `closeResult`. `type` selects the adapter. `props` are passed to the adapter together with runtime render props. `status` is either `open` or `closing`, which lets an adapter render an exit state before it calls `remove()`.
+
+## Adapter registry and host
+
+`OverlayHost` subscribes to the current items through `useOverlayItems()` and renders each item with `adapters[item.type]`. If an adapter is missing, the item renders nothing. That makes adapter registration an application boundary: the runtime can host any overlay family, but each family must provide its own rendering and behavior.
+
+## close vs remove
+
+`close(id, result)` changes status to `closing` and stores the result. `remove(id)` removes the item and resolves the promise created by `display()`. `clear()` removes all items and settles pending results. This split is the most important lifecycle rule to understand when you add transitions.

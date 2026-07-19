@@ -1,0 +1,49 @@
+---
+title: "Overlay"
+description: "A provider-scoped React overlay runtime for modal, toast, and custom layer adapters."
+---
+
+# Overlay
+
+`@ilokesto/overlay` is a small React overlay runtime built on `@ilokesto/store`. It gives an application a provider-scoped overlay store, a built-in host, command hooks, and adapter contracts. The package deliberately avoids modal or toast semantics: the core knows how to open, close, remove, clear, and render overlay items, while adapter packages or app-level adapters decide focus management, backdrops, timers, transitions, and presentation.
+
+## Install
+
+```package-install
+@ilokesto/overlay react
+```
+
+Use this package when you want one runtime for many overlay families. A confirmation modal, command palette, sheet, toast, or custom floating layer can share the same lifecycle model as long as each item has a `type` and an adapter registered under that type.
+
+## Minimal example
+
+```tsx lineNumbers
+import { OverlayProvider, useOverlay, type OverlayAdapterMap } from '@ilokesto/overlay';
+
+const adapters: OverlayAdapterMap = {
+  confirm: ({ isOpen, close, remove, title }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div role="dialog" aria-modal="true">
+        <h2>{String(title)}</h2>
+        <button onClick={() => close(true)}>Confirm</button>
+        <button onClick={() => close(false)}>Cancel</button>
+        <button onClick={remove}>Dismiss immediately</button>
+      </div>
+    );
+  },
+};
+
+function DeleteButton() {
+  const { display } = useOverlay();
+
+  return <button onClick={() => void display<boolean>({ type: 'confirm', props: { title: 'Delete?' } })}>Delete</button>;
+}
+
+export function App() {
+  return <OverlayProvider adapters={adapters}><DeleteButton /></OverlayProvider>;
+}
+```
+
+Read [Quick start](/en/overlay/quick-start) for a working flow, [Core concepts](/en/overlay/core-concepts) for the mental model, and [Adapter contracts](/en/overlay/reference/adapter-contracts) when you build reusable overlay packages on top of this runtime.

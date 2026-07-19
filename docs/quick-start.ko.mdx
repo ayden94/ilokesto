@@ -1,0 +1,81 @@
+---
+title: "빠른 시작"
+description: "어댑터를 등록하고 OverlayProvider를 마운트한 뒤 비동기 확인 오버레이를 엽니다."
+---
+
+# 빠른 시작
+
+이 가이드는 타입이 있는 결과를 반환하는 확인 오버레이를 만듭니다. 런타임은 시각적인 dialog 컴포넌트를 포함하지 않습니다. 대신 어댑터를 등록하고, `OverlayHost`가 열린 item의 `type`에 맞는 어댑터를 렌더링하게 합니다.
+
+## 1. 설치
+
+```package-install
+@ilokesto/overlay react
+```
+
+## 2. 어댑터 맵 만들기
+
+```tsx lineNumbers
+import type { OverlayAdapterMap } from '@ilokesto/overlay';
+
+export const overlayAdapters: OverlayAdapterMap = {
+  confirm: ({ isOpen, status, close, remove, title, description }) => {
+    if (!isOpen && status !== 'closing') return null;
+
+    return (
+      <div role="dialog" aria-modal="true" data-state={status}>
+        <h2>{String(title)}</h2>
+        {description ? <p>{String(description)}</p> : null}
+        <button onClick={() => close(true)}>Confirm</button>
+        <button onClick={() => close(false)}>Cancel</button>
+        {status === 'closing' ? <button onClick={remove}>Remove</button> : null}
+      </div>
+    );
+  },
+};
+```
+
+`close(result)`는 item을 `closing` 상태로 바꾸고 결과를 저장합니다. `remove()`는 item을 저장소에서 제거하고 대기 중인 promise를 완료합니다. 이 분리 덕분에 어댑터가 exit animation을 재생한 뒤 item을 제거할 수 있습니다.
+
+## 3. provider 마운트하기
+
+```tsx lineNumbers
+import { OverlayProvider } from '@ilokesto/overlay';
+import { overlayAdapters } from './overlay-adapters';
+
+export function App() {
+  return (
+    <OverlayProvider adapters={overlayAdapters}>
+      <Routes />
+    </OverlayProvider>
+  );
+}
+```
+
+`OverlayProvider`는 기본적으로 provider 단위 저장소를 만들고 children 뒤에 `OverlayHost`를 마운트합니다. `useOverlay`를 호출하는 컴포넌트는 반드시 이 provider 안에 있어야 합니다.
+
+## 4. 오버레이 열기
+
+```tsx lineNumbers
+import { useOverlay } from '@ilokesto/overlay';
+
+function DeleteButton() {
+  const { display } = useOverlay();
+
+  async function handleDelete() {
+    const confirmed = await display<boolean>({
+      type: 'confirm',
+      props: {
+        title: 'Delete this project?',
+        description: 'This action cannot be undone.',
+      },
+    });
+
+    if (confirmed) await deleteProject();
+  }
+
+  return <button onClick={() => void handleDelete()}>Delete</button>;
+}
+```
+
+호출자가 결과를 기다려야 하면 `display<TResult>()`를 사용하세요. 생성된 id만 필요하고 lifecycle을 직접 관리한다면 `open()`이 더 알맞습니다.

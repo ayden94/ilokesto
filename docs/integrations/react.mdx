@@ -1,0 +1,44 @@
+---
+title: "React"
+description: "Use OverlayProvider, hooks, and adapter components in React applications."
+---
+
+# React
+
+`@ilokesto/overlay` is a React runtime. Install `react` as a peer dependency and import everything from `@ilokesto/overlay`. The package uses React context, `useMemo`, `useCallback`, and `useSyncExternalStore` to provide a stable provider-scoped lifecycle.
+
+## Provider placement
+
+Mount `OverlayProvider` around the part of the tree that opens overlays. In many apps that means the app shell, but isolated providers are valid when a product area should own a separate overlay stack.
+
+```tsx lineNumbers
+export function RootLayout() {
+  return (
+    <OverlayProvider adapters={adapters}>
+      <Navigation />
+      <Outlet />
+    </OverlayProvider>
+  );
+}
+```
+
+## Hooks
+
+Use `useOverlay()` for commands and `useOverlayItems()` for read-only diagnostics or custom hosts. Both hooks must run under `OverlayProvider`.
+
+```tsx lineNumbers
+function SaveButton() {
+  const { display } = useOverlay();
+
+  async function onClick() {
+    const confirmed = await display<boolean>({ type: 'confirm' });
+    if (confirmed) await save();
+  }
+
+  return <button onClick={() => void onClick()}>Save</button>;
+}
+```
+
+## Adapter components
+
+Adapters are normal React components. They receive runtime props and arbitrary item props, so validate or narrow unknown values before rendering user-facing content. Accessibility belongs in the adapter: `role="dialog"`, focus handling, labels, keyboard behavior, and backdrop semantics are not supplied by the core.

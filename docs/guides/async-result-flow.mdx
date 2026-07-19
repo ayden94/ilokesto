@@ -1,0 +1,24 @@
+---
+title: "Async result flow"
+description: "Use display promises for typed user decisions and long-running UI flows."
+---
+
+# Async result flow
+
+`display<TResult>()` returns `Promise<TResult | undefined>`. It resolves when the item is removed. If the item was closed first, the promise receives the close result. If it was removed abruptly or cleared without a result, the promise resolves to `undefined`.
+
+```tsx lineNumbers
+const choice = await display<'archive' | 'delete'>({
+  type: 'action-menu',
+  props: { itemName: project.name },
+});
+
+if (choice === 'archive') archiveProject();
+if (choice === 'delete') deleteProject();
+```
+
+This is useful for confirmation dialogs, pickers, command menus, and multi-step UI decisions. Keep the result type small. If the overlay edits a large object, store that object in normal state or submit it through a form package, then use the overlay result only to signal the chosen action.
+
+## Checklist
+
+Keep `type` names stable, pass only the props an adapter needs, decide whether the flow needs a promise or only an id, and make the adapter responsible for visual policy. When a user action has side effects, prefer closing with an explicit result before removing the item.

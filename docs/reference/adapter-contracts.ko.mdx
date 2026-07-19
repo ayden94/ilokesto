@@ -1,0 +1,24 @@
+---
+title: "어댑터 계약"
+description: "OverlayRenderProps와 OverlayAdapterMap으로 렌더 어댑터를 만듭니다."
+---
+
+# 어댑터 계약
+
+어댑터는 overlay `type`별로 등록되는 React 컴포넌트입니다. `OverlayRenderProps<TResult>`는 `id`, `isOpen`, `status`, `close(result?)`, `remove()`를 제공합니다. `OverlayAdapterComponent<TResult>`는 이 render props와 임의의 item props를 합친 컴포넌트 타입이고, `OverlayAdapterMap`은 type 문자열을 어댑터 컴포넌트에 매핑합니다.
+
+```tsx lineNumbers
+const adapters: OverlayAdapterMap = {
+  sheet: ({ isOpen, close, remove, side = 'right' }) => (
+    <aside data-open={isOpen} data-side={side} onAnimationEnd={() => !isOpen && remove()}>
+      <button onClick={() => close()}>Close</button>
+    </aside>
+  ),
+};
+```
+
+의미와 정책은 어댑터에 두세요. modal 어댑터는 focus trap과 backdrop click을 처리할 수 있습니다. toast 어댑터는 timer와 중복 제거를 다룰 수 있습니다. overlay 코어는 lifecycle 연결과 host dispatch만 제공합니다. 이 경계 덕분에 상위 modal 또는 toast 패키지가 `@ilokesto/overlay`에 의존하면서도 코어가 다시 그 구현을 가져오지 않아도 됩니다.
+
+## 실무 메모
+
+레퍼런스 문서는 런타임 계약을 정확히 설명합니다. 가이드에서는 이 API를 제품별 helper로 감쌀 수 있지만, 같은 lifecycle 언어를 유지해야 합니다. open은 item을 만들고, close는 closing 상태를 시작하며, remove는 item을 완료하고 삭제하고, clear는 provider 범위의 모든 대기 중인 overlay를 끝냅니다.

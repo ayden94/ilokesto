@@ -1,0 +1,26 @@
+---
+title: "확인 다이얼로그"
+description: "display<TResult>() 위에 confirm helper를 만듭니다."
+---
+
+# 확인 다이얼로그
+
+확인 다이얼로그는 `display<TResult>()`가 가장 잘 드러나는 사용 사례입니다. 호출자는 사용자가 yes 또는 no를 고를 때까지 기다리고 싶고, 어댑터는 표시 방식과 접근성 세부사항을 담당합니다.
+
+```tsx lineNumbers
+function useConfirm() {
+  const { display } = useOverlay();
+
+  return (message: string) =>
+    display<boolean>({
+      type: 'confirm',
+      props: { title: message },
+    });
+}
+```
+
+어댑터는 확인에는 `close(true)`, 취소에는 `close(false)`를 호출해야 합니다. exit animation이 있다면 `status === 'closing'` 동안 렌더링하고 animation이 끝났을 때 `remove()`를 호출하세요. animation이 없다면 `close` 직후 `remove()`를 호출할 수도 있지만, 두 단계를 드러내 두면 나중에 animation을 추가하기 안전합니다.
+
+## 점검 목록
+
+`type` 이름은 안정적으로 유지하고, 어댑터가 필요한 props만 넘기세요. 흐름에 promise가 필요한지 id만 필요한지 결정하고, 시각적인 정책은 어댑터가 책임지게 하세요. 사용자 행동이 부수 효과로 이어진다면 item을 제거하기 전에 명시적인 result로 닫는 방식을 우선하세요.

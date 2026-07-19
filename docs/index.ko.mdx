@@ -1,0 +1,49 @@
+---
+title: "Overlay"
+description: "모달, 토스트, 커스텀 레이어 어댑터를 위한 provider 단위 React 오버레이 런타임."
+---
+
+# Overlay
+
+`@ilokesto/overlay`는 `@ilokesto/store` 위에 만든 작은 React 오버레이 런타임입니다. 애플리케이션에 provider 단위 오버레이 저장소, 기본 host, 명령 훅, 어댑터 계약을 제공합니다. 이 패키지는 의도적으로 modal이나 toast 의미를 코어에 넣지 않습니다. 코어는 overlay item을 열고, 닫고, 제거하고, 모두 비우고, 등록된 어댑터로 렌더링하는 일을 맡습니다. 포커스 관리, backdrop, timer, transition, 표시 방식은 어댑터 패키지나 애플리케이션 어댑터가 결정합니다.
+
+## 설치
+
+```package-install
+@ilokesto/overlay react
+```
+
+여러 오버레이 계열이 하나의 런타임을 공유해야 할 때 이 패키지를 사용하세요. 확인 모달, command palette, sheet, toast, 커스텀 floating layer는 각 item이 `type`을 가지고 그 type에 맞는 어댑터가 등록되어 있다면 같은 lifecycle model을 공유할 수 있습니다.
+
+## 최소 예시
+
+```tsx lineNumbers
+import { OverlayProvider, useOverlay, type OverlayAdapterMap } from '@ilokesto/overlay';
+
+const adapters: OverlayAdapterMap = {
+  confirm: ({ isOpen, close, remove, title }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div role="dialog" aria-modal="true">
+        <h2>{String(title)}</h2>
+        <button onClick={() => close(true)}>Confirm</button>
+        <button onClick={() => close(false)}>Cancel</button>
+        <button onClick={remove}>Dismiss immediately</button>
+      </div>
+    );
+  },
+};
+
+function DeleteButton() {
+  const { display } = useOverlay();
+
+  return <button onClick={() => void display<boolean>({ type: 'confirm', props: { title: 'Delete?' } })}>Delete</button>;
+}
+
+export function App() {
+  return <OverlayProvider adapters={adapters}><DeleteButton /></OverlayProvider>;
+}
+```
+
+작동 흐름은 [빠른 시작](/ko/overlay/quick-start), 설계 모델은 [핵심 개념](/ko/overlay/core-concepts), 재사용 오버레이 패키지를 만들 때 필요한 계약은 [어댑터 계약](/ko/overlay/reference/adapter-contracts)을 읽으세요.

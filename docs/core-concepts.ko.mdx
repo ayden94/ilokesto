@@ -1,0 +1,24 @@
+---
+title: "핵심 개념"
+description: "provider 범위, overlay item, 어댑터, close/remove lifecycle을 이해합니다."
+---
+
+# 핵심 개념
+
+`@ilokesto/overlay`는 네 가지 조각으로 동작합니다. provider 단위 저장소, overlay item, 어댑터 registry, host입니다. 이 작은 모델만으로도 modal, toast, 커스텀 오버레이 동작을 지원할 수 있고, 그런 정책을 코어에 넣지 않아도 됩니다.
+
+## Provider 단위 저장소
+
+`OverlayProvider`는 별도 store를 넘기지 않으면 `createOverlayStore()`로 저장소를 만듭니다. 저장소가 provider에 속하기 때문에 테스트 fixture, 중첩된 app shell, micro-frontend, 독립된 제품 영역이 서로 다른 overlay stack을 가질 수 있습니다. `useOverlay` 뒤에 숨은 전역 싱글턴은 없습니다.
+
+## Overlay item
+
+각 `OverlayItem`은 `id`, `type`, `props`, `status`, `createdAt`, 선택적인 `closeResult`를 가집니다. `type`은 어댑터를 고릅니다. `props`는 런타임 render props와 함께 어댑터에 전달됩니다. `status`는 `open` 또는 `closing`이며, 어댑터가 `remove()`를 호출하기 전에 exit 상태를 렌더링할 수 있게 합니다.
+
+## 어댑터 registry와 host
+
+`OverlayHost`는 `useOverlayItems()`로 현재 item 목록을 구독하고, 각 item을 `adapters[item.type]`으로 렌더링합니다. 어댑터가 없으면 해당 item은 렌더링되지 않습니다. 따라서 어댑터 등록은 애플리케이션 경계입니다. 런타임은 어떤 overlay 계열도 host할 수 있지만, 각 계열은 자신의 렌더링과 동작을 제공해야 합니다.
+
+## close와 remove
+
+`close(id, result)`는 상태를 `closing`으로 바꾸고 결과를 저장합니다. `remove(id)`는 item을 제거하고 `display()`가 만든 promise를 완료합니다. `clear()`는 모든 item을 제거하고 대기 중인 결과를 정리합니다. transition을 추가할 때 가장 중요한 lifecycle 규칙이 바로 이 분리입니다.

@@ -1,0 +1,16 @@
+---
+title: "Lifecycle model"
+description: "open, closing, remove, clear, promise 완료 순서입니다."
+---
+
+# Lifecycle model
+
+Lifecycle은 의도적으로 작습니다. `open`은 `status: 'open'`인 item과 대기 중인 promise를 만듭니다. `close`는 그 item을 `status: 'closing'`으로 바꾸고 선택적인 result를 저장합니다. `remove`는 저장된 result로 promise를 완료하고 item을 삭제합니다. `clear`는 현재 모든 item을 완료하고 삭제합니다.
+
+이 설계는 animation과 cleanup을 분리합니다. 어댑터는 `status`에 반응하고 CSS transition, spring animation, timer가 끝난 뒤 `remove()`를 호출할 수 있습니다. 어댑터가 close 없이 remove하면 `display`를 기다리던 호출자는 `undefined`를 받습니다. 이 동작은 갑작스러운 teardown에는 유용하지만, 사용자 결정은 보통 먼저 명시적인 result로 close하는 편이 좋습니다.
+
+`isOpen`만 lifecycle 신호로 다루지 마세요. 이는 `status === 'open'`에 대한 편의 boolean입니다. 복잡한 어댑터는 `status`도 함께 읽어야 합니다.
+
+## 설계 요점
+
+런타임 안에 숨긴 편의보다 명시적인 경계를 우선하세요. 어떤 결정이 제품 의미에 의존한다면 코어 밖에 두고 어댑터가 책임지게 하세요. 모든 overlay item에 반드시 필요한 결정이라면 공유 lifecycle 계약에 들어갈 후보가 됩니다.

@@ -1,0 +1,16 @@
+---
+title: "Lifecycle model"
+description: "The open, closing, remove, clear, and promise-settlement sequence."
+---
+
+# Lifecycle model
+
+The lifecycle is intentionally small. `open` creates an item with `status: 'open'` and a pending promise. `close` changes that item to `status: 'closing'` and stores the optional result. `remove` settles the promise with the stored result and deletes the item. `clear` settles and deletes all current items.
+
+This design keeps animation and cleanup separate. Adapters can react to `status` and call `remove()` after a CSS transition, spring animation, or timer. If an adapter removes without closing, callers waiting on `display` receive `undefined`. That behavior is useful for abrupt teardown, but user decisions should usually close with an explicit result first.
+
+Do not treat `isOpen` as the only lifecycle signal. It is a convenience boolean for `status === 'open'`; complex adapters should also read `status`.
+
+## Design takeaway
+
+Prefer explicit boundaries over convenience hidden in the runtime. If a decision depends on product semantics, keep it outside the core and make the adapter own it. If a decision is required for every overlay item, it is a better candidate for the shared lifecycle contract.

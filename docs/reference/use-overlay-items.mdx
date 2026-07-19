@@ -1,0 +1,22 @@
+---
+title: "useOverlayItems"
+description: "Subscribe to the current overlay item list with React external store semantics."
+---
+
+# useOverlayItems
+
+`useOverlayItems()` returns the current `ReadonlyArray<OverlayItem>`. It uses `useSyncExternalStore` with the provider store's `subscribe`, `getSnapshot`, and `getInitialSnapshot`, so React receives consistent snapshots during rendering.
+
+```tsx lineNumbers
+function OverlayDebugPanel() {
+  const items = useOverlayItems();
+
+  return <pre>{JSON.stringify(items, null, 2)}</pre>;
+}
+```
+
+Most apps do not need this hook directly because `OverlayHost` already uses it. It becomes useful for diagnostics, custom host experiments, analytics panels, or test-only components. Do not mutate the returned items. Treat them as a read-only snapshot and use `useOverlay` commands to change lifecycle state.
+
+## Practical note
+
+The reference pages describe the runtime contract exactly. Guides may wrap these APIs into product-specific helpers, but those helpers should keep the same lifecycle language: open creates an item, close starts a closing state, remove settles and deletes an item, and clear ends every pending overlay in the provider scope.

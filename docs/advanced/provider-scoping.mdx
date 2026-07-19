@@ -1,0 +1,23 @@
+---
+title: "Provider scoping"
+description: "Why the runtime uses provider-scoped stores instead of a global singleton."
+---
+
+# Provider scoping
+
+A global overlay singleton is convenient until an application needs isolation. Provider scoping keeps overlay state close to the UI tree that owns it. Tests can create a fresh store for each case, embedded widgets can avoid interfering with the host page, and nested shells can intentionally separate internal overlays from global app overlays.
+
+```tsx lineNumbers
+const store = createOverlayStore();
+render(
+  <OverlayProvider adapters={adapters} store={store}>
+    <Feature />
+  </OverlayProvider>,
+);
+```
+
+The tradeoff is that hooks require provider placement. That is intentional: a missing provider is a configuration error, not something the runtime silently repairs with a global fallback. If an overlay should cross a route or shell boundary, move the provider to the shared boundary or pass a store explicitly.
+
+## Design takeaway
+
+Prefer explicit boundaries over convenience hidden in the runtime. If a decision depends on product semantics, keep it outside the core and make the adapter own it. If a decision is required for every overlay item, it is a better candidate for the shared lifecycle contract.

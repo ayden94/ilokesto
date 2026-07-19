@@ -1,0 +1,81 @@
+---
+title: "Quick start"
+description: "Register an adapter, mount OverlayProvider, and open an async confirmation overlay."
+---
+
+# Quick start
+
+This guide builds a confirmation overlay that resolves a typed result. The runtime does not ship a visual dialog component; instead you register an adapter and let `OverlayHost` render it when a matching item is opened.
+
+## 1. Install
+
+```package-install
+@ilokesto/overlay react
+```
+
+## 2. Create an adapter map
+
+```tsx lineNumbers
+import type { OverlayAdapterMap } from '@ilokesto/overlay';
+
+export const overlayAdapters: OverlayAdapterMap = {
+  confirm: ({ isOpen, status, close, remove, title, description }) => {
+    if (!isOpen && status !== 'closing') return null;
+
+    return (
+      <div role="dialog" aria-modal="true" data-state={status}>
+        <h2>{String(title)}</h2>
+        {description ? <p>{String(description)}</p> : null}
+        <button onClick={() => close(true)}>Confirm</button>
+        <button onClick={() => close(false)}>Cancel</button>
+        {status === 'closing' ? <button onClick={remove}>Remove</button> : null}
+      </div>
+    );
+  },
+};
+```
+
+`close(result)` marks the item as `closing` and stores the result. `remove()` removes the item from the store and settles the pending promise. This split lets adapters play an exit animation before removing the item.
+
+## 3. Mount the provider
+
+```tsx lineNumbers
+import { OverlayProvider } from '@ilokesto/overlay';
+import { overlayAdapters } from './overlay-adapters';
+
+export function App() {
+  return (
+    <OverlayProvider adapters={overlayAdapters}>
+      <Routes />
+    </OverlayProvider>
+  );
+}
+```
+
+`OverlayProvider` creates a provider-scoped store by default and mounts `OverlayHost` after its children. Everything that calls `useOverlay` must be inside this provider.
+
+## 4. Open the overlay
+
+```tsx lineNumbers
+import { useOverlay } from '@ilokesto/overlay';
+
+function DeleteButton() {
+  const { display } = useOverlay();
+
+  async function handleDelete() {
+    const confirmed = await display<boolean>({
+      type: 'confirm',
+      props: {
+        title: 'Delete this project?',
+        description: 'This action cannot be undone.',
+      },
+    });
+
+    if (confirmed) await deleteProject();
+  }
+
+  return <button onClick={() => void handleDelete()}>Delete</button>;
+}
+```
+
+Use `display<TResult>()` when the caller should wait for a result. Use `open()` when you only need the generated id and will manage lifecycle separately.

@@ -1,0 +1,26 @@
+---
+title: "커스텀 어댑터"
+description: "modal, toast, sheet, 커스텀 layer 계열의 어댑터 컴포넌트를 만듭니다."
+---
+
+# 커스텀 어댑터
+
+커스텀 어댑터는 런타임 props와 `display` 또는 `open`에서 넘긴 props를 함께 받습니다. 런타임은 `Record<string, unknown>`만 요구하지만, item props는 작고 직렬화하기 쉬운 모양으로 유지하는 편이 디버깅에 좋습니다.
+
+```tsx lineNumbers
+function ToastAdapter({ isOpen, close, remove, message, tone = 'info' }: OverlayRenderProps & { message?: unknown; tone?: unknown }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => close(), 3000);
+    return () => window.clearTimeout(timer);
+  }, [close, isOpen]);
+
+  return <div data-tone={String(tone)} onAnimationEnd={() => !isOpen && remove()}>{String(message)}</div>;
+}
+```
+
+focus trap, scroll lock, timer, 중복 제거, animation 정책은 여기 또는 상위 패키지에 두세요. 특정 overlay 계열에만 필요한 결정을 overlay 코어로 밀어 넣지 않는 것이 좋습니다.
+
+## 점검 목록
+
+`type` 이름은 안정적으로 유지하고, 어댑터가 필요한 props만 넘기세요. 흐름에 promise가 필요한지 id만 필요한지 결정하고, 시각적인 정책은 어댑터가 책임지게 하세요. 사용자 행동이 부수 효과로 이어진다면 item을 제거하기 전에 명시적인 result로 닫는 방식을 우선하세요.

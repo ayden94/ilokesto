@@ -1,0 +1,26 @@
+---
+title: "Entrypoints"
+description: "Import the React runtime and contracts from the root package."
+---
+
+# Entrypoints
+
+`@ilokesto/overlay` exposes one root entrypoint. Runtime exports are `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, and `useOverlayItems`. Contract types include `OverlayAdapterComponent`, `OverlayAdapterMap`, `OverlayRenderProps`, `DisplayOptions`, `OverlayId`, `OverlayItem`, `OverlayRequest`, `OverlayState`, `OverlayStatus`, `OverlayStoreApi`, `OverlayProviderProps`, and `UseOverlayReturn`.
+
+```ts lineNumbers
+import {
+  OverlayProvider,
+  useOverlay,
+  useOverlayItems,
+  createOverlayStore,
+  type OverlayAdapterMap,
+  type OverlayRenderProps,
+  type OverlayStoreApi,
+} from '@ilokesto/overlay';
+```
+
+The package has a React peer dependency because providers, hosts, and hooks are React APIs. The store is built on `@ilokesto/store`, but applications usually interact with it through the provider and hooks rather than constructing store operations by hand.
+
+## Practical note
+
+The reference pages describe the runtime contract exactly. Guides may wrap these APIs into product-specific helpers, but those helpers should keep the same lifecycle language: open creates an item, close starts a closing state, remove settles and deletes an item, and clear ends every pending overlay in the provider scope.

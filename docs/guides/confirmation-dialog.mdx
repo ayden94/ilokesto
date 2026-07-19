@@ -1,0 +1,26 @@
+---
+title: "Confirmation dialog"
+description: "Build a confirm helper around display<TResult>()."
+---
+
+# Confirmation dialog
+
+A confirmation dialog is the clearest use case for `display<TResult>()`. The caller wants to pause until the user chooses yes or no, while the adapter owns presentation and accessibility details.
+
+```tsx lineNumbers
+function useConfirm() {
+  const { display } = useOverlay();
+
+  return (message: string) =>
+    display<boolean>({
+      type: 'confirm',
+      props: { title: message },
+    });
+}
+```
+
+The adapter should call `close(true)` for confirm and `close(false)` for cancel. If it has an exit animation, render while `status === 'closing'` and call `remove()` when the animation ends. If it has no animation, it can call `remove()` immediately after `close`, but keeping the two steps visible makes future animation work safer.
+
+## Checklist
+
+Keep `type` names stable, pass only the props an adapter needs, decide whether the flow needs a promise or only an id, and make the adapter responsible for visual policy. When a user action has side effects, prefer closing with an explicit result before removing the item.

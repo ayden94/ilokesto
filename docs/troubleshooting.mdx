@@ -1,0 +1,26 @@
+---
+title: "Troubleshooting"
+description: "Common mistakes around providers, adapters, lifecycle, and async results."
+---
+
+# Troubleshooting
+
+## `useOverlay` throws a provider error
+
+`useOverlay` and `useOverlayItems` must run under `OverlayProvider`. Move the provider higher in the React tree or pass a shared store to the provider that owns the feature.
+
+## Nothing renders after `display()`
+
+Check the `type` passed to `display` or `open`. `OverlayHost` looks up `adapters[item.type]`. If no adapter exists for that key, the item renders nothing. Also confirm that `OverlayProvider` receives the adapter map you expect.
+
+## The promise never resolves
+
+`display()` resolves when the item is removed. Calling `close(result)` only marks the item as `closing` and stores the result. The adapter should call `remove()` after any exit animation. If no animation is needed, call `remove()` immediately after closing.
+
+## Result is `undefined`
+
+`undefined` means the item was removed or cleared without a close result. For user decisions, call `close(value)` first. Reserve abrupt `remove` or `clear` for teardown, route transitions, or cancellation flows where no decision was made.
+
+## Modal behavior is missing
+
+The core is headless about modal semantics. Add focus trap, scroll lock, escape key handling, aria labels, and backdrop policy in your modal adapter or in a higher-level modal package.

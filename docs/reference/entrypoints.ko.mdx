@@ -1,0 +1,26 @@
+---
+title: "진입점"
+description: "루트 패키지에서 React 런타임과 계약 타입을 가져옵니다."
+---
+
+# 진입점
+
+`@ilokesto/overlay`는 하나의 루트 진입점을 노출합니다. 런타임 export는 `createOverlayStore`, `OverlayProvider`, `OverlayHost`, `useOverlay`, `useOverlayItems`입니다. 계약 타입에는 `OverlayAdapterComponent`, `OverlayAdapterMap`, `OverlayRenderProps`, `DisplayOptions`, `OverlayId`, `OverlayItem`, `OverlayRequest`, `OverlayState`, `OverlayStatus`, `OverlayStoreApi`, `OverlayProviderProps`, `UseOverlayReturn`이 있습니다.
+
+```ts lineNumbers
+import {
+  OverlayProvider,
+  useOverlay,
+  useOverlayItems,
+  createOverlayStore,
+  type OverlayAdapterMap,
+  type OverlayRenderProps,
+  type OverlayStoreApi,
+} from '@ilokesto/overlay';
+```
+
+provider, host, hook이 React API이기 때문에 패키지는 React를 peer dependency로 둡니다. 저장소는 `@ilokesto/store` 위에 만들어졌지만, 애플리케이션은 보통 저장소 명령을 직접 조립하기보다 provider와 hook을 통해 사용합니다.
+
+## 실무 메모
+
+레퍼런스 문서는 런타임 계약을 정확히 설명합니다. 가이드에서는 이 API를 제품별 helper로 감쌀 수 있지만, 같은 lifecycle 언어를 유지해야 합니다. open은 item을 만들고, close는 closing 상태를 시작하며, remove는 item을 완료하고 삭제하고, clear는 provider 범위의 모든 대기 중인 overlay를 끝냅니다.
