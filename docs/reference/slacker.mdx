@@ -1,0 +1,38 @@
+---
+title: "Slacker"
+description: "Lazy-load data when content becomes visible."
+---
+
+# Slacker
+
+`Slacker` combines `Observer` with a `loader`. It waits until the element enters the viewport, runs the loader, and renders `children(loadedData)` when data is available.
+
+```tsx lineNumbers
+import { Slacker } from '@ilokesto/utilinent';
+
+<Slacker
+  loader={() => fetch('/api/recommendations').then((res) => res.json())}
+  loadingFallback={<p>Loading recommendations...</p>}
+  errorFallback={({ error, retry }) => (
+    <button onClick={retry}>Retry: {error?.message}</button>
+  )}
+>
+  {(items) => <RecommendationList items={items} />}
+</Slacker>
+```
+
+## Props
+
+| Prop | Description |
+| --- | --- |
+| `loader` | Required function returning data or a promise. |
+| `children` | Function that receives loaded data. |
+| `loadingFallback` | UI while the loader is running. |
+| `errorFallback` | Node or function receiving `{ isLoading, error, retry }`. |
+| `threshold`, `rootMargin` | Passed to `Observer`. Defaults are `0.1` and `"50px"`. |
+| `maxRetries`, `retryDelay` | Optional automatic retry behavior. |
+| `onError` | Called with loader errors. |
+
+## Guidance
+
+Keep `loader` stable with `useCallback` when it is declared inside a component. A changing loader can cause work to restart. Use `Slacker` for below-the-fold panels, expensive recommendations, or optional UI that should not load until visible.

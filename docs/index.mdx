@@ -1,0 +1,59 @@
+---
+title: "Utilinent"
+description: "Official documentation for @ilokesto/utilinent, React rendering utilities for clear conditional, list, async, and slot composition."
+---
+
+# Utilinent
+
+`@ilokesto/utilinent` is a React utility component package for rendering patterns that otherwise become noisy JSX: conditionals, list rendering, repeated nodes, switch-style branches, lazy intersection loading, async mounting, slots, and polymorphic proxy tags.
+
+It does not replace React state, routing, data fetching, or a component library. It gives small declarative building blocks so UI intent stays visible in the markup.
+
+## Install
+
+```package-install
+@ilokesto/utilinent
+```
+
+`react` is a peer dependency and must already be installed by your app.
+
+## Minimal example
+
+```tsx lineNumbers
+import { For, Show } from '@ilokesto/utilinent';
+
+type User = { id: string; name: string };
+
+export function UserList({ users, loading }: { users?: User[]; loading: boolean }) {
+  return (
+    <Show when={!loading} fallback={<p>Loading users...</p>}>
+      <For.ul each={users} fallback={<p>No users found.</p>}>
+        {(user) => <li key={user.id}>{user.name}</li>}
+      </For.ul>
+    </Show>
+  );
+}
+```
+
+`Show` handles the conditional branch. `For.ul` renders the list inside a real `<ul>` and shows a fallback when the array is empty or missing.
+
+## What it gives you
+
+- Conditional rendering with [`Show`](/en/utilinent/reference/show).
+- List rendering with [`For`](/en/utilinent/reference/for).
+- Numeric repetition with [`Repeat`](/en/utilinent/reference/repeat).
+- First-match branching with [`Switch` and `Match`](/en/utilinent/reference/switch-match).
+- Async child resolution with [`Mount`](/en/utilinent/reference/mount).
+- Intersection-aware rendering with [`Observer`](/en/utilinent/reference/observer) and [`Slacker`](/en/utilinent/reference/slacker).
+- Slot-style prop merging with [`Slot` and `Slottable`](/en/utilinent/reference/slot).
+- Conditional wrapping with [`OptionalWrapper`](/en/utilinent/reference/optional-wrapper).
+- Custom proxy components through [`PluginManager`](/en/utilinent/reference/plugin-manager).
+
+## Documentation map
+
+- [Quick start](/en/utilinent/quick-start): convert a loading/empty/list component.
+- [Core concepts](/en/utilinent/core-concepts): truthiness, fallbacks, proxy tags, and composition.
+- [Reference](/en/utilinent/reference/show): exact behavior for every exported component and helper.
+- [Guides](/en/utilinent/guides/async-data): practical recipes for async data, lists, polymorphic tags, lazy loading, and custom proxy components.
+- [React integration](/en/utilinent/integrations/react): how these components fit normal React applications.
+- [Troubleshooting](/en/utilinent/troubleshooting): common mistakes and fixes.

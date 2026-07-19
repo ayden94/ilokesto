@@ -1,0 +1,18 @@
+{
+  "title": "Reference",
+  "defaultOpen": true,
+  "pages": [
+    "show",
+    "for",
+    "repeat",
+    "switch-match",
+    "mount",
+    "observer",
+    "slacker",
+    "slot",
+    "optional-wrapper",
+    "use-intersection-observer",
+    "plugin-manager",
+    "proxy-types"
+  ]
+}

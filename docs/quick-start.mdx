@@ -1,0 +1,99 @@
+---
+title: "Quick start"
+description: "Replace nested loading, empty, and list JSX with Show and For."
+---
+
+# Quick start
+
+This page turns a common React data component into declarative utilinent markup.
+
+## 1. Install
+
+```bash lineNumbers
+pnpm add @ilokesto/utilinent
+```
+
+## 2. Start from the ordinary React version
+
+```tsx lineNumbers
+type User = { id: string; name: string };
+
+export function UserList({ users, loading }: { users?: User[]; loading: boolean }) {
+  if (loading) return <p>Loading users...</p>;
+  if (!users || users.length === 0) return <p>No users found.</p>;
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+This is fine for one component. As screens grow, the same loading, empty, and list branches are often repeated inline.
+
+## 3. Use Show for the loading branch
+
+```tsx lineNumbers
+import { Show } from '@ilokesto/utilinent';
+
+<Show when={!loading} fallback={<p>Loading users...</p>}>
+  {/* content when loading is false */}
+</Show>
+```
+
+`Show` renders `children` when `when` is truthy and `fallback` otherwise.
+
+## 4. Use For for the array branch
+
+```tsx lineNumbers
+import { For } from '@ilokesto/utilinent';
+
+<For.ul each={users} fallback={<p>No users found.</p>}>
+  {(user) => <li key={user.id}>{user.name}</li>}
+</For.ul>
+```
+
+`For.ul` renders the list items inside a real `<ul>`. Use `For` without a tag when you do not want a wrapper element.
+
+## 5. Compose the final component
+
+```tsx lineNumbers
+import { For, Show } from '@ilokesto/utilinent';
+
+type User = { id: string; name: string };
+
+export function UserList({ users, loading }: { users?: User[]; loading: boolean }) {
+  return (
+    <Show when={!loading} fallback={<p>Loading users...</p>}>
+      <For.ul each={users} fallback={<p>No users found.</p>}>
+        {(user) => <li key={user.id}>{user.name}</li>}
+      </For.ul>
+    </Show>
+  );
+}
+```
+
+## 6. Add richer branches when needed
+
+```tsx lineNumbers
+<Show.section
+  when={!loading}
+  fallback={<UserListSkeleton />}
+  aria-busy={loading}
+>
+  <For.ul each={users} fallback={<EmptyUsers />}> 
+    {(user) => <UserRow key={user.id} user={user} />}
+  </For.ul>
+</Show.section>
+```
+
+Proxy tags such as `Show.section` and `For.ul` pass DOM props and refs to the underlying element.
+
+## Next steps
+
+- Learn the mental model in [Core concepts](/en/utilinent/core-concepts).
+- Read exact behavior in [`Show`](/en/utilinent/reference/show) and [`For`](/en/utilinent/reference/for).
+- Use [Async data guide](/en/utilinent/guides/async-data) for loading/error/success layouts.

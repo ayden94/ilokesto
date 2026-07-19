@@ -1,0 +1,26 @@
+---
+title: "React 연동"
+description: "client 및 server-rendered application에서 utilinent를 일반 React component처럼 사용합니다."
+---
+
+# React 연동
+
+`@ilokesto/utilinent`는 React component를 export합니다. 사용하는 것만 root package에서 import하세요.
+
+```tsx lineNumbers
+import { For, Show, Slot } from '@ilokesto/utilinent';
+```
+
+## Component boundary
+
+`Show`, `For`, `Repeat`, `Switch` 같은 pure rendering helper는 state를 소유하지 않고 markup을 설명합니다. `Mount`, `Observer`, `Slacker`, `useIntersectionObserver`처럼 hook 또는 browser API를 사용하는 항목은 client-side React context에서 실행되어야 합니다.
+
+## Composition style
+
+Branch structure가 더 명확해지는 곳에 utilinent를 사용하세요. 직접 `&&` 또는 작은 `map`이 더 명확하다면 ordinary JSX를 유지해도 됩니다.
+
+```tsx lineNumbers
+<Show when={user} fallback={<LoginLink />}>
+  {(currentUser) => <Dashboard user={currentUser} />}
+</Show>
+```

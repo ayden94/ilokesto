@@ -1,0 +1,58 @@
+---
+title: "PluginManager"
+description: "Show.Link 또는 For.motionUl 같은 proxy property용 custom component를 등록합니다."
+---
+
+# PluginManager
+
+`PluginManager`는 proxy component가 property name으로 찾을 수 있는 custom component를 저장합니다.
+
+```tsx lineNumbers
+import { PluginManager, Show } from '@ilokesto/utilinent';
+import Link from 'next/link';
+
+PluginManager.register({
+  show: { Link },
+});
+
+<Show.Link when={href} href={href} fallback={null}>
+  Read more
+</Show.Link>
+```
+
+## Category
+
+Built-in category는 `show`, `for`, `repeat`, `mount`, `switch`, `base`입니다. `base`에 등록한 component는 모든 proxy category에서 사용할 수 있습니다.
+
+```ts lineNumbers
+PluginManager.register({
+  base: { Card: ProductCard },
+  for: { Grid: ProductGrid },
+});
+```
+
+## Method
+
+| Method | 설명 |
+| --- | --- |
+| `register(plugins)` | category별 component를 추가합니다. |
+| `get(category, name)` | 등록된 component를 가져옵니다. |
+| `getAll(category)` | category map을 가져옵니다. |
+| `has(category, name)` | component 존재 여부를 확인합니다. |
+| `unregister(category, name)` | component를 제거합니다. |
+
+## Type augmentation
+
+TypeScript가 custom proxy property를 알 수 있도록 `UtilinentRegister`를 augment하세요.
+
+```ts lineNumbers
+import type Link from 'next/link';
+
+declare module '@ilokesto/utilinent' {
+  interface UtilinentRegister {
+    show: {
+      Link: typeof Link;
+    };
+  }
+}
+```

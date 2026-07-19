@@ -1,0 +1,32 @@
+---
+title: "Repeat"
+description: "숫자 count로 fixed number의 children을 렌더링합니다."
+---
+
+# Repeat
+
+`Repeat`는 `children(index)`를 `times`만큼 렌더링합니다. `times`가 positive integer가 아니면 `fallback`을 렌더링합니다.
+
+```tsx lineNumbers
+import { Repeat } from '@ilokesto/utilinent';
+
+<Repeat times={3}>{(index) => <SkeletonCard key={index} />}</Repeat>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `times` | `number` | Children을 렌더링하려면 positive integer여야 합니다. |
+| `children` | `(index) => ReactNode` | `0`부터 `times - 1`까지 각 index마다 호출됩니다. |
+| `fallback` | `ReactNode` | invalid 또는 non-positive count일 때 렌더링됩니다. |
+
+## Tag form
+
+```tsx lineNumbers
+<Repeat.ul times={5} aria-label="loading rows">
+  {(index) => <li key={index}>Loading row {index + 1}</li>}
+</Repeat.ul>
+```
+
+Skeleton, placeholder star, fixed grid slot, 반복 decoration에 사용하세요.

@@ -1,0 +1,58 @@
+---
+title: "PluginManager"
+description: "Register custom components for proxy properties such as Show.Link or For.motionUl."
+---
+
+# PluginManager
+
+`PluginManager` stores custom components that proxy components can discover by property name.
+
+```tsx lineNumbers
+import { PluginManager, Show } from '@ilokesto/utilinent';
+import Link from 'next/link';
+
+PluginManager.register({
+  show: { Link },
+});
+
+<Show.Link when={href} href={href} fallback={null}>
+  Read more
+</Show.Link>
+```
+
+## Categories
+
+Built-in categories are `show`, `for`, `repeat`, `mount`, `switch`, and `base`. Components registered under `base` are available to every proxy category.
+
+```ts lineNumbers
+PluginManager.register({
+  base: { Card: ProductCard },
+  for: { Grid: ProductGrid },
+});
+```
+
+## Methods
+
+| Method | Description |
+| --- | --- |
+| `register(plugins)` | Add components by category. |
+| `get(category, name)` | Get a registered component. |
+| `getAll(category)` | Get the category map. |
+| `has(category, name)` | Check whether a component exists. |
+| `unregister(category, name)` | Remove a component. |
+
+## Type augmentation
+
+Augment `UtilinentRegister` so TypeScript knows about custom proxy properties.
+
+```ts lineNumbers
+import type Link from 'next/link';
+
+declare module '@ilokesto/utilinent' {
+  interface UtilinentRegister {
+    show: {
+      Link: typeof Link;
+    };
+  }
+}
+```

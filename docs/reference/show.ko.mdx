@@ -1,0 +1,50 @@
+---
+title: "Show"
+description: "fallback, render function, array truthiness, proxy tag를 지원하는 조건부 렌더링입니다."
+---
+
+# Show
+
+`Show`는 `when`이 true로 resolve되면 `children`을, 아니면 `fallback`을 렌더링합니다.
+
+```tsx lineNumbers
+import { Show } from '@ilokesto/utilinent';
+
+<Show when={user} fallback={<LoginLink />}>
+  {(currentUser) => <UserMenu user={currentUser} />}
+</Show>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `when` | `T` 또는 `T[]` | 조건 값입니다. Array는 모든 item이 truthy일 때만 true입니다. |
+| `children` | `ReactNode` 또는 function | `when`이 true일 때 렌더링됩니다. Function children은 truthy value를 받습니다. |
+| `fallback` | `ReactNode` | `when`이 false일 때 렌더링됩니다. 기본값은 `null`입니다. |
+
+## Array condition
+
+```tsx lineNumbers
+<Show when={[session, permissions.canEdit]} fallback={<ReadOnly />}>
+  <Editor />
+</Show>
+```
+
+Array condition은 `every(Boolean)`을 사용하므로 “모든 요구사항이 있어야 함”을 간결하게 표현할 수 있습니다.
+
+## Proxy tag
+
+```tsx lineNumbers
+<Show.section when={open} className="panel" fallback={<Skeleton />}>
+  <Settings />
+</Show.section>
+```
+
+`Show.section`은 `<section>`을 만들고 DOM props/ref를 전달한 뒤 resolved branch를 element 안에 넣습니다.
+
+## Caveat
+
+- `0`, `''`, `false`, `null`, `undefined`는 falsy입니다.
+- Function children은 boolean이 아니라 원래 `when` value를 받습니다.
+- 복잡한 조건이 domain logic이라면 JSX 전에 계산하는 편이 좋습니다.

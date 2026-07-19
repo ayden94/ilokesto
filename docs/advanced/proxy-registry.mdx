@@ -1,0 +1,14 @@
+---
+title: "Proxy registry internals"
+description: "How proxy tags and PluginManager lookup work."
+---
+
+# Proxy registry internals
+
+Proxy components are created by combining a base renderer, all known HTML tags, and a `Proxy` lookup. When a property exists on the generated target, it is returned directly. Otherwise utilinent checks the requested category and then `base` in `PluginManager`.
+
+This means `Show.div` is available immediately, while `Show.Link` appears after `PluginManager.register({ show: { Link } })`.
+
+## Caching
+
+When a plugin-backed property is resolved, utilinent stores the specialized component on the current proxy target. Register plugins before rendering code that reads the property.

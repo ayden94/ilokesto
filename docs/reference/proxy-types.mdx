@@ -1,0 +1,24 @@
+---
+title: "Proxy and exported types"
+description: "createProxy, UtilinentRegister, BaseTypeHelperFn, and ProxyType."
+---
+
+# Proxy and exported types
+
+Most users only need the ready-made components. The package also exports lower-level proxy utilities for advanced component authors.
+
+## `createProxy`
+
+`createProxy(base, renderForTag, category)` builds the object behind `Show.div`, `For.ul`, `Repeat.section`, and plugin-backed properties.
+
+Use it when building a new utilinent-style component with the same HTML-tag and plugin behavior.
+
+## Type exports
+
+| Export | Purpose |
+| --- | --- |
+| `UtilinentRegister` | Module augmentation interface for plugin component typing. |
+| `BaseTypeHelperFn` | Helper interface used to map props into proxy call signatures. |
+| `ProxyType` | Builds the final proxy type with HTML tags and registered components. |
+
+These types are power-user APIs. Prefer `PluginManager.register` and existing components unless you are creating a new proxy component family.

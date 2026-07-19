@@ -1,0 +1,36 @@
+---
+title: "Mount"
+description: "직접 children, synchronous function, promise 기반 children을 fallback과 error handling으로 resolve합니다."
+---
+
+# Mount
+
+`Mount`는 직접 children을 즉시 렌더링합니다. `children`이 function이면 mount 후 function을 호출하고 결과가 resolve될 때까지 `fallback`을 렌더링합니다.
+
+```tsx lineNumbers
+import { Mount } from '@ilokesto/utilinent';
+
+<Mount fallback={<p>Preparing preview...</p>}>
+  {async () => <Preview data={await loadPreview()} />}
+</Mount>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `children` | `ReactNode`; `() => ReactNode`; `Promise<ReactNode>` | 직접 node 또는 node-producing function입니다. |
+| `fallback` | `ReactNode` | Function child가 pending이거나 error 이후 렌더링됩니다. |
+| `onError` | `(error) => void` | Child function이 throw/reject하면 호출됩니다. |
+
+## Tag form
+
+```tsx lineNumbers
+<Mount.div fallback={<Spinner />} className="preview">
+  {() => <Preview />}
+</Mount.div>
+```
+
+## Race safety
+
+`Mount`는 call id를 추적해서 cleanup 이후나 더 최신 call 이후 도착한 stale async result를 무시합니다. 불필요한 재시작을 피하려면 `children`과 `onError` function을 가능하면 안정적으로 유지하세요.

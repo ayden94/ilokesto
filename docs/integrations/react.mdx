@@ -1,0 +1,26 @@
+---
+title: "React"
+description: "Use utilinent as ordinary React components in client and server-rendered applications."
+---
+
+# React
+
+`@ilokesto/utilinent` exports React components. Import the pieces you use from the root package.
+
+```tsx lineNumbers
+import { For, Show, Slot } from '@ilokesto/utilinent';
+```
+
+## Component boundaries
+
+Pure rendering helpers such as `Show`, `For`, `Repeat`, and `Switch` can describe markup without owning state. Components that use hooks or browser APIs, such as `Mount`, `Observer`, `Slacker`, and `useIntersectionObserver`, should run in client-side React contexts.
+
+## Composition style
+
+Use utilinent where it clarifies branch structure. Keep ordinary JSX when a direct `&&` or a small `map` is clearer.
+
+```tsx lineNumbers
+<Show when={user} fallback={<LoginLink />}>
+  {(currentUser) => <Dashboard user={currentUser} />}
+</Show>
+```

@@ -1,0 +1,39 @@
+---
+title: "Slot and Slottable"
+description: "Merge props into a child element for asChild-style composition."
+---
+
+# Slot and Slottable
+
+`Slot` clones a child element and merges slot props into it. It is useful for `asChild` composition where a wrapper component should pass behavior to the actual child element.
+
+```tsx lineNumbers
+import { Slot } from '@ilokesto/utilinent';
+
+function Button({ asChild, ...props }: React.ComponentProps<'button'> & { asChild?: boolean }) {
+  const Component = asChild ? Slot : 'button';
+  return <Component className="button" {...props} />;
+}
+```
+
+## Prop merging
+
+- Event handlers are chained: child handler runs first, then slot handler.
+- `style` objects are merged, with slot styles taking precedence.
+- `className` strings are joined.
+- Refs are composed when possible.
+
+## Slottable
+
+Use `Slottable` when only one child inside a larger set should receive the merged props.
+
+```tsx lineNumbers
+import { Slot, Slottable } from '@ilokesto/utilinent';
+
+<Slot className="trigger">
+  <span>Prefix</span>
+  <Slottable><a href="/docs">Docs</a></Slottable>
+</Slot>
+```
+
+If the final slotted child is not a valid React element, `Slot` renders `null`.

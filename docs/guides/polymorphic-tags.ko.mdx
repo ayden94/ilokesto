@@ -1,0 +1,25 @@
+---
+title: "Polymorphic tag"
+description: "Show.section, For.ul 같은 proxy tag form을 markup을 숨기지 않고 사용합니다."
+---
+
+# Polymorphic tag
+
+Proxy tag form은 utilinent helper가 wrapper element를 직접 만들게 해줍니다.
+
+```tsx lineNumbers
+<Show.aside when={open} className="sidebar" fallback={null}>
+  <Navigation />
+</Show.aside>
+```
+
+Tag name은 API surface의 일부입니다. DOM에 나타날 element 옆에 condition을 붙여 둘 수 있습니다.
+
+## 언제 tag form을 쓰나
+
+Helper branch가 자연스럽게 wrapper element를 소유할 때 사용하세요. Section, list, article, dialog, button 등이 그렇습니다. Helper가 fragment나 이미 완성된 child element를 반환해야 한다면 base component를 사용하세요.
+
+```tsx lineNumbers
+<For.ul each={items}>{(item) => <li key={item.id}>{item.label}</li>}</For.ul>
+<For each={items}>{(item) => <Card key={item.id} item={item} />}</For>
+```

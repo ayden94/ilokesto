@@ -1,0 +1,90 @@
+---
+title: "핵심 개념"
+description: "utilinent의 truthiness, fallback, proxy tag, composition을 이해합니다."
+---
+
+# 핵심 개념
+
+Utilinent component는 작은 rendering helper입니다. 데이터를 소유하지 않고, 이미 있는 데이터를 어떤 React node로 보여줄지 결정합니다.
+
+## State manager가 아니라 rendering helper
+
+`Show`, `For`, `Repeat`, `Switch`와 다른 component들은 prop을 기준으로 렌더링합니다. Data fetching, response caching, entity normalization, store 생성은 하지 않습니다.
+
+```tsx lineNumbers
+<Show when={user} fallback={<LoginLink />}>
+  {(currentUser) => <UserMenu user={currentUser} />}
+</Show>
+```
+
+`user`는 여전히 parent가 소유합니다. Utilinent는 branch를 읽기 좋게 만들 뿐입니다.
+
+## Truthiness는 명시적입니다
+
+대부분의 condition prop은 JavaScript truthiness를 사용합니다. `Show`와 `Switch` matching에서 array는 특별히 `every(Boolean)`으로 해석됩니다. 여러 조건을 간결하게 표현할 수 있습니다.
+
+```tsx lineNumbers
+<Show when={[user, permissions?.canEdit]} fallback={<ReadOnlyNotice />}>
+  <Editor />
+</Show>
+```
+
+Array item 중 하나라도 falsy이면 branch는 렌더링되지 않습니다.
+
+## Fallback은 핵심 UI입니다
+
+많은 component가 `fallback`을 받습니다. Fallback은 반대 상태의 UI입니다: loading, empty, unavailable, offscreen, invalid count 등.
+
+```tsx lineNumbers
+<For each={items} fallback={<EmptyState />}>
+  {(item) => <ItemCard key={item.id} item={item} />}
+</For>
+```
+
+Fallback을 넘기지 않으면 inactive branch는 보통 `null`을 렌더링합니다.
+
+## Proxy tag는 element를 만듭니다
+
+`Show`, `For`, `Repeat`, `Mount`, `Switch`는 proxy component입니다. 직접 쓰거나 HTML tag property로 쓸 수 있습니다.
+
+```tsx lineNumbers
+<Show when={open}>Plain children</Show>
+
+<Show.section when={open} className="panel">
+  Section children
+</Show.section>
+```
+
+Tag form은 해당 element를 만들고 resolved content를 그 안에 넣습니다. DOM props와 ref는 element로 전달됩니다.
+
+## Plugin component로 proxy tag를 확장합니다
+
+Proxy component는 등록된 custom component도 target으로 삼을 수 있습니다. `PluginManager`로 한 번 등록한 뒤 property로 접근하세요.
+
+```tsx lineNumbers
+import { PluginManager, Show } from '@ilokesto/utilinent';
+import Link from 'next/link';
+
+PluginManager.register({ show: { Link } });
+
+<Show.Link when={href} href={href} fallback={null}>
+  Read more
+</Show.Link>
+```
+
+자세한 내용은 [PluginManager](/ko/utilinent/reference/plugin-manager)와 [custom proxy components](/ko/utilinent/guides/custom-proxy-components)를 보세요.
+
+## 책임별로 조합합니다
+
+각 component는 하나의 rendering 책임을 설명해야 합니다.
+
+- `Show`: render 또는 fallback.
+- `For`: list 또는 empty state.
+- `Repeat`: fixed count 또는 fallback.
+- `Switch` + `Match`: 처음 matching되는 branch.
+- `Mount`: promise를 포함한 node-producing function resolve.
+- `Observer`: element가 viewport와 intersect할 때 render.
+- `Slacker`: visible해질 때 data를 lazy load.
+- `Slot`: child component에 prop merge.
+
+Domain logic이 복잡해지면 component 밖으로 빼세요. Boolean, array, payload를 render 전에 계산하고 utilinent에는 결과를 넘기는 편이 좋습니다.

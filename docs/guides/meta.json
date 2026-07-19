@@ -1,0 +1,11 @@
+{
+  "title": "Guides",
+  "defaultOpen": true,
+  "pages": [
+    "async-data",
+    "list-and-empty-states",
+    "polymorphic-tags",
+    "lazy-loading",
+    "custom-proxy-components"
+  ]
+}

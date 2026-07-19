@@ -1,0 +1,17 @@
+---
+title: "SSR and browser APIs"
+description: "Understand which utilinent pieces depend on effects, browser APIs, or client boundaries."
+---
+
+# SSR and browser APIs
+
+Some utilinent components are pure render helpers. Others use effects or browser APIs.
+
+| API | SSR note |
+| --- | --- |
+| `Show`, `For`, `Repeat`, `Switch` | Pure rendering helpers for already available data. |
+| `Mount` | Uses effects to resolve function children after mount. |
+| `Observer`, `Slacker`, `useIntersectionObserver` | Depend on `IntersectionObserver` in the browser. |
+| `Slot`, `OptionalWrapper` | Composition helpers; safe when children are valid for the runtime. |
+
+In Next.js App Router, put browser/effect-based usage behind a Client Component boundary.

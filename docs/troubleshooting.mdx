@@ -1,0 +1,30 @@
+---
+title: "Troubleshooting"
+description: "Common utilinent mistakes and how to fix them."
+---
+
+# Troubleshooting
+
+## `For` renders fallback even though I expected rows
+
+Check whether `each` is `null`, `undefined`, or an empty array. `For` is the API for list emptiness; `Show` array truthiness is not a length check.
+
+## My `Show` branch does not render for `0`
+
+`0` is falsy. Pass a boolean condition and render the numeric value separately.
+
+```tsx lineNumbers
+<Show when={count !== null}>{count}</Show>
+```
+
+## `Show.Link` is undefined
+
+Register the component first with `PluginManager.register`, and add `UtilinentRegister` module augmentation for TypeScript.
+
+## Lazy loading never starts
+
+Make sure the observed element has size. `Observer` applies minimal size defaults, but your CSS can still make the element impossible to intersect.
+
+## Next.js complains about hooks or browser APIs
+
+Move `Mount`, `Observer`, `Slacker`, or `useIntersectionObserver` usage into a Client Component with `'use client'`.

@@ -1,0 +1,37 @@
+---
+title: "Async data guide"
+description: "Structure loading, error, empty, and success UI with utilinent components."
+---
+
+# Async data guide
+
+Async UI usually has four states: loading, error, empty, and success. Utilinent keeps each state visible without deeply nested ternaries.
+
+```tsx lineNumbers
+import { For, Show } from '@ilokesto/utilinent';
+
+export function Products({ data, loading, error }) {
+  return (
+    <Show when={!loading} fallback={<ProductsSkeleton />}>
+      <Show when={!error} fallback={<ErrorPanel error={error} />}>
+        <For.ul each={data?.items} fallback={<EmptyProducts />}>
+          {(product) => <ProductRow key={product.id} product={product} />}
+        </For.ul>
+      </Show>
+    </Show>
+  );
+}
+```
+
+## Recommended order
+
+1. Gate loading first.
+2. Gate error second.
+3. Render the array with `For` and an empty fallback.
+4. Keep row rendering in a small component.
+
+This order mirrors what users see: first wait, then recover from errors, then handle empty or populated data.
+
+## When to use Mount or Slacker
+
+Use `Mount` when the component itself should resolve a node-producing function. Use `Slacker` when loading should not begin until the section becomes visible.

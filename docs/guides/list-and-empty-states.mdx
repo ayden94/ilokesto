@@ -1,0 +1,29 @@
+---
+title: "List and empty states"
+description: "Use For and Repeat to make list, empty, and skeleton states explicit."
+---
+
+# List and empty states
+
+Lists often need both real rows and placeholders. Use `For` for data and `Repeat` for fixed skeleton counts.
+
+```tsx lineNumbers
+import { For, Repeat, Show } from '@ilokesto/utilinent';
+
+export function OrderList({ orders, loading }) {
+  return (
+    <Show when={!loading} fallback={<Repeat times={5}>{(i) => <OrderSkeleton key={i} />}</Repeat>}>
+      <For each={orders} fallback={<EmptyOrders />}>
+        {(order) => <OrderCard key={order.id} order={order} />}
+      </For>
+    </Show>
+  );
+}
+```
+
+## Tips
+
+- Keep real data rendering and placeholder rendering separate.
+- Return keys from the child render function.
+- Prefer `For.ul` or `For.ol` when semantic list markup matters.
+- Use `Repeat` only for fixed counts, not dynamic arrays.

@@ -1,0 +1,29 @@
+---
+title: "Observer"
+description: "Render content when a div intersects the viewport."
+---
+
+# Observer
+
+`Observer` uses `IntersectionObserver` through `useIntersectionObserver` and renders its children only when the observed div is intersecting.
+
+```tsx lineNumbers
+import { Observer } from '@ilokesto/utilinent';
+
+<Observer fallback={<CardPlaceholder />} rootMargin="120px" triggerOnce>
+  <ExpensiveCard />
+</Observer>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode | (isIntersecting) => ReactNode` | Content rendered while intersecting. |
+| `fallback` | `ReactNode` | Rendered while not intersecting. |
+| `threshold` | `number | number[]` | Intersection threshold. Defaults to `0`. |
+| `rootMargin` | `string` | Observer root margin. Defaults to `"0px"`. |
+| `triggerOnce` | `boolean` | Stop observing after first intersection. |
+| `onIntersect` | `(isIntersecting, entry) => void` | Called when entering intersection after initial observation. |
+
+`Observer` renders through `Show.div`, so the observed element is a `div` and accepts normal div props/ref.
