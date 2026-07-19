@@ -13,15 +13,15 @@ const getMotionStyle = (toast: ToastItem, position: ToastPosition): CSSPropertie
   const isClosing = toast.status === "closing";
   const isCenter = position.endsWith("center");
 
-  const enterAnimation = `toast-enter 220ms cubic-bezier(0.21, 1.02, 0.73, 1) forwards`;
-  const exitAnimation = `toast-exit 180ms cubic-bezier(0.06, 0.71, 0.55, 1) forwards`;
+  const enterAnimation = `toast-enter 320ms cubic-bezier(0.21, 1.02, 0.73, 1) forwards`;
+  const exitAnimation = `toast-exit 220ms cubic-bezier(0.4, 0, 1, 1) forwards`;
 
   return {
     animation: isClosing ? exitAnimation : enterAnimation,
-    "--toast-enter-y": position.startsWith("top") ? "-14px" : "14px",
-    "--toast-exit-y": position.startsWith("top") ? "-10px" : "10px",
-    "--toast-enter-x": isCenter ? "0px" : position.endsWith("left") ? "-18px" : "18px",
-    "--toast-exit-x": isCenter ? "0px" : position.endsWith("left") ? "-14px" : "14px",
+    "--toast-enter-y": position.startsWith("top") ? "-24px" : "24px",
+    "--toast-exit-y": position.startsWith("top") ? "-18px" : "18px",
+    "--toast-enter-x": isCenter ? "0px" : position.endsWith("left") ? "-22px" : "22px",
+    "--toast-exit-x": isCenter ? "0px" : position.endsWith("left") ? "-18px" : "18px",
   } as CSSProperties;
 };
 
