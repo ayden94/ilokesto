@@ -1,0 +1,50 @@
+name: Sync Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          path: source
+          fetch-depth: 0
+
+      - name: Checkout docs repository
+        uses: actions/checkout@v4
+        with:
+          repository: ilokesto/docs
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}
+          path: docs
+
+      - name: Set up Git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync docs to docs repository
+        run: |
+          rm -rf docs/content/docs/overlay
+          mkdir -p docs/content/docs/overlay
+          cp -R source/docs/* docs/content/docs/overlay/
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}
+          path: docs
+          branch: sync-docs/overlay-${{ github.run_id }}
+          title: "docs: sync from overlay"
+          body: |
+            Automated documentation sync from ${{ github.repository }}@${{ github.sha }}.
+
+            Changed files in `docs/` folder of source repository are copied to `content/docs/overlay/`.
+          commit-message: "docs: sync from overlay"
+          delete-branch: true
