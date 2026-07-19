@@ -1,0 +1,31 @@
+---
+title: "Submit handling"
+description: "Combine valid callbacks, invalid callbacks, server errors, submitCount, and reset."
+---
+
+# Submit handling
+
+Treat `submit` as the boundary between editing and side effects. It runs validation, increments `submitCount`, and calls `onValid` only with validated values. Use `onInvalid` for focus management, summaries, or telemetry.
+
+```ts lineNumbers
+await form.submit(
+  async (values) => {
+    const result = await save(values);
+    if (!result.ok) {
+      form.setErrors('email', [{ type: 'server', message: result.message }]);
+      return;
+    }
+    form.reset(result.values);
+  },
+  (fields) => {
+    const firstInvalid = Object.keys(fields)[0];
+    if (firstInvalid) form.focus(firstInvalid);
+  },
+);
+```
+
+Server errors are usually not schema errors because they depend on remote state. Add them with `setErrors`, clear them with `clearErrors`, and consider disabling submit while `isSubmitting` from `useFormState()` is true.
+
+## Checklist
+
+Before shipping, verify that labels and accessibility attributes live in your markup, schema errors are shown near fields and summarized when useful, tuple paths are used for nested values, and array commands are the only way dynamic list structure changes. This keeps the form predictable even as product requirements grow.

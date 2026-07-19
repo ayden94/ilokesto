@@ -1,0 +1,19 @@
+---
+title: "Path semantics"
+description: "Why string paths are literal and tuple paths are used for nesting."
+---
+
+# Path semantics
+
+Many form libraries parse dot strings. `@ilokesto/form` does not. The design protects applications that receive keys such as `metadata.user.name` from APIs, spreadsheets, search filters, or analytics systems. If dots were parsed automatically, a literal field and a nested field would be ambiguous.
+
+```ts lineNumbers
+form.setValue('metadata.user.name', 'literal');
+form.setValue(['metadata', 'user', 'name'], 'nested');
+```
+
+The tradeoff is verbosity for nested fields. The benefit is predictability. Reusable field components should accept `FieldPathInput` and pass it through unchanged. Do not join tuples with dots before calling the form API, because that changes the meaning of the field.
+
+## When to care
+
+Most applications can start with Quick start and Guides. Read this page when you build reusable abstractions, debug edge cases, or need to explain why Form chooses explicit paths, source-neutral schemas, stable keys, and normalized state instead of hiding those decisions behind a larger framework.

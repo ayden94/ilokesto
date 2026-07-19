@@ -1,0 +1,25 @@
+---
+title: "Validation"
+description: "Use StandardSchemaV1, form-level schemas, field-local schemas, validateOn, and trigger."
+---
+
+# Validation
+
+Validation is built around `StandardSchemaV1`, the minimal `~standard.validate` contract. `CreateFormOptions.schema` validates the whole form. `registerFieldSchema(path, options)` or adapter options attach a field-local schema that takes precedence for one field.
+
+```ts lineNumbers
+const unregister = form.registerFieldSchema('email', {
+  schema: emailSchema,
+  schemaOptions: { libraryOptions: { mode: 'strict' } },
+});
+
+const validEmail = await form.trigger('email');
+const validForm = await form.trigger();
+unregister();
+```
+
+`validateOn` accepts `change`, `blur`, `submit`, and `manual`. `manual` describes an explicit workflow where you call `trigger()` yourself; it does not prevent submit validation. Standard Schema issues with paths become field errors, while root issues can be handled as form-level feedback through your UI conventions.
+
+## Practical guidance
+
+Keep this page near the source when you build abstractions. The reference describes what the package exposes, while guides show one way to compose those pieces. If a helper hides `FieldPathInput`, validation triggers, or array rebasing, document that helper with the same precision so future maintainers know whether strings, tuples, or stable keys are expected.

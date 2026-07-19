@@ -1,0 +1,27 @@
+---
+title: "Validation flow"
+description: "Choose validateOn triggers, field-local schemas, manual trigger, and submit validation."
+---
+
+# Validation flow
+
+A practical validation flow usually combines three layers. First, a form-level Standard Schema checks the whole values object. Second, field-local schemas give focused feedback for fields that need immediate rules. Third, `submit` runs the final gate and increments `submitCount`.
+
+```ts lineNumbers
+const form = new CreateForm({
+  initialValues,
+  schema: profileSchema,
+  validateOn: ['blur', 'submit'],
+});
+
+form.registerFieldSchema('email', { schema: emailSchema });
+await form.blur('email');
+await form.trigger('email');
+await form.submit(saveProfile, (fields) => showSummary(fields));
+```
+
+Use `change` sparingly because it can validate on every user write. Use `manual` when validation is controlled by explicit UI actions. Remember that field-local precedence is useful but can hide form-level cross-field rules if you treat every field as isolated.
+
+## Checklist
+
+Before shipping, verify that labels and accessibility attributes live in your markup, schema errors are shown near fields and summarized when useful, tuple paths are used for nested values, and array commands are the only way dynamic list structure changes. This keeps the form predictable even as product requirements grow.

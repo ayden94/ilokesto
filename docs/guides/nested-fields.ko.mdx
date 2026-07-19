@@ -1,0 +1,22 @@
+---
+title: "중첩 필드"
+description: "튜플 경로로 중첩 값을 표현하고 점 문자열 필드를 명시적으로 둡니다."
+---
+
+# 중첩 필드
+
+중첩 데이터에는 튜플 경로를 사용하세요. 이 규칙은 코어 API와 어댑터 `RegisterOptions` 모두에 적용됩니다. 값, 오류, 검증, 배열 조작에서도 같은 규칙을 따릅니다.
+
+```tsx lineNumbers
+const name = useField({ name: ['profile', 'name'] });
+const literal = useField({ name: 'profile.name' });
+
+form.setValue(['profile', 'address', 'city'], 'Seoul');
+form.setErrors(['profile', 'address', 'city'], [{ message: 'Required' }]);
+```
+
+이 명시적인 규칙은 이미 점이 들어간 필드 이름을 쓰는 백엔드와 통합할 때 유용합니다. 리팩터링도 더 안전합니다. 평평한 필드를 중첩 객체로 바꾸는 일이 숨은 파서 동작이 아니라 눈에 보이는 튜플 경로 수정으로 드러납니다. 재사용 컴포넌트에서는 prop을 `FieldPathInput`으로 두고 호출자가 문자열과 튜플 중 무엇을 넘겨야 하는지 문서화하세요.
+
+## 점검 목록
+
+배포 전에는 라벨과 접근성 속성이 마크업에 있는지, 스키마 오류가 필드 주변과 필요한 요약 영역에 표시되는지, 중첩 값에 튜플 경로를 쓰는지, 동적 목록 구조 변경이 배열 명령으로만 일어나는지 확인하세요. 이렇게 해야 제품 요구가 커져도 폼 동작을 예측하기 쉽습니다.

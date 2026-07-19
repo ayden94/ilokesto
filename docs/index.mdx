@@ -1,0 +1,50 @@
+---
+title: "Form"
+description: "Framework-agnostic form state, validation, array metadata, and framework bindings."
+---
+
+# Form
+
+`@ilokesto/form` is a framework-agnostic form state core with small framework adapters for React, Vue, Solid, and Svelte. The core owns values, field metadata, validation errors, submit attempts, and stable array item keys in one normalized store. Rendering remains a framework concern: React, Vue, and Solid expose `useForm(form)` with `useRegister`, `useField`, and `useFormState`, while Svelte exposes an action-centered `register` plus a readable form state store.
+
+## Install
+
+```package-install
+@ilokesto/form
+```
+
+Install the framework peer you use as well: `react`, `vue`, `solid-js`, or `svelte`. The root entrypoint intentionally does not import those frameworks, so server utilities, tests, and shared domain modules can create forms without pulling a UI runtime into the bundle.
+
+## Small core example
+
+```ts lineNumbers
+import { CreateForm } from '@ilokesto/form';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    profile: { name: 'Ada' },
+    tags: ['docs'],
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+form.setValue('email', 'ada@example.com', { source: 'user' });
+form.setValue(['profile', 'name'], 'Grace', { source: 'user' });
+
+const values = form.getValues();
+const email = form.getFieldState('email');
+```
+
+The most important rule is path semantics. A string is a literal field name, so `'profile.name'` is one top-level key. Use tuple paths such as `['profile', 'name']` when you want nested values. That explicitness prevents accidental splits when real product data contains dots in field names.
+
+## What this package is not
+
+- It is not tied to a single renderer or component model.
+- It is not a schema library; it consumes the Standard Schema v1 `~standard.validate` contract.
+- It is not a generated form builder. You still choose markup, layout, labels, and accessibility.
+- It is not a global app state replacement. Keep long-lived application state in your state layer and use Form for field interaction state.
+
+## Where to go next
+
+Read [Quick start](/en/form/quick-start) for a working React example, [Core concepts](/en/form/core-concepts) for the mental model, [CreateForm](/en/form/reference/create-form) for the core API, and the integration page for your framework when you are ready to bind DOM inputs.

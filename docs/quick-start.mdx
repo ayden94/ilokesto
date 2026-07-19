@@ -1,0 +1,77 @@
+---
+title: "Quick start"
+description: "Create a form, bind fields, validate on blur and submit, and read the result."
+---
+
+# Quick start
+
+This page builds a small login form. It starts with the framework-neutral `CreateForm`, then binds React inputs through the React adapter. The same core instance can be used with Vue, Solid, or Svelte; only the rendering layer changes.
+
+## 1. Install
+
+```package-install
+@ilokesto/form react
+```
+
+Use `vue`, `solid-js`, or `svelte` instead of `react` when you follow a different integration page.
+
+## 2. Create the form outside render
+
+```ts lineNumbers
+import { CreateForm } from '@ilokesto/form';
+
+type LoginValues = {
+  email: string;
+  password: string;
+  remember: boolean;
+};
+
+export const loginForm = new CreateForm<LoginValues>({
+  initialValues: {
+    email: '',
+    password: '',
+    remember: false,
+  },
+  validateOn: ['blur', 'submit'],
+});
+```
+
+`initialValues` establishes the reset baseline and the first `FieldState` values. `validateOn` tells the core when automatic validation should run. You can still call `trigger()` manually at any time.
+
+## 3. Bind fields in React
+
+```tsx lineNumbers
+import { useForm } from '@ilokesto/form/react';
+import { loginForm } from './login-form';
+
+export function LoginForm() {
+  const { form, useField, useRegister, useFormState } = useForm(loginForm);
+  const email = useField({ name: 'email' });
+  const password = useRegister({ name: 'password', type: 'password' });
+  const remember = useRegister({ name: 'remember', type: 'checkbox' });
+  const state = useFormState();
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void form.submit(async (values) => {
+          await signIn(values);
+        });
+      }}
+    >
+      <input {...email.props} />
+      {email.errors.map((error) => <p key={error.message}>{error.message}</p>)}
+      <input {...password} />
+      <label><input type="checkbox" {...remember} /> Remember me</label>
+      <button disabled={!state.isDirty || !state.isValid}>Sign in</button>
+    </form>
+  );
+}
+```
+
+`useField` is convenient when you need value, errors, and setters together. `useRegister` is lighter when you only need DOM binding props. `useFormState` summarizes the whole form with `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `isSubmitting`, and `submitCount`.
+
+## 4. Read and reset
+
+After a successful submit, `getValues()` returns reconstructed values. `reset()` returns all fields to the initial baseline, or accepts a replacement baseline. Use `setErrors()` for server-side errors and `clearErrors()` when the user retries.

@@ -1,0 +1,21 @@
+---
+title: "필드 상태와 오류"
+description: "value, errors, touched, dirty, modified, 수동 오류 명령을 이해합니다."
+---
+
+# 필드 상태와 오류
+
+`FieldState`에는 `value`, `errors`, `touched`, `dirty`, `modified`가 들어 있습니다. `getFieldState(path)`는 필드를 아직 명시적으로 수정하지 않았더라도 읽을 수 있는 모양을 반환합니다. `FormError`는 `message`와 선택적인 기계 판별용 `type`을 가집니다.
+
+```ts lineNumbers
+const email = form.getFieldState('email');
+form.setErrors('email', [{ type: 'server', message: 'Already registered' }]);
+form.clearErrors('email');
+form.clearErrors();
+```
+
+서버 응답, 낙관적 검사, 스키마에 넣기 어려운 UI 오류에는 `setErrors`를 사용하세요. `clearErrors(path)`는 선택한 필드의 오류를 지우고, `clearErrors()`는 모든 필드 오류를 지웁니다. `blur(path)`는 필드를 touched 처리하며 `validateOn`에 `blur`가 있으면 검증도 실행할 수 있습니다. `dirty`는 초기 값과 비교하고, `modified`는 사용자 상호작용에서 온 변경을 기록합니다.
+
+## 실무 사용 팁
+
+추상화를 만들 때는 이 레퍼런스를 가까이 두세요. 레퍼런스는 패키지가 무엇을 노출하는지 설명하고, 가이드는 그 조각들을 조합하는 한 가지 방식을 보여줍니다. 어떤 도우미가 `FieldPathInput`, 검증 시점, 배열 재배치를 감춘다면 그 도우미도 같은 정밀도로 문서화하세요. 그래야 나중에 문자열, 튜플, 안정적인 키 중 무엇을 기대하는지 유지보수자가 알 수 있습니다.

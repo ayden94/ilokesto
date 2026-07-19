@@ -1,0 +1,27 @@
+---
+title: "검증 흐름"
+description: "validateOn, field-local 스키마, 수동 trigger, 제출 검증을 선택합니다."
+---
+
+# 검증 흐름
+
+실무 검증 흐름은 보통 세 층을 조합합니다. 첫째, 폼 전체 Standard Schema가 값 객체 전체를 검사합니다. 둘째, 즉시 피드백이 필요한 필드에는 field-local 스키마를 붙입니다. 셋째, `submit`이 마지막 관문을 실행하고 `submitCount`를 증가시킵니다.
+
+```ts lineNumbers
+const form = new CreateForm({
+  initialValues,
+  schema: profileSchema,
+  validateOn: ['blur', 'submit'],
+});
+
+form.registerFieldSchema('email', { schema: emailSchema });
+await form.blur('email');
+await form.trigger('email');
+await form.submit(saveProfile, (fields) => showSummary(fields));
+```
+
+`change`는 사용자 입력마다 검증할 수 있으므로 신중하게 사용하세요. 검증을 명시적인 UI 행동으로 제어하려면 `manual` 흐름이 더 적합합니다. field-local 우선순위는 유용하지만 모든 필드를 고립된 것으로 다루면 폼 전체의 교차 필드 규칙이 가려질 수 있습니다.
+
+## 점검 목록
+
+배포 전에는 라벨과 접근성 속성이 마크업에 있는지, 스키마 오류가 필드 주변과 필요한 요약 영역에 표시되는지, 중첩 값에 튜플 경로를 쓰는지, 동적 목록 구조 변경이 배열 명령으로만 일어나는지 확인하세요. 이렇게 해야 제품 요구가 커져도 폼 동작을 예측하기 쉽습니다.

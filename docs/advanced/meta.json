@@ -1,0 +1,11 @@
+{
+  "title": "Advanced",
+  "defaultOpen": false,
+  "collapsible": true,
+  "pages": [
+    "standard-schema",
+    "path-semantics",
+    "array-rebasing",
+    "normalized-store"
+  ]
+}

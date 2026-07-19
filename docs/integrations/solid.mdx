@@ -1,0 +1,35 @@
+---
+title: "Solid"
+description: "Use Solid-friendly binding props and reactive form summaries."
+---
+
+# Solid
+
+Install `solid-js` as the peer and import from `@ilokesto/form/solid`. `useForm(form)` returns the same conceptual helpers as React and Vue, but cleanup follows the Solid owner lifecycle and binding props use Solid event names.
+
+```tsx lineNumbers
+import { For } from 'solid-js';
+import { useForm } from '@ilokesto/form/solid';
+
+function Phones({ form }) {
+  const { form: controller, useRegister, useField, useFormState } = useForm(form);
+  const state = useFormState();
+  const phones = controller.array(['phones']);
+
+  return (
+    <form>
+      <For each={phones.keys()}>{(key, index) => (
+        <input {...useRegister({ name: ['phones', index(), 'value'] })} />
+      )}</For>
+      <input type="radio" {...useRegister({ name: 'role', type: 'radio', value: 'admin' })} />
+      <button disabled={!state.isDirty}>Save</button>
+    </form>
+  );
+}
+```
+
+Use `useField` for error rendering and direct setters. Use `useRegister` for text, checkbox, radio, select, textarea, and DOM-compatible custom controls. Keep array keys separate from tuple index paths, just as you would in React.
+
+## Cautions
+
+Create the core form in a stable place, install the matching peer dependency, and import only from this adapter subpath in framework components. Keep server actions and domain helpers on the root `@ilokesto/form` API when they do not need rendering.

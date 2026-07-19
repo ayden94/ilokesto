@@ -1,0 +1,35 @@
+---
+title: "Solid"
+description: "Solid 친화 바인딩 속성과 반응형 폼 요약을 사용합니다."
+---
+
+# Solid
+
+`solid-js` 피어를 설치하고 `@ilokesto/form/solid`에서 가져옵니다. `useForm(form)`은 React, Vue와 같은 개념의 도우미를 반환하지만, 정리는 Solid owner 생명주기를 따르고 바인딩 속성은 Solid 이벤트 이름을 사용합니다.
+
+```tsx lineNumbers
+import { For } from 'solid-js';
+import { useForm } from '@ilokesto/form/solid';
+
+function Phones({ form }) {
+  const { form: controller, useRegister, useField, useFormState } = useForm(form);
+  const state = useFormState();
+  const phones = controller.array(['phones']);
+
+  return (
+    <form>
+      <For each={phones.keys()}>{(key, index) => (
+        <input {...useRegister({ name: ['phones', index(), 'value'] })} />
+      )}</For>
+      <input type="radio" {...useRegister({ name: 'role', type: 'radio', value: 'admin' })} />
+      <button disabled={!state.isDirty}>Save</button>
+    </form>
+  );
+}
+```
+
+오류 렌더링과 직접 setter가 필요하면 `useField`를 사용하세요. text, checkbox, radio, select, textarea, DOM 호환 커스텀 컨트롤에는 `useRegister`를 사용합니다. React에서처럼 배열 키와 튜플 인덱스 경로는 분리해서 관리하세요.
+
+## 주의할 점
+
+코어 폼은 안정적인 위치에서 만들고, 해당 프레임워크 피어 의존성을 설치하며, 프레임워크 컴포넌트에서는 이 어댑터 하위 경로에서만 가져오세요. 서버 액션이나 도메인 도우미처럼 렌더링이 필요 없는 코드는 루트 `@ilokesto/form` API에 남겨두는 편이 좋습니다.
