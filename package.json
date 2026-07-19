@@ -16,6 +16,7 @@
     "url": "git+https://github.com/ilokesto/overlay"
   },
   "homepage": "https://ilokesto.ayden94.com/en/overlay",
+  "packageManager": "pnpm@10.17.1",
   "sideEffects": false,
   "types": "dist/index.d.ts",
   "module": "dist/index.js",
