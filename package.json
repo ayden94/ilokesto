@@ -15,6 +15,7 @@
     "url": "git+https://github.com/ilokesto/form"
   },
   "homepage": "https://ilokesto.ayden94.com/en/form",
+  "packageManager": "pnpm@10.17.1",
   "sideEffects": false,
   "keywords": [
     "form",
