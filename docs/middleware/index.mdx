@@ -1,0 +1,55 @@
+---
+title: "Middleware introduction"
+description: "How @ilokesto/state middleware is composed and when each helper fits."
+---
+
+# Middleware introduction
+
+`@ilokesto/state/middleware` provides small wrappers around `@ilokesto/store` middleware. Each helper can be used in two styles:
+
+- immediate style: pass `initialState` or an existing `Store<T>` first and get a `Store<T>` back,
+- curried style: pass options first and get a function that can be composed with `pipe`.
+
+## When middleware runs
+
+Middleware runs inside the underlying store update pipeline before the final state is applied. Reducer adapters also use the store middleware pipeline: dispatched actions are converted into next state before the rest of the update continues.
+
+## Composition with `pipe`
+
+```ts lineNumbers
+import { logger, persist, validate } from '@ilokesto/state/middleware';
+import { pipe } from '@ilokesto/state/utils';
+
+const schema = {
+  '~standard': {
+    version: 1,
+    vendor: 'app',
+    validate(value: unknown) {
+      return typeof value === 'object' && value !== null
+        ? { value: value as { count: number } }
+        : { issues: [{ message: 'State must be an object' }] };
+    },
+  },
+} as const;
+
+const store = pipe(
+  { count: 0 },
+  validate(schema),
+  logger({ collapsed: true, diff: true }),
+  persist({ local: 'counter' }),
+);
+```
+
+## Available middleware
+
+| Middleware | Use it for | Key caveat |
+|---|---|---|
+| [`logger`](/en/state/middleware/logger) | Development-time state update logs | Disabled in production; diff is debug output. |
+| [`validate`](/en/state/middleware/validate) | Synchronous Standard Schema validation | Async schema results are rejected. |
+| [`debounce`](/en/state/middleware/debounce) | Delaying and coalescing rapid updates | Reads before the timer fires still see previous state. |
+| [`devtools`](/en/state/middleware/devtools) | Redux DevTools inspection | Browser extension dependent; disabled in production. |
+| [`persist`](/en/state/middleware/persist) | Browser storage persistence | Migration support differs by storage type. |
+
+## Ordering advice
+
+Put validation before persistence when invalid state should never be stored. Put logger near the end when you want to see the state that actually passed earlier middleware. If debounce is used, remember it changes timing for everything after it.

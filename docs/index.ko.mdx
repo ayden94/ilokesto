@@ -1,0 +1,44 @@
+---
+title: "State"
+description: "@ilokesto/state의 프레임워크 어댑터, 미들웨어, 유틸리티 공식 문서입니다."
+---
+
+# State
+
+`@ilokesto/state`는 `@ilokesto/store`를 프레임워크 생명주기에 연결합니다. 상태 모델은 작게 유지하고, React, Vue, Svelte, Solid, Angular마다 알맞은 `create()` 반환 형태를 제공합니다.
+
+```tsx lineNumbers
+import { create } from '@ilokesto/state/react';
+
+const useCounter = create({ count: 0 });
+
+function Counter() {
+  const [count, setCounter] = useCounter((state) => state.count);
+  return <button onClick={() => setCounter((state) => ({ count: state.count + 1 }))}>{count}</button>;
+}
+```
+
+하나의 작은 store 모델을 두고 React, Vue, Svelte, Solid, Angular에서 각 프레임워크에 맞는 반환 형태로 쓰고 싶을 때 사용하세요.
+
+## 설치
+
+```package-install
+@ilokesto/state
+```
+
+사용하는 프레임워크 peer만 함께 설치하세요. 예를 들어 `react`, `vue`, `svelte`, `solid-js`, `@angular/core` 중 실제 adapter에 필요한 것만 설치하면 됩니다. `@ilokesto/state/utils`의 `adaptor`를 사용할 때만 `immer`를 추가하세요.
+
+
+## 이 패키지가 하지 않는 것
+
+- generated API reference가 아닙니다.
+- 프레임워크 자체를 설명하는 긴 튜토리얼이 아닙니다.
+- `@ilokesto/store`의 동작을 바꾸지 않습니다. `Store<T>`를 감싸거나 초기 값으로 store를 만듭니다.
+- 현재 root package는 package identity에 가깝습니다. 런타임 API는 `@ilokesto/state/react` 같은 subpath에서 import합니다.
+
+## 어디서 시작할까
+
+- [Quick start](/ko/state/quick-start)부터 보세요.
+- [Core concepts](/ko/state/core-concepts)에서 mental model을 잡으세요.
+- Integrations에서 React, Vue, Svelte, Solid, Angular 중 사용하는 어댑터를 고르세요.
+- logging, validation, persistence, composition, Immer 스타일 업데이트가 필요하면 [Middleware](/ko/state/middleware)와 [Utility](/ko/state/utility)를 보세요.

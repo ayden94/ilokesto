@@ -1,0 +1,56 @@
+---
+title: "persist"
+description: "Persist store state to localStorage, sessionStorage, or cookies."
+---
+
+# persist
+
+`persist` reads the initial value from browser storage, writes changed state back as JSON, and optionally runs migrations for supported storage types.
+
+## Signature
+
+```ts lineNumbers
+persist<T, P extends Array<MigrationFn>>(
+  initialState: T | Store<T>,
+  options: PersistConfig<T, P>,
+): Store<T>
+persist(options): <T>(initialState: T | Store<T>) => Store<T>
+```
+
+## Local storage example
+
+```ts lineNumbers
+import { persist } from '@ilokesto/state/middleware';
+
+const store = persist({ theme: 'light' as 'light' | 'dark' }, { local: 'theme' });
+```
+
+## Session and cookie storage
+
+```ts lineNumbers
+const sessionStore = persist({ token: null as string | null }, { session: 'session' });
+const cookieStore = persist({ accepted: false }, { cookie: 'cookie-consent' });
+```
+
+## Migration example
+
+```ts lineNumbers
+const settings = persist(
+  { theme: 'light', count: 0 },
+  {
+    local: 'settings',
+    migrate: [
+      (old) => ({ theme: String(old), count: 0 }),
+      (old) => ({ ...old, count: Number(old.count ?? 0) }),
+    ],
+  },
+);
+```
+
+## Storage format and caveats
+
+- Values are stored as `{ state, version }` JSON.
+- `version` is based on migration array length.
+- Migrations run for `local` and `cookie`, not `session`.
+- Storage read/write failures are caught and logged in the browser.
+- Cookie writing uses a simple `document.cookie = key=value` assignment; configure advanced cookie attributes outside this helper if needed.

@@ -1,0 +1,53 @@
+---
+title: "Quick start"
+description: "Install @ilokesto/state and create the first framework adapter."
+---
+
+# Quick start
+
+Install the package and the framework peer you actually use. Framework peers are optional, so a React project does not need Vue, Svelte, Solid, or Angular installed.
+
+```bash lineNumbers
+pnpm add @ilokesto/state @ilokesto/store react
+```
+
+## 1. Import from a framework subpath
+
+The root entrypoint does not export `create`. Choose the adapter subpath.
+
+```ts lineNumbers
+import { create } from '@ilokesto/state/react';
+```
+
+## 2. Create plain state
+
+```tsx lineNumbers
+import { create } from '@ilokesto/state/react';
+
+const useTheme = create({ mode: 'light' as 'light' | 'dark' });
+
+function ThemeButton() {
+  const [mode, setTheme] = useTheme((state) => state.mode);
+  return <button onClick={() => setTheme({ mode: mode === 'light' ? 'dark' : 'light' })}>{mode}</button>;
+}
+```
+
+## 3. Read or write outside lifecycle code
+
+`readOnly()` synchronously reads the current state. `writeOnly()` gives the writer without creating a reactive subscription.
+
+```ts lineNumbers
+const readTheme = useTheme.readOnly;
+const writeTheme = useTheme.writeOnly();
+
+console.log(readTheme((state) => state.mode));
+writeTheme({ mode: 'dark' });
+```
+
+## 4. Move to your adapter page
+
+- [React](/en/state/integrations/react)
+- [Vue](/en/state/integrations/vue)
+- [Svelte](/en/state/integrations/svelte)
+- [Solid](/en/state/integrations/solid)
+- [Angular](/en/state/integrations/angular)

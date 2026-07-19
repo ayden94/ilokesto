@@ -1,0 +1,126 @@
+---
+title: "pipe"
+description: "Create a Store and apply middleware left-to-right before connecting an adapter."
+---
+
+# pipe
+
+`pipe` is a small composition helper from `@ilokesto/state/utils`.
+
+```ts lineNumbers
+pipe<T>(initialState: T, ...middlewares: Array<(store: Store<T>) => Store<T>>): Store<T>
+```
+
+It creates a new `Store<T>` from `initialState`, then applies each middleware function from left to right. The result is a prepared store that can be passed to a framework adapter.
+
+## Basic usage
+
+```ts lineNumbers
+import { create } from '@ilokesto/state/react';
+import { logger, persist } from '@ilokesto/state/middleware';
+import { pipe } from '@ilokesto/state/utils';
+
+const counterStore = pipe(
+  { count: 0 },
+  persist({ local: 'counter' }),
+  logger({ collapsed: true, diff: true }),
+);
+
+export const useCounter = create(counterStore);
+```
+
+The middleware order above means persistence prepares the initial value, then logger observes later updates. Middleware order matters because each middleware receives and returns the store.
+
+## Why not just call middleware manually?
+
+You can always compose middleware by hand:
+
+```ts lineNumbers
+const store = logger({ collapsed: true })(persist({ local: 'counter' })({ count: 0 }));
+```
+
+`pipe` makes the same flow easier to scan and keeps the order visually aligned with runtime order.
+
+```ts lineNumbers
+const store = pipe(
+  { count: 0 },
+  persist({ local: 'counter' }),
+  logger({ collapsed: true }),
+);
+```
+
+Read the list from top to bottom: create state, apply persistence, apply logging.
+
+## Use with validation
+
+Validation is often best placed before middleware that performs side effects, so invalid states do not get persisted or sent to tooling.
+
+```ts lineNumbers
+import { devtools, persist, validate } from '@ilokesto/state/middleware';
+import { pipe } from '@ilokesto/state/utils';
+
+const settingsStore = pipe(
+  { theme: 'system' as 'system' | 'light' | 'dark' },
+  validate(settingsSchema),
+  persist({ local: 'settings' }),
+  devtools('settings'),
+);
+```
+
+If validation rejects an update, later middleware in the chain should not see the invalid state.
+
+## Use with reducers
+
+`pipe` prepares a store. The reducer still belongs to the adapter `create(reduce, store)` overload.
+
+```ts lineNumbers
+import { create } from '@ilokesto/state/react';
+import { logger } from '@ilokesto/state/middleware';
+import { pipe } from '@ilokesto/state/utils';
+
+const todoStore = pipe(
+  { items: [] as string[] },
+  logger({ diff: true }),
+);
+
+export const useTodos = create(reduceTodos, todoStore);
+```
+
+Reducer actions are converted to next state, then the store middleware pipeline handles the resulting update.
+
+## Existing Store instances
+
+`pipe` always creates a new `Store<T>` from the initial state. If you already own a specific `Store<T>` instance and need to preserve that exact instance, pass the store to middleware helpers directly instead of using `pipe`.
+
+```ts lineNumbers
+import { Store } from '@ilokesto/store';
+import { logger } from '@ilokesto/state/middleware';
+
+const existingStore = new Store({ count: 0 });
+const storeWithLogger = logger({ collapsed: true })(existingStore);
+```
+
+Use this style when another module already subscribes to the store or when the store is created by infrastructure outside the utility layer.
+
+## Testing a piped store
+
+Because `pipe` returns a plain `Store<T>`, it can be tested before any framework adapter is involved.
+
+```ts lineNumbers
+const store = pipe(
+  { count: 0 },
+  validate(counterSchema),
+);
+
+store.setState({ count: 1 });
+expect(store.getState()).toEqual({ count: 1 });
+```
+
+For persistence or browser-only middleware, run tests in an environment that provides the required storage APIs or mock those APIs.
+
+## Common mistakes
+
+- **Assuming `pipe` mutates an existing store.** It creates a new `Store<T>` from `initialState`.
+- **Ignoring order.** Middleware is applied left-to-right, and side-effect middleware should usually come after validation.
+- **Putting framework adapter calls inside `pipe`.** `pipe` composes store middleware, not React/Vue/Svelte/Solid/Angular adapter calls.
+- **Using `pipe` for one-off direct updates.** Use `setState`, `dispatch`, or [`adaptor`](/en/state/utility/adaptor) for updates after the store exists.

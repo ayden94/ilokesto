@@ -1,0 +1,24 @@
+---
+title: "Selector semantics"
+description: "How selectors and snapshots behave across adapters."
+---
+
+# Selector semantics
+
+Selectors are adapter-level projection functions. They do not change the underlying store state; they decide what a reactive reader receives.
+
+## React snapshots
+
+React uses `useSyncExternalStore`. Its snapshot getter applies the selector and reuses the previous selection when the full store snapshot is deeply equal according to the internal `deepCompare` helper.
+
+## Vue, Solid, and Angular
+
+Vue stores the latest state in a shallow ref and exposes a `ComputedRef`. Solid uses `from` plus `createMemo` to expose an `Accessor`. Angular stores a signal snapshot and returns a computed `Signal`.
+
+## Svelte
+
+Svelte `select` creates a readable store that runs the selector for each subscription update.
+
+## Caveat
+
+Selectors should be cheap and pure. If a selector allocates a new object every time, some adapters may still notify or recompute even when the semantic value feels unchanged.

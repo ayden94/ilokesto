@@ -1,0 +1,56 @@
+---
+title: "persist"
+description: "store state를 localStorage, sessionStorage, cookie에 저장합니다."
+---
+
+# persist
+
+`persist`는 browser storage에서 initial value를 읽고, 변경된 state를 JSON으로 다시 쓰며, 지원되는 storage type에서는 migration을 실행합니다.
+
+## Signature
+
+```ts lineNumbers
+persist<T, P extends Array<MigrationFn>>(
+  initialState: T | Store<T>,
+  options: PersistConfig<T, P>,
+): Store<T>
+persist(options): <T>(initialState: T | Store<T>) => Store<T>
+```
+
+## Local storage 예제
+
+```ts lineNumbers
+import { persist } from '@ilokesto/state/middleware';
+
+const store = persist({ theme: 'light' as 'light' | 'dark' }, { local: 'theme' });
+```
+
+## Session과 cookie storage
+
+```ts lineNumbers
+const sessionStore = persist({ token: null as string | null }, { session: 'session' });
+const cookieStore = persist({ accepted: false }, { cookie: 'cookie-consent' });
+```
+
+## Migration 예제
+
+```ts lineNumbers
+const settings = persist(
+  { theme: 'light', count: 0 },
+  {
+    local: 'settings',
+    migrate: [
+      (old) => ({ theme: String(old), count: 0 }),
+      (old) => ({ ...old, count: Number(old.count ?? 0) }),
+    ],
+  },
+);
+```
+
+## Storage format과 주의점
+
+- 값은 `{ state, version }` JSON으로 저장됩니다.
+- `version`은 migration array 길이를 기준으로 합니다.
+- migration은 `local`과 `cookie`에서 실행되고 `session`에서는 실행되지 않습니다.
+- storage read/write 실패는 browser에서 catch 후 log됩니다.
+- cookie write는 단순한 `document.cookie = key=value` assignment입니다. 고급 cookie attribute가 필요하면 helper 밖에서 설정하세요.

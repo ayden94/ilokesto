@@ -1,0 +1,24 @@
+---
+title: "Selector 동작"
+description: "adapter별 selector와 snapshot 동작입니다."
+---
+
+# Selector 동작
+
+selector는 adapter-level projection function입니다. underlying store state를 바꾸지 않고 reactive reader가 받을 값을 결정합니다.
+
+## React snapshots
+
+React는 `useSyncExternalStore`를 사용합니다. snapshot getter는 selector를 적용하고, 전체 store snapshot이 내부 `deepCompare` helper 기준으로 깊게 같으면 이전 selection을 재사용합니다.
+
+## Vue, Solid, Angular
+
+Vue는 최신 state를 shallow ref에 보관하고 `ComputedRef`를 노출합니다. Solid는 `from`과 `createMemo`로 `Accessor`를 노출합니다. Angular는 signal snapshot을 저장하고 computed `Signal`을 반환합니다.
+
+## Svelte
+
+Svelte `select`는 subscription update마다 selector를 실행하는 readable store를 만듭니다.
+
+## 주의할 점
+
+selector는 cheap and pure하게 유지하세요. selector가 매번 새 object를 만들면 semantic value가 같아 보여도 일부 adapter에서 notify 또는 recompute가 일어날 수 있습니다.

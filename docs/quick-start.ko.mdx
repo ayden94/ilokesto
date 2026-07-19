@@ -1,0 +1,53 @@
+---
+title: "빠른 시작"
+description: "@ilokesto/state를 설치하고 첫 프레임워크 어댑터를 만듭니다."
+---
+
+# 빠른 시작
+
+패키지와 실제로 쓰는 프레임워크 peer만 설치하세요. 프레임워크 peer는 optional이라 React 프로젝트가 Vue, Svelte, Solid, Angular를 모두 설치할 필요는 없습니다.
+
+```bash lineNumbers
+pnpm add @ilokesto/state @ilokesto/store react
+```
+
+## 1. 프레임워크 subpath에서 import하기
+
+root entrypoint는 `create`를 내보내지 않습니다. 사용하는 어댑터 subpath를 고르세요.
+
+```ts lineNumbers
+import { create } from '@ilokesto/state/react';
+```
+
+## 2. plain state 만들기
+
+```tsx lineNumbers
+import { create } from '@ilokesto/state/react';
+
+const useTheme = create({ mode: 'light' as 'light' | 'dark' });
+
+function ThemeButton() {
+  const [mode, setTheme] = useTheme((state) => state.mode);
+  return <button onClick={() => setTheme({ mode: mode === 'light' ? 'dark' : 'light' })}>{mode}</button>;
+}
+```
+
+## 3. 생명주기 밖에서 읽고 쓰기
+
+`readOnly()`는 현재 상태를 동기적으로 읽습니다. `writeOnly()`는 reactive subscription을 만들지 않고 writer만 줍니다.
+
+```ts lineNumbers
+const readTheme = useTheme.readOnly;
+const writeTheme = useTheme.writeOnly();
+
+console.log(readTheme((state) => state.mode));
+writeTheme({ mode: 'dark' });
+```
+
+## 4. 사용하는 어댑터 페이지로 이동하기
+
+- [React](/ko/state/integrations/react)
+- [Vue](/ko/state/integrations/vue)
+- [Svelte](/ko/state/integrations/svelte)
+- [Solid](/ko/state/integrations/solid)
+- [Angular](/ko/state/integrations/angular)
