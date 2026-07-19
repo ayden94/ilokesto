@@ -355,11 +355,11 @@ counterStore.getState().count;
 - `@ilokesto/state/middleware` → 미들웨어 헬퍼
 - `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, pipe 타입
 
-## 마이그레이션: deep compare → shallow (v1.1.0)
+## 마이그레이션: deep compare → shallow (v2.0.0)
 
 ### 변경 사항
 
-React 어댑터는 이전에 **깊은 비교** (`deepCompare`)를 사용하여 selector 결과가 리렌더를 트리거해야 하는지 판단했습니다. v1.1.0부터는 **shallow 비교**를 사용합니다 — zustand가 사용하는 패턴과 동일합니다.
+React 어댑터는 이전에 **깊은 비교** (`deepCompare`)를 사용하여 selector 결과가 리렌더를 트리거해야 하는지 판단했습니다. v2.0.0부터는 **shallow 비교**를 사용합니다 — zustand가 사용하는 패턴과 동일합니다. 이는 breaking change입니다.
 
 ### 이유
 
@@ -392,6 +392,29 @@ const value = useMemo(() => {
 ```ts
 const time = useStore(s => s.date.getTime());
 ```
+
+### selector 참조를 안정적으로 유지하기
+
+shallow selector 캐시는 selector 함수의 참조 동일성을 기준으로 동작합니다. 인라인 selector
+(`useStore(s => ({ a: s.a, b: s.b }))`)는 매 렌더마다 새로운 함수 참조를 만들어 캐시를
+초기화하고 shallow 최적화를 무의미하게 만듭니다. 다음 중 하나를 선호하세요:
+
+```ts
+// 1. 모듈 스코프 selector (순수 파생은 권장)
+const selectSlice = (s: State) => ({ a: s.a, b: s.b });
+const slice = useStore(selectSlice);
+
+// 2. selector가 props나 다른 반응성 입력에 의존할 때는 useCallback
+const selectFiltered = useCallback(
+  (s: State) => s.items.filter(i => i.id === activeId),
+  [activeId],
+);
+const filtered = useStore(selectFiltered);
+```
+
+인라인 selector에서 새 객체/배열 리터럴을 반환하면 호출마다 새 참조가 생깁니다. shallow 비교로
+1단계 값이 같을 때 리렌더는 막을 수 있지만, selector 참조를 안정화하면 `useSyncExternalStore`가
+비교 자체를 건너뛸 수 있습니다.
 
 ## 개발
 
