@@ -1,0 +1,56 @@
+---
+title: "알림 semantics"
+description: "정확한 변경 감지, 리스너 순회, 미들웨어 효과를 설명합니다."
+---
+
+# 알림 semantics
+
+이 페이지는 `store/src/index.ts`가 의미하는 정확한 알림 동작을 설명합니다.
+
+## 업데이트 파이프라인
+
+`setState(nextState)`를 호출하면 store는 현재 미들웨어 목록에서 dispatch chain을 만듭니다. 그 호출을 위해 목록을 `[...this.middlewares]`로 복사한 뒤, `reduceRight`로 줄이므로 배열 순서가 바깥에서 안쪽으로 실행되는 미들웨어 순서를 정합니다.
+
+최종 dispatch는 `applyState()`를 호출합니다.
+
+## 상태 계산
+
+`applyState()`는 `prevState`를 저장하고, 함수 updater라면 `prevState`로 계산하며, 값이라면 그대로 사용합니다.
+
+```ts
+const resolvedState =
+  typeof nextState === "function"
+    ? nextState(prevState)
+    : nextState;
+```
+
+그 다음 `prevState`와 `resolvedState`를 `Object.is`로 비교합니다.
+
+## 알림이 없는 경우
+
+다음 경우 store는 알리지 않습니다.
+
+- updater가 이전 값을 그대로 반환할 때,
+- 객체나 배열을 제자리에서 직접 수정한 뒤 같은 참조를 반환할 때,
+- 미들웨어가 `next()`를 호출하지 않아 업데이트를 차단할 때,
+- 미들웨어가 업데이트를 이전 값으로 변환할 때.
+
+primitive에서는 `Object.is`가 JavaScript semantics를 따릅니다. `Object.is(NaN, NaN)`은 true이고, `Object.is(0, -0)`은 false입니다.
+
+## 리스너 순회
+
+알림이 발생하면 store는 `Array.from(this.listeners)`를 순회합니다. 이 방식은 해당 알림 pass의 리스너 snapshot을 만듭니다.
+
+결과는 다음과 같습니다.
+
+- 알림 중 추가된 리스너는 다음 업데이트까지 기다립니다.
+- 알림 중 제거된 리스너도 snapshot에 이미 있었다면 현재 pass에서 실행될 수 있습니다.
+- 리스너 순서는 snapshot의 `Set` insertion order를 따릅니다.
+
+## 재진입 업데이트
+
+구현은 reentrancy를 막지 않으므로 리스너가 다시 `setState()`를 호출할 수 있습니다. 파생 상태에는 유용할 수 있지만 loop를 만들 수도 있습니다. 리스너에서 업데이트하려면 명시적인 guard를 두세요.
+
+## Error 전파
+
+미들웨어, updater 함수, 리스너는 동기적으로 실행되며 store는 error를 잡지 않습니다. throw된 error의 책임은 호출자에게 있고 현재 pipeline을 멈출 수 있습니다.

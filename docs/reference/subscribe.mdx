@@ -1,0 +1,62 @@
+---
+title: "subscribe"
+description: "Register listeners, read state inside listeners, and clean up subscriptions."
+---
+
+# subscribe
+
+`subscribe()` registers a listener and returns a cleanup function.
+
+```ts
+subscribe(listener: () => void): () => void
+```
+
+The listener is called after state changes. It receives no arguments, so call `getState()` inside the listener when you need the latest value.
+
+## Basic usage
+
+```ts lineNumbers
+const unsubscribe = store.subscribe(() => {
+  console.log(store.getState());
+});
+
+store.setState((prev) => ({ ...prev, ready: true }));
+unsubscribe();
+```
+
+## Cleanup is part of the contract
+
+Every `subscribe()` call adds the listener to an internal `Set`. If you never call the returned unsubscribe function, that listener remains registered.
+
+Connect cleanup to the owner lifecycle:
+
+```ts lineNumbers
+function connectPanel(panel: { render(value: unknown): void; destroy(cb: () => void): void }) {
+  const unsubscribe = store.subscribe(() => {
+    panel.render(store.getState());
+  });
+
+  panel.destroy(unsubscribe);
+}
+```
+
+## Notification timing
+
+Listeners run synchronously after the state is stored. A listener added during notification is not called for the current notification cycle because the store iterates over `Array.from(this.listeners)`. A listener removed during notification may still run if it was already copied into that cycle's array.
+
+## No notification for same value
+
+If `setState()` resolves to the same value or same reference by `Object.is`, listeners do not run.
+
+```ts lineNumbers
+const unsubscribe = store.subscribe(() => {
+  console.log("changed");
+});
+
+store.setState((prev) => prev); // no log
+unsubscribe();
+```
+
+## Listener errors
+
+The store does not catch listener errors. If one listener throws, the `setState()` call throws and later listeners in that notification cycle may not run. Keep listeners small or catch expected errors inside your listener.
