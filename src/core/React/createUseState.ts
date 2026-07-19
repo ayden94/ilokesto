@@ -3,12 +3,31 @@ import { useMemo, useSyncExternalStore } from 'react';
 
 import { dispatchStoreAction } from '../../lib/actionMetadata.js';
 import type { ReducerAction } from '../../types/ReduceFn.js';
-import { deepCompare } from '../shared/deepCompare.js';
+import { shallow } from '../shared/shallow.js';
 import type { UseReducer, UseState } from './types.js';
 
 type Selector<T, S> = (state: T) => S;
 
 const identity = <Value>(value: Value): Value => value;
+
+function createShallowSelector<T, S>(
+  selector: (state: T) => S,
+): (state: T) => S {
+  let prev: S | undefined;
+  let hasPrev = false;
+
+  return (state: T): S => {
+    const next = selector(state);
+
+    if (hasPrev && shallow(prev as S, next)) {
+      return prev as S;
+    }
+
+    hasPrev = true;
+    prev = next;
+    return next;
+  };
+}
 
 export function useStoreState<T, S, Writer>(
   store: Store<T>,
@@ -17,36 +36,14 @@ export function useStoreState<T, S, Writer>(
 ) {
   const subscribe = useMemo(() => store.subscribe.bind(store), [store]);
 
-  const { getSnapshot, getServerSnapshot } = useMemo(() => {
-    let hasMemo = false;
-    let mStore: T | undefined;
-    let mSelection: S | undefined;
+  const getSnapshot = useMemo(() => {
+    const shallowSelector = createShallowSelector(selector);
+    return () => shallowSelector(store.getState());
+  }, [store, selector]);
 
-    const mSelector = (nStore: T): S => {
-      if (!hasMemo) {
-        hasMemo = true;
-        mStore = nStore;
-        const nSelection = selector(nStore);
-        mSelection = nSelection;
-        return nSelection;
-      }
-
-      const pStore = mStore as T;
-      const pSelection = mSelection as S;
-
-      if (deepCompare(pStore, nStore)) return pSelection;
-
-      const nSelection = selector(nStore);
-
-      mStore = nStore;
-      mSelection = nSelection;
-      return nSelection;
-    };
-
-    return {
-      getSnapshot: () => mSelector(store.getState()),
-      getServerSnapshot: () => mSelector(store.getInitialState()),
-    };
+  const getServerSnapshot = useMemo(() => {
+    const shallowSelector = createShallowSelector(selector);
+    return () => shallowSelector(store.getInitialState());
   }, [store, selector]);
 
   const value = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);

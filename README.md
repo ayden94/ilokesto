@@ -357,6 +357,67 @@ This is a breaking change. Callable and variadic pipe syntax has been removed. R
 - `@ilokesto/state/middleware` → middleware helpers
 - `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, and pipe types
 
+## Migration: deep compare → shallow (v2.0.0)
+
+### What changed
+
+The React adapter previously used **deep comparison** (`deepCompare`) to determine whether a selector result should trigger a re-render. Starting from v2.0.0, it uses **shallow comparison** instead — matching the pattern used by zustand. This is a breaking change.
+
+### Why
+
+- **Performance**: deep comparison ran on every render, recursively traversing the entire state. Shallow comparison checks one level only.
+- **Correctness**: `deepCompare` could not handle `Map`, `Set`, or `Date` correctly, and would stack-overflow on circular references. Shallow comparison handles `Map`, `Set`, arrays, and plain objects correctly, and is inherently safe against circular references.
+- **Ecosystem alignment**: zustand v5 uses shallow comparison as the standard pattern.
+
+### What this means for you
+
+| Pattern | Before (deep) | After (shallow) |
+|---|---|---|
+| `useStore(s => s.count)` | Works | Works (same) |
+| `useStore(s => ({ a: s.a, b: s.b }))` | Deep-compared (always equal if values match) | Shallow-compared (equal if 1st-level values match) |
+| Nested object in selector result | Deep-compared | Reference-compared (`Object.is`) |
+| `Map` / `Set` in state | Incorrect comparison | Correct shallow comparison |
+| `Date` in state | Incorrect comparison | Correct shallow comparison via `getTime()` |
+
+### If you need deep comparison
+
+Use `useMemo` to memoize your selector result:
+
+```ts
+const value = useMemo(() => {
+  return computeDerivedState(store.getState());
+}, [dependency]);
+```
+
+Or return a primitive from your selector so `Object.is` is sufficient:
+
+```ts
+const time = useStore(s => s.date.getTime());
+```
+
+### Keep selector identity stable
+
+The shallow selector cache is keyed on the selector function identity. An inline selector
+(e.g. `useStore(s => ({ a: s.a, b: s.b }))`) creates a new function reference on every render,
+which resets the cache and defeats the shallow optimization. Prefer one of:
+
+```ts
+// 1. Module-scope selector (preferred for pure derivations)
+const selectSlice = (s: State) => ({ a: s.a, b: s.b });
+const slice = useStore(selectSlice);
+
+// 2. useCallback when the selector depends on props or other reactive inputs
+const selectFiltered = useCallback(
+  (s: State) => s.items.filter(i => i.id === activeId),
+  [activeId],
+);
+const filtered = useStore(selectFiltered);
+```
+
+Returning a new object/array literal inside an inline selector also produces a new reference
+each call; the shallow comparison still avoids a re-render when first-level values match, but
+stabilizing the selector identity lets `useSyncExternalStore` skip the comparison entirely.
+
 ## Development
 
 ```bash
