@@ -15,6 +15,7 @@
     "url": "git+https://github.com/ilokesto/toast"
   },
   "homepage": "https://ilokesto.ayden94.com/en/toast",
+  "packageManager": "pnpm@10.17.1",
   "sideEffects": false,
   "types": "dist/index.d.ts",
   "module": "dist/index.js",
