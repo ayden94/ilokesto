@@ -1,0 +1,30 @@
+.contexty
+
+# Each package below is an independent Git repository.
+# This handbook repository tracks only cross-cutting metadata.
+docs/
+fetcher/
+form/
+modal/
+overlay/
+playground/
+state/
+store/
+toast/
+utilinent/
+
+# Local tooling
+node_modules/
+dist/
+.DS_Store
+*.tgz
+*.log
+
+# Codegraph symlink (local index)
+.codegraph
+
+# OpenCode local state
+.omo/
+
+# Draft documentation guides (local working copies)
+FUMADOCS_OFFICIAL_DOCS_GUIDE.ko.md

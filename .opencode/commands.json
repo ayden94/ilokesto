@@ -1,0 +1,30 @@
+{
+  "$schema": "https://opencode.ai/schemas/commands.json",
+  "commands": [
+    {
+      "name": "/ilokesto-scope",
+      "description": "Explain a package's scope and comparable open-source libraries. Usage: /ilokesto-scope <package-name>",
+      "skill": "ilokesto-compare"
+    },
+    {
+      "name": "/ilokesto-release",
+      "description": "Add a changeset or trigger a release for the current package. Usage: /ilokesto-release [patch|minor|major] <summary>",
+      "skill": "ilokesto-release"
+    },
+    {
+      "name": "/ilokesto-docs-sync",
+      "description": "Trigger a docs sync PR from the current package to ilokesto/docs. Usage: /ilokesto-docs-sync",
+      "skill": "ilokesto-docs-sync"
+    },
+    {
+      "name": "/ilokesto-impact",
+      "description": "Analyze how a change in one package affects dependent packages. Usage: /ilokesto-impact <package-name>",
+      "skill": "ilokesto-compare"
+    },
+    {
+      "name": "/ilokesto-onboard",
+      "description": "Create scaffolding for a new ilokesto package. Usage: /ilokesto-onboard <package-name>",
+      "skill": "ilokesto-onboarding"
+    }
+  ]
+}
