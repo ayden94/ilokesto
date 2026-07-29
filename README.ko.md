@@ -14,7 +14,9 @@
 - 값 또는 updater 함수로 상태 변경: `setState()`
 - 미들웨어 등록: `pushMiddleware()` / `unshiftMiddleware()`
 - 구독 / 해제: `subscribe()`
+- selector 기반 구독: `subscribe(selector, listener, equalityFn?)`
 - 같은 참조로 업데이트하면 notify 생략
+- 선택된 값이 같다고 판단되면 selector notify도 생략
 - notify 중 구독 해제가 일어나도 안전하게 순회
 
 ## Installation
@@ -132,6 +134,53 @@ const unsubscribe = store.subscribe(() => {
 unsubscribe();
 ```
 
+### `store.subscribe<Selection>(selector, listener, equalityFn?): () => void`
+
+전체 store 대신 상태에서 파생된 일부분(slice)에 구독합니다. `subscribe()`를 호출하는 시점에는 listener가 **즉시 호출되지 않습니다**. store가 업데이트되고 선택된 값이 바뀐 뒤에만 실행됩니다.
+
+```ts
+type User = { id: string; name: string };
+type UserState = { user: User; revision: number };
+
+const userStore = new Store<UserState>({
+  user: { id: "1", name: "Ada" },
+  revision: 0,
+});
+
+const unsubscribe = userStore.subscribe(
+  (state) => state.user,
+  (nextUser, previousUser) => {
+    console.log("user changed:", previousUser.name, "->", nextUser.name);
+  }
+);
+
+userStore.setState((prev) => ({
+  ...prev,
+  user: { ...prev.user, name: "Grace" },
+  revision: prev.revision + 1,
+}));
+
+unsubscribe();
+```
+
+listener는 `(nextSelection, previousSelection)`를 인자로 받습니다. `next`로 새 slice를 읽고, `previous`로 직전 값과 비교하세요.
+
+기본 equality는 `Object.is`입니다. 매번 새 참조가 만들어지지만 의미상은 같다고 봐야 하는 경우(예: 같은 `id`를 가진 user 객체)는 직접 `equalityFn(previous, next)`를 넘기세요.
+
+```ts
+const unsubscribe = userStore.subscribe(
+  (state) => state.user,
+  (nextUser) => {
+    console.log("user identity changed:", nextUser.id);
+  },
+  (previousUser, nextUser) => previousUser.id === nextUser.id
+);
+```
+
+`Object.is` 또는 직접 넘긴 `equalityFn`이 이전/다음 selection을 같다고 판단하면, 내부 상태 참조가 바뀌었더라도 그 업데이트에 대해서는 listener가 실행되지 않습니다. 이 동작이 "실제로 관심 있는 slice에는 영향이 없는 state 변경"으로 인한 재실행을 막아 줍니다.
+
+selector 구독도 내부적으로는 일반 listener와 동일하게 동작하므로, 한 인자 형태의 규칙을 그대로 따릅니다. 즉, 상태가 저장된 뒤에 동기적으로 실행되고, `setState()`가 같은 참조로 계산되면 실행되지 않으며, 반환된 unsubscribe 함수를 호출하면 등록이 해제됩니다.
+
 ## State Semantics
 
 이 Store는 상태를 **불변 스냅샷**처럼 다루는 것을 전제로 합니다.
@@ -165,12 +214,12 @@ store.setState((prev) => {
 - 상태 저장
 - 상태 교체
 - 구독 관리
+- 선택적 equality 함수를 지원하는 selector 기반 구독
 - 미들웨어 지원
 
 아직 포함하지 않는 것:
 
 - React hooks
-- selector / equality helpers
 - devtools integration
 - persistence helpers
 
