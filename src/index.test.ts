@@ -92,6 +92,96 @@ describe("Store", () => {
       expect(listener).not.toHaveBeenCalled();
     });
 
+    it("does not immediately notify selector listeners", () => {
+      // Given
+      const store = new Store({ count: 0 });
+      const listener = vi.fn();
+
+      // When
+      store.subscribe((state) => state.count, listener);
+
+      // Then
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("passes next and previous selections to selector listeners", () => {
+      // Given
+      const store = new Store({ count: 0 });
+      const listener = vi.fn();
+      store.subscribe((state) => state.count, listener);
+
+      // When
+      store.setState({ count: 1 });
+
+      // Then
+      expect(listener).toHaveBeenCalledExactlyOnceWith(1, 0);
+    });
+
+    it("skips selector notifications when Object.is considers selections equal", () => {
+      // Given
+      const store = new Store({ value: Number.NaN, revision: 0 });
+      const listener = vi.fn();
+      store.subscribe((state) => state.value, listener);
+
+      // When
+      store.setState({ value: Number.NaN, revision: 1 });
+
+      // Then
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("uses custom equality to skip equivalent selections", () => {
+      // Given
+      const store = new Store({ user: { id: "1", name: "Ada" } });
+      const listener = vi.fn();
+      store.subscribe(
+        (state) => state.user,
+        listener,
+        (previousUser, nextUser) => previousUser.id === nextUser.id
+      );
+
+      // When
+      store.setState({ user: { id: "1", name: "Grace" } });
+
+      // Then
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("unsubscribes selector listeners", () => {
+      // Given
+      const store = new Store({ count: 0 });
+      const listener = vi.fn();
+      const unsubscribe = store.subscribe((state) => state.count, listener);
+      unsubscribe();
+
+      // When
+      store.setState({ count: 1 });
+
+      // Then
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("safely handles selector subscription mutations during notification", () => {
+      // Given
+      const store = new Store({ count: 0 });
+      const secondListener = vi.fn();
+      const thirdListener = vi.fn();
+      let unsubscribeSecond: () => void = () => undefined;
+
+      store.subscribe((state) => state.count, () => {
+        unsubscribeSecond();
+        store.subscribe((nextState) => nextState.count, thirdListener);
+      });
+      unsubscribeSecond = store.subscribe((state) => state.count, secondListener);
+
+      // When
+      store.setState({ count: 1 });
+
+      // Then
+      expect(secondListener).toHaveBeenCalledTimes(1);
+      expect(thirdListener).not.toHaveBeenCalled();
+    });
+
     it("safely handles unsubscribe during notification", () => {
       const store = new Store({ count: 0 });
       const listener1 = vi.fn(() => {});
