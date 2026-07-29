@@ -47,31 +47,19 @@ export class Store<T> {
     this.cachedRunner = null;
   }
 
-  subscribe(listener: Listener): () => void;
-  subscribe<Selection>(
+  subscribe(listener: Listener): () => void {
+    this.listeners.add(listener);
+
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  subscribeSelector<Selection>(
     selector: Selector<T, Selection>,
     listener: SelectorListener<Selection>,
-    equalityFn?: EqualityFn<Selection>
-  ): () => void;
-  subscribe<Selection>(
-    ...args:
-      | [listener: Listener]
-      | [
-          selector: Selector<T, Selection>,
-          listener: SelectorListener<Selection>,
-          equalityFn?: EqualityFn<Selection>
-        ]
+    equalityFn: EqualityFn<Selection> = Object.is
   ): () => void {
-    if (args.length === 1) {
-      const [listener] = args;
-      this.listeners.add(listener);
-
-      return () => {
-        this.listeners.delete(listener);
-      };
-    }
-
-    const [selector, listener, equalityFn = Object.is] = args;
     let previousSelection = selector(this.state);
     const selectorListener = () => {
       const nextSelection = selector(this.state);

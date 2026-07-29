@@ -98,7 +98,7 @@ describe("Store", () => {
       const listener = vi.fn();
 
       // When
-      store.subscribe((state) => state.count, listener);
+      store.subscribeSelector((state) => state.count, listener);
 
       // Then
       expect(listener).not.toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe("Store", () => {
       // Given
       const store = new Store({ count: 0 });
       const listener = vi.fn();
-      store.subscribe((state) => state.count, listener);
+      store.subscribeSelector((state) => state.count, listener);
 
       // When
       store.setState({ count: 1 });
@@ -121,7 +121,7 @@ describe("Store", () => {
       // Given
       const store = new Store({ value: Number.NaN, revision: 0 });
       const listener = vi.fn();
-      store.subscribe((state) => state.value, listener);
+      store.subscribeSelector((state) => state.value, listener);
 
       // When
       store.setState({ value: Number.NaN, revision: 1 });
@@ -130,18 +130,18 @@ describe("Store", () => {
       expect(listener).not.toHaveBeenCalled();
     });
 
-    it("uses custom equality to skip equivalent selections", () => {
+    it("passes previous then next selections to custom equality", () => {
       // Given
-      const store = new Store({ user: { id: "1", name: "Ada" } });
+      const store = new Store({ count: 1 });
       const listener = vi.fn();
-      store.subscribe(
-        (state) => state.user,
+      store.subscribeSelector(
+        (state) => state.count,
         listener,
-        (previousUser, nextUser) => previousUser.id === nextUser.id
+        (previousCount, nextCount) => previousCount === 1 && nextCount === 2
       );
 
       // When
-      store.setState({ user: { id: "1", name: "Grace" } });
+      store.setState({ count: 2 });
 
       // Then
       expect(listener).not.toHaveBeenCalled();
@@ -151,7 +151,7 @@ describe("Store", () => {
       // Given
       const store = new Store({ count: 0 });
       const listener = vi.fn();
-      const unsubscribe = store.subscribe((state) => state.count, listener);
+      const unsubscribe = store.subscribeSelector((state) => state.count, listener);
       unsubscribe();
 
       // When
@@ -168,11 +168,11 @@ describe("Store", () => {
       const thirdListener = vi.fn();
       let unsubscribeSecond: () => void = () => undefined;
 
-      store.subscribe((state) => state.count, () => {
+      store.subscribeSelector((state) => state.count, () => {
         unsubscribeSecond();
-        store.subscribe((nextState) => nextState.count, thirdListener);
+        store.subscribeSelector((nextState) => nextState.count, thirdListener);
       });
-      unsubscribeSecond = store.subscribe((state) => state.count, secondListener);
+      unsubscribeSecond = store.subscribeSelector((state) => state.count, secondListener);
 
       // When
       store.setState({ count: 1 });
