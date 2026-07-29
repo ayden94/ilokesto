@@ -1,6 +1,6 @@
 ---
 title: "subscribe"
-description: "Register listeners, read state inside listeners, and clean up subscriptions."
+description: "Register listeners with subscribe(), or subscribeSelector() for a derived slice. Cleanup is part of the contract."
 ---
 
 # subscribe
@@ -59,10 +59,10 @@ unsubscribe();
 
 ## Subscribe to a derived selection
 
-`subscribe()` also accepts a selector overload so a listener can react to a slice of state instead of the whole store.
+Use `subscribeSelector()` when you want a listener to react to a slice of state instead of the whole store. It is a separate method, not an overload of `subscribe`, so `subscribe(listener)` keeps the exact `(listener: () => void) => () => void` shape and subclasses can still use `override subscribe(...)`.
 
 ```ts
-subscribe<Selection>(
+subscribeSelector<Selection>(
   selector: (state: Readonly<T>) => Selection,
   listener: (nextSelection: Selection, previousSelection: Selection) => void,
   equalityFn?: (previousSelection: Selection, nextSelection: Selection) => boolean
@@ -80,7 +80,7 @@ const userStore = new Store<UserState>({
   revision: 0,
 });
 
-const unsubscribe = userStore.subscribe(
+const unsubscribe = userStore.subscribeSelector(
   (state) => state.user,
   (nextUser, previousUser) => {
     console.log("user changed:", previousUser.name, "->", nextUser.name);
@@ -101,7 +101,7 @@ The listener receives `(nextSelection, previousSelection)`. Use `nextSelection` 
 Equality defaults to `Object.is`. Pass a custom `equalityFn(previousSelection, nextSelection)` when the selector returns a fresh reference each time but the slice should still be treated as unchanged:
 
 ```ts lineNumbers
-const unsubscribe = userStore.subscribe(
+const unsubscribe = userStore.subscribeSelector(
   (state) => state.user,
   (nextUser) => {
     console.log("user identity changed:", nextUser.id);
@@ -112,8 +112,8 @@ const unsubscribe = userStore.subscribe(
 
 When the equality function (default `Object.is` or your override) considers the previous and next selections equal, the listener is skipped for that update even if the underlying state reference changed. This is how a selector subscription avoids re-running for state changes that did not actually affect the slice it cares about.
 
-Selector subscriptions are stored in the same internal `Set` as the single-argument form, so the rules in [Notification timing](#notification-timing), [No notification for same value](#no-notification-for-same-value), and [Cleanup is part of the contract](#cleanup-is-part-of-the-contract) apply to them unchanged: they run synchronously after the state is stored, they do not run when `setState()` resolves to the same reference at the state level, and calling the returned unsubscribe function removes the selector listener.
+`subscribeSelector()` registrations are stored in the same internal `Set` as `subscribe()` listeners, so the rules in [Notification timing](#notification-timing), [No notification for same value](#no-notification-for-same-value), and [Cleanup is part of the contract](#cleanup-is-part-of-the-contract) apply to them unchanged: they run synchronously after the state is stored, they do not run when `setState()` resolves to the same reference at the state level, and calling the returned unsubscribe function removes the selector listener.
 
 ## Listener errors
 
-The store does not catch listener errors. If one listener throws, the `setState()` call throws and later listeners in that notification cycle may not run. Keep listeners small or catch expected errors inside your listener.
+The store does not catch listener errors. If a selector, a listener, or an equality function throws, the throw propagates synchronously out of the `setState()` call and any later listeners (selector or plain) that would have run in the same notification cycle are skipped. The selector, listener, and equality function all run synchronously inside the notification cycle. Keep them small or catch expected errors inside the listener.
