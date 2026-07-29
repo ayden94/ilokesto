@@ -112,8 +112,17 @@ const unsubscribe = userStore.subscribeSelector(
 
 When the equality function (default `Object.is` or your override) considers the previous and next selections equal, the listener is skipped for that update even if the underlying state reference changed. This is how a selector subscription avoids re-running for state changes that did not actually affect the slice it cares about.
 
+The selector runs once during `subscribeSelector()` to seed `previousSelection`. A throw at registration escapes the `subscribeSelector()` call and the listener is never added to the store. Wrap registration-time selector work in a try/catch if the slice may be temporarily invalid.
+
+After every top-level state change that reaches notification, the selector runs again to compute `nextSelection`, then the equality function runs against `previousSelection` and `nextSelection`. The listener runs only when the equality function reports a change; otherwise the notification cycle for this subscription ends there.
+
 `subscribeSelector()` registrations are stored in the same internal `Set` as `subscribe()` listeners, so the rules in [Notification timing](#notification-timing), [No notification for same value](#no-notification-for-same-value), and [Cleanup is part of the contract](#cleanup-is-part-of-the-contract) apply to them unchanged: they run synchronously after the state is stored, they do not run when `setState()` resolves to the same reference at the state level, and calling the returned unsubscribe function removes the selector listener.
 
 ## Listener errors
 
-The store does not catch listener errors. If a selector, a listener, or an equality function throws, the throw propagates synchronously out of the `setState()` call and any later listeners (selector or plain) that would have run in the same notification cycle are skipped. The selector, listener, and equality function all run synchronously inside the notification cycle. Keep them small or catch expected errors inside the listener.
+The store does not catch listener errors. Two distinct call sites can throw:
+
+- **Registration (`subscribeSelector()` call).** Only the selector runs (to seed `previousSelection`). A throw escapes the `subscribeSelector()` call itself. The listener is never added to the store, so a later `setState()` does not see it.
+- **Notification (a later `setState()` call).** The selector runs, then the equality function runs, then the listener runs only when the equality function reports a change. All three run synchronously inside the notification cycle. An uncaught throw propagates out of `setState()` and any later listeners (selector or plain) that would have run in the same notification cycle are skipped.
+
+Keep the selector, equality function, and listener small, or catch expected errors inside the listener.

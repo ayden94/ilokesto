@@ -181,7 +181,9 @@ If `Object.is` (or your `equalityFn`) considers the previous and next selections
 
 Selector subscriptions are plain listeners under the hood, so they follow the same rules as the single-argument form: they run after the state is stored, they do not run when `setState()` resolves to the same reference, and they are removed by calling the returned unsubscribe function.
 
-The selector, the listener, and the equality function all run synchronously inside the notification cycle. The store does not catch errors thrown by them: an uncaught throw propagates out of `setState()` and any later listeners (selector or plain) that would have run in the same notification cycle are skipped. Keep the selector, listener, and equality function small, or wrap expected errors inside the listener.
+The selector runs once during `subscribeSelector()` to seed `previousSelection`. A throw at registration escapes the `subscribeSelector()` call and the listener is never added to the store. Wrap registration-time selector work in a try/catch if the slice may be temporarily invalid.
+
+After every top-level state change that reaches notification, the selector runs again to compute `nextSelection`, then the equality function runs against `previousSelection` and `nextSelection`. The listener runs only when the equality function reports a change; otherwise the notification cycle for this subscription ends there. The store does not catch errors thrown during this cycle: an uncaught throw propagates out of `setState()` and any later listeners (selector or plain) that would have run in the same notification cycle are skipped. Keep the selector, equality function, and listener small, or catch expected errors inside the listener.
 
 ## State Semantics
 

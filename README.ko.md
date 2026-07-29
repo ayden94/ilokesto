@@ -181,7 +181,9 @@ const unsubscribe = userStore.subscribeSelector(
 
 selector 구독도 내부적으로는 일반 listener와 동일하게 동작하므로, 한 인자 형태의 규칙을 그대로 따릅니다. 즉, 상태가 저장된 뒤에 동기적으로 실행되고, `setState()`가 같은 참조로 계산되면 실행되지 않으며, 반환된 unsubscribe 함수를 호출하면 등록이 해제됩니다.
 
-selector, listener, equality 함수는 모두 알림 cycle 안에서 동기적으로 실행됩니다. store는 이들이 던지는 error를 잡지 않습니다. 잡히지 않은 throw는 `setState()` 호출 밖으로 그대로 전파되고, 같은 알림 cycle에서 실행될 예정이던 뒤쪽 listener(selector, 일반 모두)는 건너뜁니다. selector, listener, equality 함수는 작게 유지하거나 예상 가능한 error는 listener 안에서 잡으세요.
+selector는 `subscribeSelector()`가 처음 호출될 때 한 번 실행되어 이전 `previousSelection`을 시드합니다. 등록 시점에 throw가 발생하면 그 error는 `subscribeSelector()` 호출 밖으로 전파되고 listener는 store에 등록되지 않습니다. 등록 시점에 selection이 일시적으로 잘못될 수 있다면 try/catch로 감싸세요.
+
+이후 top-level 상태 변경이 알림 단계에 도달할 때마다 selector가 다시 실행되어 `nextSelection`을 계산하고, 그 다음 equality 함수가 `previousSelection`과 `nextSelection`을 비교합니다. listener는 equality 함수가 변경을 보고했을 때만 실행되고, 그렇지 않으면 이 구독에 대한 알림 cycle은 여기서 끝납니다. store는 이 cycle 안에서 던지는 error를 잡지 않습니다. 잡히지 않은 throw는 `setState()` 호출 밖으로 그대로 전파되고, 같은 알림 cycle에서 실행될 예정이던 뒤쪽 listener(selector, 일반 모두)는 건너뜁니다. selector, equality 함수, listener는 작게 유지하거나 예상 가능한 error는 listener 안에서 잡으세요.
 
 ## State Semantics
 
