@@ -14,7 +14,7 @@
 - 값 또는 updater 함수로 상태 변경: `setState()`
 - 미들웨어 등록: `pushMiddleware()` / `unshiftMiddleware()`
 - 구독 / 해제: `subscribe()`
-- selector 기반 구독: `subscribe(selector, listener, equalityFn?)`
+- selector 기반 구독: `subscribeSelector(selector, listener, equalityFn?)`
 - 같은 참조로 업데이트하면 notify 생략
 - 선택된 값이 같다고 판단되면 selector notify도 생략
 - notify 중 구독 해제가 일어나도 안전하게 순회
@@ -134,9 +134,9 @@ const unsubscribe = store.subscribe(() => {
 unsubscribe();
 ```
 
-### `store.subscribe<Selection>(selector, listener, equalityFn?): () => void`
+### `store.subscribeSelector<Selection>(selector, listener, equalityFn?): () => void`
 
-전체 store 대신 상태에서 파생된 일부분(slice)에 구독합니다. `subscribe()`를 호출하는 시점에는 listener가 **즉시 호출되지 않습니다**. store가 업데이트되고 선택된 값이 바뀐 뒤에만 실행됩니다.
+전체 store 대신 상태에서 파생된 일부분(slice)에 구독합니다. `subscribeSelector`는 `subscribe(listener)`와 별개의 메서드라서 `subscribe`의 시그니처를 바꾸지 않습니다. 덕분에 서브클래스에서 `override subscribe(...)`를 그대로 유지할 수 있습니다. `subscribeSelector()`를 호출하는 시점에는 listener가 **즉시 호출되지 않습니다**. store가 업데이트되고 선택된 값이 바뀐 뒤에만 실행됩니다.
 
 ```ts
 type User = { id: string; name: string };
@@ -147,7 +147,7 @@ const userStore = new Store<UserState>({
   revision: 0,
 });
 
-const unsubscribe = userStore.subscribe(
+const unsubscribe = userStore.subscribeSelector(
   (state) => state.user,
   (nextUser, previousUser) => {
     console.log("user changed:", previousUser.name, "->", nextUser.name);
@@ -168,7 +168,7 @@ listener는 `(nextSelection, previousSelection)`를 인자로 받습니다. `nex
 기본 equality는 `Object.is`입니다. 매번 새 참조가 만들어지지만 의미상은 같다고 봐야 하는 경우(예: 같은 `id`를 가진 user 객체)는 직접 `equalityFn(previous, next)`를 넘기세요.
 
 ```ts
-const unsubscribe = userStore.subscribe(
+const unsubscribe = userStore.subscribeSelector(
   (state) => state.user,
   (nextUser) => {
     console.log("user identity changed:", nextUser.id);
@@ -180,6 +180,8 @@ const unsubscribe = userStore.subscribe(
 `Object.is` 또는 직접 넘긴 `equalityFn`이 이전/다음 selection을 같다고 판단하면, 내부 상태 참조가 바뀌었더라도 그 업데이트에 대해서는 listener가 실행되지 않습니다. 이 동작이 "실제로 관심 있는 slice에는 영향이 없는 state 변경"으로 인한 재실행을 막아 줍니다.
 
 selector 구독도 내부적으로는 일반 listener와 동일하게 동작하므로, 한 인자 형태의 규칙을 그대로 따릅니다. 즉, 상태가 저장된 뒤에 동기적으로 실행되고, `setState()`가 같은 참조로 계산되면 실행되지 않으며, 반환된 unsubscribe 함수를 호출하면 등록이 해제됩니다.
+
+selector, listener, equality 함수는 모두 알림 cycle 안에서 동기적으로 실행됩니다. store는 이들이 던지는 error를 잡지 않습니다. 잡히지 않은 throw는 `setState()` 호출 밖으로 그대로 전파되고, 같은 알림 cycle에서 실행될 예정이던 뒤쪽 listener(selector, 일반 모두)는 건너뜁니다. selector, listener, equality 함수는 작게 유지하거나 예상 가능한 error는 listener 안에서 잡으세요.
 
 ## State Semantics
 

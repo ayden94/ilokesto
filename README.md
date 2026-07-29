@@ -14,7 +14,7 @@ This package serves as a **vanilla store core** for building React state managem
 - Update state with value or updater function: `setState()`
 - Register middleware: `pushMiddleware()` / `unshiftMiddleware()`
 - Subscribe / Unsubscribe: `subscribe()`
-- Subscribe to a derived selection: `subscribe(selector, listener, equalityFn?)`
+- Subscribe to a derived selection: `subscribeSelector(selector, listener, equalityFn?)`
 - Skips notifications when updated with the same reference
 - Skips selector notifications when the selected value is considered equal
 - Safely iterates listeners even if unsubscriptions occur during notification
@@ -134,9 +134,9 @@ const unsubscribe = store.subscribe(() => {
 unsubscribe();
 ```
 
-### `store.subscribe<Selection>(selector, listener, equalityFn?): () => void`
+### `store.subscribeSelector<Selection>(selector, listener, equalityFn?): () => void`
 
-Subscribes to a derived slice of state instead of the whole store. The listener is **not** invoked immediately when you call `subscribe()`. It runs only when the store updates and the selected value changes.
+Subscribes to a derived slice of state instead of the whole store. `subscribeSelector` is a distinct method from `subscribe(listener)`; it does not change the signature of `subscribe`, which keeps `override subscribe(...)` working in subclasses. The listener is **not** invoked immediately when you call `subscribeSelector()`. It runs only when the store updates and the selected value changes.
 
 ```ts
 type User = { id: string; name: string };
@@ -147,7 +147,7 @@ const userStore = new Store<UserState>({
   revision: 0,
 });
 
-const unsubscribe = userStore.subscribe(
+const unsubscribe = userStore.subscribeSelector(
   (state) => state.user,
   (nextUser, previousUser) => {
     console.log("user changed:", previousUser.name, "->", nextUser.name);
@@ -168,7 +168,7 @@ The listener receives `(nextSelection, previousSelection)`. Use `next` to read t
 Equality defaults to `Object.is`. Pass a custom `equalityFn(previous, next)` when the selected value is a fresh reference each time but should still be treated as unchanged (for example, a user object with the same `id`):
 
 ```ts
-const unsubscribe = userStore.subscribe(
+const unsubscribe = userStore.subscribeSelector(
   (state) => state.user,
   (nextUser) => {
     console.log("user identity changed:", nextUser.id);
@@ -180,6 +180,8 @@ const unsubscribe = userStore.subscribe(
 If `Object.is` (or your `equalityFn`) considers the previous and next selections equal, the listener is skipped for that update, even when the underlying state reference changed. This is how you avoid re-rendering on a state change that did not actually affect the slice you care about.
 
 Selector subscriptions are plain listeners under the hood, so they follow the same rules as the single-argument form: they run after the state is stored, they do not run when `setState()` resolves to the same reference, and they are removed by calling the returned unsubscribe function.
+
+The selector, the listener, and the equality function all run synchronously inside the notification cycle. The store does not catch errors thrown by them: an uncaught throw propagates out of `setState()` and any later listeners (selector or plain) that would have run in the same notification cycle are skipped. Keep the selector, listener, and equality function small, or wrap expected errors inside the listener.
 
 ## State Semantics
 
