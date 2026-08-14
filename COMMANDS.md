@@ -22,7 +22,7 @@ Manually trigger the docs sync workflow for one or more packages.
 
 ### `/release-patch`
 
-Adds a root changeset for the selected package. The root release workflow opens the release PR after merge.
+Adds a root changeset for the selected package. The gated release job opens the release PR after CI passes on `main`.
 
 ### `/compare-scope`
 

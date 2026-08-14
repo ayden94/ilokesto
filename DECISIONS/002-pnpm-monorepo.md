@@ -8,7 +8,7 @@ Accepted. Supersedes the independent-repository decision in the original metarep
 
 The eight publishable ilokesto packages live under `packages/` in one pnpm 10.17.1 workspace. They share one lockfile, CI pipeline, Changesets configuration, and release workflow while retaining independent package versions and changelogs.
 
-Existing package histories were imported with unsquashed Git subtrees from each `ci/pnpm-package-manager` branch. Auxiliary refs were retained under `refs/imports/<package>/` to avoid collisions between legacy tags. Verified `git bundle --all` backups were created before nested repositories were retired.
+Existing package histories were imported with unsquashed Git subtrees from each `ci/pnpm-package-manager` branch. Auxiliary refs were retained locally under `refs/imports/<package>/` to avoid collisions between legacy tags. A normal branch push does not transfer that namespace, so the verified final `git bundle --all` backup is the canonical auxiliary-ref archive unless a later authorized migration pushes and verifies an explicit refspec.
 
 Top-level `docs/` and `playground/` remain separate repositories and are not workspace projects. Package documentation remains beside source and is synchronized by root workflows.
 
