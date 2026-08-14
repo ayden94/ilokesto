@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @ilokesto/modal exec playwright install --with-deps chromium
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Typecheck packages
+        run: pnpm typecheck
+
+      - name: Test packages
+        run: pnpm test
+
+      - name: Typecheck state tests
+        run: pnpm --filter @ilokesto/state test:typecheck
+
+      - name: Verify modal package
+        run: pnpm --filter @ilokesto/modal test:pack
+
+      - name: Test modal end-to-end behavior
+        run: pnpm --filter @ilokesto/modal test:e2e
+
+      - name: Test modal accessibility
+        run: pnpm --filter @ilokesto/modal test:a11y
+
+      - name: Verify fetcher distribution
+        run: pnpm --filter @ilokesto/fetcher test:dist
+
+      - name: Check changesets
+        run: pnpm changeset:status
