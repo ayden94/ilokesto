@@ -1,17 +1,8 @@
 .contexty
 
-# Each package below is an independent Git repository.
-# This handbook repository tracks only cross-cutting metadata.
-docs/
-fetcher/
-form/
-modal/
-overlay/
-playground/
-state/
-store/
-toast/
-utilinent/
+# Separate local repositories, not pnpm workspace projects.
+/docs/
+/playground/
 
 # Local tooling
 node_modules/
