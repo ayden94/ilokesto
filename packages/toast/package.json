@@ -1,0 +1,65 @@
+{
+  "name": "@ilokesto/toast",
+  "version": "1.0.1",
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilokesto/toast"
+  },
+  "homepage": "https://ilokesto.ayden94.com/en/toast",
+  "packageManager": "pnpm@10.17.1",
+  "sideEffects": false,
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "toast",
+    "notification",
+    "react",
+    "overlay",
+    "hooks"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Jeong Jinho <wpfekdml@me.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@ilokesto/overlay": "^1.1.0",
+    "@ilokesto/store": "^1.1.1"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^22.19.1",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "jsdom": "^29.1.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.10",
+    "@changesets/cli": "^2.28.0"
+  }
+}
