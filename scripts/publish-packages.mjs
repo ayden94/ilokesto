@@ -67,27 +67,7 @@ const isPublished = ({ name, version }) => {
   throw new Error(result.stderr.trim() || `npm view failed for ${name}@${version}`);
 };
 
-const publishPackage = ({ name, version }, dryRun) => {
-  const tag = getDistTag(name);
-
-  if (isPublished({ name, version })) {
-    console.log(`skip ${name}@${version}: already published`);
-    return;
-  }
-
-  console.log(`${dryRun ? "plan" : "publish"} ${name}@${version} with tag ${tag}`);
-
-  if (dryRun) {
-    return;
-  }
-
-  const tagName = `${name}@${version}`;
-  const gitTagResult = run("git", ["tag", tagName]);
-
-  if (gitTagResult.status !== 0) {
-    throw new Error(`Tag creation failed for ${tagName}`);
-  }
-
+const publishPackage = ({ name, version }) => {
   const publish = run("pnpm", getPublishArgs(name));
 
   if (publish.status !== 0) {
@@ -95,10 +75,51 @@ const publishPackage = ({ name, version }, dryRun) => {
   }
 };
 
-export const publishPackages = async ({ dryRun }) => {
-  for (const directory of releaseOrder) {
-    publishPackage(await readPackage(directory), dryRun);
+const tagPackages = () => {
+  const result = run("pnpm", ["exec", "changeset", "tag"]);
+
+  if (result.status !== 0) {
+    throw new Error("Changesets tag creation failed");
   }
+};
+
+export const releasePackages = async ({
+  packages,
+  dryRun,
+  checkPublished,
+  publish,
+  tag,
+}) => {
+  for (const packageInfo of packages) {
+    if (await checkPublished(packageInfo)) {
+      console.log(`skip ${packageInfo.name}@${packageInfo.version}: already published`);
+      continue;
+    }
+
+    console.log(
+      `${dryRun ? "plan" : "publish"} ${packageInfo.name}@${packageInfo.version} with tag ${getDistTag(packageInfo.name)}`,
+    );
+
+    if (!dryRun) {
+      await publish(packageInfo);
+    }
+  }
+
+  if (!dryRun) {
+    await tag();
+  }
+};
+
+export const publishPackages = async ({ dryRun }) => {
+  const packages = await Promise.all(releaseOrder.map(readPackage));
+
+  await releasePackages({
+    packages,
+    dryRun,
+    checkPublished: isPublished,
+    publish: publishPackage,
+    tag: tagPackages,
+  });
 };
 
 if (process.argv[1] && pathToFileURL(process.argv[1]).href === import.meta.url) {
