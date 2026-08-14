@@ -17,7 +17,7 @@ A toast notification system on top of `@ilokesto/overlay`.
 ## Release flow
 
 1. Open a PR with a root changeset.
-2. After merge to `main`, the root `release.yml` workflow opens a `ci: release` PR.
+2. After CI passes on `main`, the root workflow's release job opens a `ci: release` PR.
 3. Merge the release PR to publish to npm.
 
 ## Must not do
