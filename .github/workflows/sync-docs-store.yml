@@ -1,0 +1,14 @@
+name: Sync Store Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/store/docs/**
+
+jobs:
+  sync:
+    uses: ./.github/workflows/_sync-docs.yml
+    with:
+      package: store
+    secrets: inherit

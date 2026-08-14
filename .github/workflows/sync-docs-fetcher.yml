@@ -1,0 +1,14 @@
+name: Sync Fetcher Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/fetcher/docs/**
+
+jobs:
+  sync:
+    uses: ./.github/workflows/_sync-docs.yml
+    with:
+      package: fetcher
+    secrets: inherit

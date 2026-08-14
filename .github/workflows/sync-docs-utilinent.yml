@@ -1,0 +1,14 @@
+name: Sync Utilinent Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/utilinent/docs/**
+
+jobs:
+  sync:
+    uses: ./.github/workflows/_sync-docs.yml
+    with:
+      package: utilinent
+    secrets: inherit
