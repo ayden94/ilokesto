@@ -6,7 +6,7 @@ This repository is the source of truth for the **ilokesto** library ecosystem. I
 
 - **Package source**: publishable libraries under `packages/*`.
 - **Cross-cutting documentation**: scope, architecture, and decisions shared across packages.
-- **Central automation**: one lockfile, CI workflow, Changesets configuration, and release workflow.
+- **Central automation**: one lockfile, one gated CI/release workflow, and root Changesets configuration.
 
 ## Repository layout
 
@@ -28,7 +28,7 @@ The workspace contains `store`, `state`, `form`, `overlay`, `modal`, `toast`, `f
 ## Core principles
 
 - **Independent package versions**: Packages share a repository but version and publish independently.
-- **Root Changesets**: Consumer-facing changes add one file under `.changeset/`.
+- **Root Changesets**: Consumer-facing changes add one file under `.changeset/`; publishing uses package-specific npm dist-tags.
 - **Docs live with source**: Each package keeps documentation in `packages/<name>/docs/`; root workflows sync it to `ilokesto/docs`.
 - **Shared patterns over shared code**: Prefer conventions documented here before adding cross-package abstractions.
 

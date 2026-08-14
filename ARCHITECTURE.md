@@ -57,6 +57,6 @@ Each package owns its `docs/` folder. The central `ilokesto/docs` site consumes 
 
 ## Cross-cutting automation
 
-- **Release**: Root `@changesets/cli` configuration and `.github/workflows/release.yml` create release PRs and publish packages.
+- **Release**: Root Changesets versioning and the gated release job in `.github/workflows/ci.yml` create release PRs and publish packages after verification. `fetcher` publishes on `beta`; stable packages publish on `latest`.
 - **Docs sync**: Root package-scoped workflows open PRs in `ilokesto/docs` when `packages/<name>/docs/` changes on `main`.
 - **CI**: Root CI installs one lockfile, builds in dependency order, and preserves package-specific quality gates.
