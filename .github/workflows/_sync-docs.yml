@@ -1,0 +1,55 @@
+name: Sync Package Docs
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+    secrets:
+      DOCS_SYNC_TOKEN:
+        required: true
+
+jobs:
+  sync-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          path: source
+          fetch-depth: 0
+
+      - name: Checkout docs repository
+        uses: actions/checkout@v4
+        with:
+          repository: ilokesto/docs
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}
+          path: docs
+
+      - name: Set up Git identity
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync package docs
+        env:
+          PACKAGE: ${{ inputs.package }}
+        run: |
+          rm -rf "docs/content/docs/$PACKAGE"
+          mkdir -p "docs/content/docs/$PACKAGE"
+          cp -R "source/packages/$PACKAGE/docs/." "docs/content/docs/$PACKAGE/"
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.DOCS_SYNC_TOKEN }}
+          path: docs
+          branch: sync-docs/${{ inputs.package }}-${{ github.run_id }}
+          title: "docs: sync from ${{ inputs.package }}"
+          body: |
+            Automated documentation sync from ${{ github.repository }}@${{ github.sha }}.
+
+            Package docs are copied from `packages/${{ inputs.package }}/docs/` to `content/docs/${{ inputs.package }}/`.
+          commit-message: "docs: sync from ${{ inputs.package }}"
+          delete-branch: true
