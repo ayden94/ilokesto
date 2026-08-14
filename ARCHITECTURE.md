@@ -35,9 +35,9 @@ This document describes how ilokesto packages relate to each other and the decis
 
 ## Key architectural decisions
 
-### 1. Independent repositories, not a monorepo
+### 1. One repository, independent package versions
 
-Each package versions and releases independently. This keeps release history clean and allows different maintainership cadences. Changesets coordinate the per-repo release process.
+All package source lives under `packages/` in one pnpm workspace. Changesets versions and publishes packages independently, so cross-package changes can be reviewed and tested atomically without forcing lockstep releases.
 
 ### 2. `store` is the only shared foundation
 
@@ -49,14 +49,14 @@ Both `modal` and `toast` are built on `overlay`. This keeps lifecycle, provider 
 
 ### 4. Framework adapters live in consumer packages
 
-`state`, `form`, and future packages provide React/Vue/Solid/Svelte/Angular adapters in their own repos. The core stays framework-agnostic.
+`state`, `form`, and future packages provide React/Vue/Solid/Svelte/Angular adapters in their own package directories. The core stays framework-agnostic.
 
 ### 5. Docs live with source
 
-Each package repo owns its `docs/` folder. The central `ilokesto/docs` site consumes those folders via the `sync-docs` workflow. This keeps documentation close to the code it describes.
+Each package owns its `docs/` folder. The central `ilokesto/docs` site consumes those folders via root package-scoped workflows. This keeps documentation close to the code it describes.
 
 ## Cross-cutting automation
 
-- **Release**: `@changesets/cli` + GitHub Actions in each package repo.
-- **Docs sync**: `.github/workflows/sync-docs.yml` in each package repo opens PRs in `ilokesto/docs` when `docs/` changes on `main`.
-- **CI**: Each package repo runs typecheck, test, and build on PR/push.
+- **Release**: Root `@changesets/cli` configuration and `.github/workflows/release.yml` create release PRs and publish packages.
+- **Docs sync**: Root package-scoped workflows open PRs in `ilokesto/docs` when `packages/<name>/docs/` changes on `main`.
+- **CI**: Root CI installs one lockfile, builds in dependency order, and preserves package-specific quality gates.
