@@ -39,6 +39,9 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Test workspace build graph
+        run: pnpm test:monorepo
+
       - name: Typecheck packages
         run: pnpm typecheck
 

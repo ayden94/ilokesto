@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 const buildPackage = (name) =>
-  spawnSync("pnpm", ["--filter", name, "build"], {
+  spawnSync("pnpm", ["--filter", `${name}...`, "build"], {
     cwd: root,
     encoding: "utf8",
   });
