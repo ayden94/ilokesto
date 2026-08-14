@@ -1,0 +1,39 @@
+---
+title: "Custom proxy component"
+description: "Link, motion, design-system primitive를 proxy API target으로 등록합니다."
+---
+
+# Custom proxy component
+
+`Show.Link`, `For.Grid`, `Repeat.SkeletonList` 같은 API를 만들고 싶다면 `PluginManager`를 사용하세요.
+
+```tsx lineNumbers
+import { PluginManager, Show } from '@ilokesto/utilinent';
+import Link from 'next/link';
+
+PluginManager.register({
+  show: { Link },
+});
+```
+
+그 다음 등록된 property를 사용합니다.
+
+```tsx lineNumbers
+<Show.Link when={post.href} href={post.href} fallback={null}>
+  Read post
+</Show.Link>
+```
+
+## TypeScript setup
+
+```ts lineNumbers
+declare module '@ilokesto/utilinent' {
+  interface UtilinentRegister {
+    show: {
+      Link: typeof Link;
+    };
+  }
+}
+```
+
+Plugin은 해당 property를 사용하는 rendering code보다 먼저 application bootstrap 단계에서 등록하세요.

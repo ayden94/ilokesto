@@ -1,0 +1,42 @@
+---
+title: "For"
+description: "Array를 렌더링하고 empty fallback과 optional wrapper tag를 제공합니다."
+---
+
+# For
+
+`For`는 `children(item, index)`를 호출해 array를 렌더링합니다. `each`가 `null`, `undefined`, empty이면 `fallback`을 렌더링합니다.
+
+```tsx lineNumbers
+import { For } from '@ilokesto/utilinent';
+
+<For each={users} fallback={<p>No users found.</p>}>
+  {(user) => <UserCard key={user.id} user={user} />}
+</For>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `each` | `T[] | null | undefined` | 렌더링할 array입니다. 비었거나 없으면 fallback을 렌더링합니다. |
+| `children` | `(item, index) => ReactNode` | 각 item의 render function입니다. |
+| `fallback` | `ReactNode` | Empty-state UI입니다. 기본값은 `null`입니다. |
+
+## Tag form
+
+```tsx lineNumbers
+<For.ul each={todos} fallback={<li>No todos</li>} className="todos">
+  {(todo) => <li key={todo.id}>{todo.title}</li>}
+</For.ul>
+```
+
+Tag form은 wrapper element를 만듭니다. Semantic HTML을 지키려면 `ul` 안에는 `li`처럼 맞는 child element를 반환하세요.
+
+## Key
+
+`For`는 key를 대신 만들지 않습니다. Array를 렌더링할 때는 render function에서 keyed element를 반환하세요.
+
+```tsx lineNumbers
+<For each={items}>{(item) => <Row key={item.id} item={item} />}</For>
+```

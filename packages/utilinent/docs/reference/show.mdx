@@ -1,0 +1,50 @@
+---
+title: "Show"
+description: "Conditional rendering with fallback, render functions, array truthiness, and proxy tags."
+---
+
+# Show
+
+`Show` renders `children` when `when` resolves to true and `fallback` otherwise.
+
+```tsx lineNumbers
+import { Show } from '@ilokesto/utilinent';
+
+<Show when={user} fallback={<LoginLink />}>
+  {(currentUser) => <UserMenu user={currentUser} />}
+</Show>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `when` | `T` or `T[]` | Condition value. Arrays are true only when every item is truthy. |
+| `children` | `ReactNode` or function | Rendered when `when` is true. Function children receive the truthy value. |
+| `fallback` | `ReactNode` | Rendered when `when` is false. Defaults to `null`. |
+
+## Array conditions
+
+```tsx lineNumbers
+<Show when={[session, permissions.canEdit]} fallback={<ReadOnly />}>
+  <Editor />
+</Show>
+```
+
+Array conditions use `every(Boolean)`, which is convenient for “all requirements must exist” checks.
+
+## Proxy tags
+
+```tsx lineNumbers
+<Show.section when={open} className="panel" fallback={<Skeleton />}>
+  <Settings />
+</Show.section>
+```
+
+`Show.section` creates a `<section>`, forwards DOM props/ref, and places the resolved branch inside the element.
+
+## Caveats
+
+- `0`, `''`, `false`, `null`, and `undefined` are falsy.
+- Function children receive the original `when` value, not a boolean.
+- Prefer computing complex conditions before JSX when they are domain logic.

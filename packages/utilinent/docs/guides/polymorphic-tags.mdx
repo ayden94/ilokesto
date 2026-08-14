@@ -1,0 +1,25 @@
+---
+title: "Polymorphic tags"
+description: "Use proxy tag forms like Show.section and For.ul without hiding markup."
+---
+
+# Polymorphic tags
+
+Proxy tag forms let utilinent helpers create the wrapper element for you.
+
+```tsx lineNumbers
+<Show.aside when={open} className="sidebar" fallback={null}>
+  <Navigation />
+</Show.aside>
+```
+
+The tag name is part of the API surface. It keeps the condition next to the element that will appear in the DOM.
+
+## When to use tag forms
+
+Use tag forms when the helper branch naturally owns a wrapper element: sections, lists, articles, dialogs, or buttons. Use the base component when the helper should return fragments or already-complete child elements.
+
+```tsx lineNumbers
+<For.ul each={items}>{(item) => <li key={item.id}>{item.label}</li>}</For.ul>
+<For each={items}>{(item) => <Card key={item.id} item={item} />}</For>
+```

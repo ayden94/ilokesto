@@ -1,0 +1,99 @@
+---
+title: "빠른 시작"
+description: "중첩된 loading, empty, list JSX를 Show와 For로 바꿉니다."
+---
+
+# 빠른 시작
+
+이 페이지는 흔한 React data component를 utilinent의 선언적인 markup으로 바꿉니다.
+
+## 1. 설치
+
+```bash lineNumbers
+pnpm add @ilokesto/utilinent
+```
+
+## 2. 일반 React 코드에서 시작하기
+
+```tsx lineNumbers
+type User = { id: string; name: string };
+
+export function UserList({ users, loading }: { users?: User[]; loading: boolean }) {
+  if (loading) return <p>Loading users...</p>;
+  if (!users || users.length === 0) return <p>No users found.</p>;
+
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+한 component에서는 괜찮습니다. 하지만 화면이 커질수록 loading, empty, list branch가 inline으로 반복되기 쉽습니다.
+
+## 3. loading branch에 Show 사용하기
+
+```tsx lineNumbers
+import { Show } from '@ilokesto/utilinent';
+
+<Show when={!loading} fallback={<p>Loading users...</p>}>
+  {/* loading이 false일 때의 content */}
+</Show>
+```
+
+`Show`는 `when`이 truthy이면 `children`을, 아니면 `fallback`을 렌더링합니다.
+
+## 4. array branch에 For 사용하기
+
+```tsx lineNumbers
+import { For } from '@ilokesto/utilinent';
+
+<For.ul each={users} fallback={<p>No users found.</p>}>
+  {(user) => <li key={user.id}>{user.name}</li>}
+</For.ul>
+```
+
+`For.ul`은 실제 `<ul>` 안에 list item을 렌더링합니다. wrapper element가 필요 없다면 tag 없는 `For`를 사용하세요.
+
+## 5. 최종 component 조합하기
+
+```tsx lineNumbers
+import { For, Show } from '@ilokesto/utilinent';
+
+type User = { id: string; name: string };
+
+export function UserList({ users, loading }: { users?: User[]; loading: boolean }) {
+  return (
+    <Show when={!loading} fallback={<p>Loading users...</p>}>
+      <For.ul each={users} fallback={<p>No users found.</p>}>
+        {(user) => <li key={user.id}>{user.name}</li>}
+      </For.ul>
+    </Show>
+  );
+}
+```
+
+## 6. 필요하면 branch를 풍성하게 만들기
+
+```tsx lineNumbers
+<Show.section
+  when={!loading}
+  fallback={<UserListSkeleton />}
+  aria-busy={loading}
+>
+  <For.ul each={users} fallback={<EmptyUsers />}> 
+    {(user) => <UserRow key={user.id} user={user} />}
+  </For.ul>
+</Show.section>
+```
+
+`Show.section`, `For.ul` 같은 proxy tag는 DOM props와 ref를 underlying element에 전달합니다.
+
+## 다음 단계
+
+- [핵심 개념](/ko/utilinent/core-concepts)에서 mental model을 봅니다.
+- [`Show`](/ko/utilinent/reference/show), [`For`](/ko/utilinent/reference/for)에서 정확한 동작을 확인합니다.
+- loading/error/success layout은 [Async data guide](/ko/utilinent/guides/async-data)를 보세요.

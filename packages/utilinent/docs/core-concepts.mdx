@@ -1,0 +1,90 @@
+---
+title: "Core concepts"
+description: "Understand truthiness, fallbacks, proxy tags, and composition in utilinent."
+---
+
+# Core concepts
+
+Utilinent components are small rendering helpers. They do not own your data; they decide how already available data should become React nodes.
+
+## Rendering helpers, not state managers
+
+`Show`, `For`, `Repeat`, `Switch`, and the other components render based on props. They do not fetch data, cache responses, normalize entities, or create stores.
+
+```tsx lineNumbers
+<Show when={user} fallback={<LoginLink />}>
+  {(currentUser) => <UserMenu user={currentUser} />}
+</Show>
+```
+
+The parent still owns `user`. Utilinent only makes the branch readable.
+
+## Truthiness is explicit
+
+Most condition props use JavaScript truthiness. Arrays are special in `Show` and `Switch` matching because utilinent resolves arrays with `every(Boolean)`. This makes multi-condition checks concise.
+
+```tsx lineNumbers
+<Show when={[user, permissions?.canEdit]} fallback={<ReadOnlyNotice />}>
+  <Editor />
+</Show>
+```
+
+If any array item is falsy, the branch does not render.
+
+## Fallbacks are first-class
+
+Many components accept `fallback`. A fallback should be the UI for the opposite state: loading, empty, unavailable, offscreen, or invalid count.
+
+```tsx lineNumbers
+<For each={items} fallback={<EmptyState />}>
+  {(item) => <ItemCard key={item.id} item={item} />}
+</For>
+```
+
+When no fallback is passed, components generally render `null` for the inactive branch.
+
+## Proxy tags create elements
+
+`Show`, `For`, `Repeat`, `Mount`, and `Switch` are proxy components. They can be used directly or through an HTML tag property.
+
+```tsx lineNumbers
+<Show when={open}>Plain children</Show>
+
+<Show.section when={open} className="panel">
+  Section children
+</Show.section>
+```
+
+The tag form creates that element and places the resolved content inside it. DOM props and refs are forwarded to the element.
+
+## Plugin components extend proxy tags
+
+Proxy components can also target registered custom components. Register a component once with `PluginManager`, then access it as a property.
+
+```tsx lineNumbers
+import { PluginManager, Show } from '@ilokesto/utilinent';
+import Link from 'next/link';
+
+PluginManager.register({ show: { Link } });
+
+<Show.Link when={href} href={href} fallback={null}>
+  Read more
+</Show.Link>
+```
+
+See [PluginManager](/en/utilinent/reference/plugin-manager) and [custom proxy components](/en/utilinent/guides/custom-proxy-components).
+
+## Components compose by responsibility
+
+Each component should describe one rendering responsibility:
+
+- `Show`: render or fallback.
+- `For`: list or empty state.
+- `Repeat`: fixed count or fallback.
+- `Switch` + `Match`: first matching branch.
+- `Mount`: resolve a node-producing function, including promises.
+- `Observer`: render when an element intersects the viewport.
+- `Slacker`: load data lazily when visible.
+- `Slot`: merge props into a child component.
+
+Keep domain logic outside these components when it becomes complex. Compute booleans, arrays, and payloads before rendering, then pass them in.

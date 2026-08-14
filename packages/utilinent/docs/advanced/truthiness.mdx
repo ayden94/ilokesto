@@ -1,0 +1,20 @@
+---
+title: "Truthiness rules"
+description: "How Show, Match, and arrays decide whether to render."
+---
+
+# Truthiness rules
+
+Utilinent uses a tiny resolver: arrays pass only when every item is truthy; all other values use `Boolean(value)`.
+
+```ts lineNumbers
+Array.isArray(value) ? value.every(Boolean) : Boolean(value)
+```
+
+This affects `Show` and `Match` conditions.
+
+## Implications
+
+- Empty arrays pass because `[].every(Boolean)` is true. Use `For` for list emptiness.
+- `0` is false. If zero is a valid value, pass a separate condition and use the value inside children.
+- Array conditions are useful for dependent requirements, not for checking list length.

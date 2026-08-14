@@ -1,0 +1,37 @@
+---
+title: "Async data 가이드"
+description: "loading, error, empty, success UI를 utilinent component로 구조화합니다."
+---
+
+# Async data 가이드
+
+Async UI에는 보통 loading, error, empty, success 네 가지 상태가 있습니다. Utilinent를 쓰면 깊은 ternary 없이 각 상태를 눈에 보이게 유지할 수 있습니다.
+
+```tsx lineNumbers
+import { For, Show } from '@ilokesto/utilinent';
+
+export function Products({ data, loading, error }) {
+  return (
+    <Show when={!loading} fallback={<ProductsSkeleton />}>
+      <Show when={!error} fallback={<ErrorPanel error={error} />}>
+        <For.ul each={data?.items} fallback={<EmptyProducts />}>
+          {(product) => <ProductRow key={product.id} product={product} />}
+        </For.ul>
+      </Show>
+    </Show>
+  );
+}
+```
+
+## 추천 순서
+
+1. Loading을 먼저 gate합니다.
+2. Error를 두 번째로 gate합니다.
+3. Array는 `For`와 empty fallback으로 렌더링합니다.
+4. Row rendering은 작은 component로 분리합니다.
+
+이 순서는 사용자가 보는 흐름과 같습니다. 먼저 기다리고, error를 복구하고, empty 또는 populated data를 처리합니다.
+
+## Mount 또는 Slacker를 쓰는 경우
+
+Component 자체가 node-producing function을 resolve해야 한다면 `Mount`를 사용하세요. Section이 visible해질 때까지 loading을 시작하지 않아야 한다면 `Slacker`를 사용하세요.

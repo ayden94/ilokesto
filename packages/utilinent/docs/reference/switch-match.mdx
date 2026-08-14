@@ -1,0 +1,44 @@
+---
+title: "Switch and Match"
+description: "Render the first Match child whose condition resolves to true."
+---
+
+# Switch and Match
+
+`Switch` scans its `Match` children and renders the first one whose `when` value resolves to true. If no match is found, it renders `fallback`.
+
+```tsx lineNumbers
+import { Match, Switch } from '@ilokesto/utilinent';
+
+<Switch fallback={<UnknownStatus />}>
+  <Match when={status === 'idle'}>Idle</Match>
+  <Match when={status === 'loading'}>Loading</Match>
+  <Match when={status === 'error'}>Error</Match>
+</Switch>
+```
+
+Fragments are flattened, so you can group matches without changing behavior.
+
+## Match render functions
+
+```tsx lineNumbers
+<Match when={user}>{(currentUser) => <UserMenu user={currentUser} />}</Match>
+```
+
+Function children receive the non-null condition value.
+
+## Tag form
+
+```tsx lineNumbers
+<Switch.section fallback={<p>No branch</p>} className="status">
+  <Match when={ready}>Ready</Match>
+</Switch.section>
+```
+
+`Switch.section` wraps the selected branch in a `<section>`.
+
+## Caveats
+
+- Only `Match` elements are considered.
+- The first truthy match wins.
+- `Match` uses the same truthiness resolver as `Show`, including array `every(Boolean)` behavior.

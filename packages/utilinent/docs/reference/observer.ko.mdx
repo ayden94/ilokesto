@@ -1,0 +1,29 @@
+---
+title: "Observer"
+description: "div가 viewport와 intersect할 때 content를 렌더링합니다."
+---
+
+# Observer
+
+`Observer`는 `useIntersectionObserver`를 통해 `IntersectionObserver`를 사용하고, 관찰 중인 div가 intersecting일 때만 children을 렌더링합니다.
+
+```tsx lineNumbers
+import { Observer } from '@ilokesto/utilinent';
+
+<Observer fallback={<CardPlaceholder />} rootMargin="120px" triggerOnce>
+  <ExpensiveCard />
+</Observer>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `children` | `ReactNode | (isIntersecting) => ReactNode` | intersecting일 때 렌더링할 content입니다. |
+| `fallback` | `ReactNode` | intersecting이 아닐 때 렌더링됩니다. |
+| `threshold` | `number | number[]` | Intersection threshold입니다. 기본값은 `0`입니다. |
+| `rootMargin` | `string` | Observer root margin입니다. 기본값은 `"0px"`입니다. |
+| `triggerOnce` | `boolean` | 첫 intersection 이후 observing을 멈춥니다. |
+| `onIntersect` | `(isIntersecting, entry) => void` | initial observation 이후 entering intersection 시 호출됩니다. |
+
+`Observer`는 `Show.div`를 통해 렌더링되므로 observed element는 `div`이고 일반 div props/ref를 받을 수 있습니다.

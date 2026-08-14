@@ -1,0 +1,17 @@
+---
+title: "SSR과 browser API"
+description: "어떤 utilinent API가 effect, browser API, client boundary에 의존하는지 이해합니다."
+---
+
+# SSR과 browser API
+
+일부 utilinent component는 pure render helper입니다. 다른 component는 effect 또는 browser API를 사용합니다.
+
+| API | SSR note |
+| --- | --- |
+| `Show`, `For`, `Repeat`, `Switch` | 이미 준비된 data를 위한 pure rendering helper입니다. |
+| `Mount` | mount 이후 function children을 resolve하기 위해 effect를 사용합니다. |
+| `Observer`, `Slacker`, `useIntersectionObserver` | browser의 `IntersectionObserver`에 의존합니다. |
+| `Slot`, `OptionalWrapper` | Composition helper입니다. Children이 runtime에 valid하면 안전합니다. |
+
+Next.js App Router에서는 browser/effect 기반 사용을 Client Component boundary 뒤에 두세요.

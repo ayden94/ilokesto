@@ -1,0 +1,27 @@
+---
+title: "Lazy loading"
+description: "Delay rendering or loading until a section becomes visible."
+---
+
+# Lazy loading
+
+Use `Observer` when you already have content but only want to render it when visible. Use `Slacker` when visibility should start data loading.
+
+```tsx lineNumbers
+<Observer rootMargin="200px" fallback={<ChartPlaceholder />} triggerOnce>
+  <HeavyChart />
+</Observer>
+```
+
+```tsx lineNumbers
+<Slacker loader={loadChartData} loadingFallback={<ChartPlaceholder />}>
+  {(data) => <HeavyChart data={data} />}
+</Slacker>
+```
+
+## Practical guidance
+
+- Set `rootMargin` to preload before the user reaches the content.
+- Use `triggerOnce` for content that should stay mounted after first visibility.
+- Keep loader functions stable with `useCallback` when declared inside components.
+- Provide a real fallback height to reduce layout shift.

@@ -1,0 +1,32 @@
+---
+title: "Repeat"
+description: "Render a fixed number of children from a numeric count."
+---
+
+# Repeat
+
+`Repeat` renders `children(index)` `times` times. It renders `fallback` when `times` is not a positive integer.
+
+```tsx lineNumbers
+import { Repeat } from '@ilokesto/utilinent';
+
+<Repeat times={3}>{(index) => <SkeletonCard key={index} />}</Repeat>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `times` | `number` | Must be a positive integer to render children. |
+| `children` | `(index) => ReactNode` | Called once for each index from `0` to `times - 1`. |
+| `fallback` | `ReactNode` | Rendered for invalid or non-positive counts. |
+
+## Tag form
+
+```tsx lineNumbers
+<Repeat.ul times={5} aria-label="loading rows">
+  {(index) => <li key={index}>Loading row {index + 1}</li>}
+</Repeat.ul>
+```
+
+Use `Repeat` for skeletons, placeholder stars, fixed grid slots, or repeated decorative elements.

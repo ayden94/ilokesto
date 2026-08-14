@@ -1,0 +1,54 @@
+{
+  "name": "@ilokesto/utilinent",
+  "version": "1.1.4",
+  "scripts": {
+    "build": "rm -rf dist && tsc",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilokesto/utilinent.git"
+  },
+  "homepage": "https://ilokesto.ayden94.com/en/utilinent",
+  "packageManager": "pnpm@10.17.1",
+  "sideEffects": false,
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "react",
+    "component",
+    "util",
+    "utility",
+    "utilinent"
+  ],
+  "author": "Jeong Jinho <wpfekdml@me.com>",
+  "license": "MIT",
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "@typescript-eslint/parser": "^7.7.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.1",
+    "typescript": "^5.4.5",
+    "@changesets/cli": "^2.28.0"
+  }
+}

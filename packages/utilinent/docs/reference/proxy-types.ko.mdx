@@ -1,0 +1,24 @@
+---
+title: "Proxy와 exported types"
+description: "createProxy, UtilinentRegister, BaseTypeHelperFn, ProxyType을 설명합니다."
+---
+
+# Proxy와 exported types
+
+대부분의 사용자는 ready-made component만 사용하면 됩니다. 이 패키지는 고급 component author를 위해 lower-level proxy utility도 export합니다.
+
+## `createProxy`
+
+`createProxy(base, renderForTag, category)`는 `Show.div`, `For.ul`, `Repeat.section`, plugin-backed property 뒤의 object를 만듭니다.
+
+동일한 HTML-tag 및 plugin behavior를 가진 새로운 utilinent-style component를 만들 때 사용하세요.
+
+## Type exports
+
+| Export | 목적 |
+| --- | --- |
+| `UtilinentRegister` | plugin component typing을 위한 module augmentation interface입니다. |
+| `BaseTypeHelperFn` | props를 proxy call signature에 mapping하기 위한 helper interface입니다. |
+| `ProxyType` | HTML tag와 registered component를 포함한 최종 proxy type을 만듭니다. |
+
+이 type들은 power-user API입니다. 새로운 proxy component family를 만드는 경우가 아니라면 `PluginManager.register`와 기존 component를 우선 사용하세요.

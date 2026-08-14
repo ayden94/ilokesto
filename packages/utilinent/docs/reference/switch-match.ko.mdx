@@ -1,0 +1,44 @@
+---
+title: "Switch와 Match"
+description: "true로 resolve되는 첫 Match child를 렌더링합니다."
+---
+
+# Switch와 Match
+
+`Switch`는 `Match` child를 순서대로 검사하고 `when`이 true로 resolve되는 첫 branch를 렌더링합니다. Match가 없으면 `fallback`을 렌더링합니다.
+
+```tsx lineNumbers
+import { Match, Switch } from '@ilokesto/utilinent';
+
+<Switch fallback={<UnknownStatus />}>
+  <Match when={status === 'idle'}>Idle</Match>
+  <Match when={status === 'loading'}>Loading</Match>
+  <Match when={status === 'error'}>Error</Match>
+</Switch>
+```
+
+Fragment는 flatten되므로 Match를 묶어도 동작이 바뀌지 않습니다.
+
+## Match render function
+
+```tsx lineNumbers
+<Match when={user}>{(currentUser) => <UserMenu user={currentUser} />}</Match>
+```
+
+Function children은 non-null condition value를 받습니다.
+
+## Tag form
+
+```tsx lineNumbers
+<Switch.section fallback={<p>No branch</p>} className="status">
+  <Match when={ready}>Ready</Match>
+</Switch.section>
+```
+
+`Switch.section`은 selected branch를 `<section>`으로 감쌉니다.
+
+## Caveat
+
+- `Match` element만 검사합니다.
+- 첫 번째 truthy match가 선택됩니다.
+- `Match`는 `Show`와 같은 truthiness resolver를 사용하며 array는 `every(Boolean)`입니다.

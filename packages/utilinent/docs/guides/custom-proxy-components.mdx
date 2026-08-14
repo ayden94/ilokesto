@@ -1,0 +1,39 @@
+---
+title: "Custom proxy components"
+description: "Register app components so proxy APIs can target Link, motion, or design-system primitives."
+---
+
+# Custom proxy components
+
+Use `PluginManager` when you want APIs such as `Show.Link`, `For.Grid`, or `Repeat.SkeletonList`.
+
+```tsx lineNumbers
+import { PluginManager, Show } from '@ilokesto/utilinent';
+import Link from 'next/link';
+
+PluginManager.register({
+  show: { Link },
+});
+```
+
+Then use the registered property.
+
+```tsx lineNumbers
+<Show.Link when={post.href} href={post.href} fallback={null}>
+  Read post
+</Show.Link>
+```
+
+## TypeScript setup
+
+```ts lineNumbers
+declare module '@ilokesto/utilinent' {
+  interface UtilinentRegister {
+    show: {
+      Link: typeof Link;
+    };
+  }
+}
+```
+
+Register plugins during application bootstrap, before rendering code that uses the property.

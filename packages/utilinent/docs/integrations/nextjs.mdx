@@ -1,0 +1,38 @@
+---
+title: "Next.js"
+description: "Use utilinent safely with App Router and client component boundaries."
+---
+
+# Next.js
+
+Utilinent works in Next.js as React components. The main decision is whether the file must be a Client Component.
+
+## Server-compatible rendering helpers
+
+`Show`, `For`, `Repeat`, and `Switch` are useful for organizing markup that can be rendered from already available data.
+
+```tsx lineNumbers
+import { For } from '@ilokesto/utilinent';
+
+export default async function Page() {
+  const posts = await getPosts();
+
+  return (
+    <For.ul each={posts} fallback={<li>No posts</li>}>
+      {(post) => <li key={post.id}>{post.title}</li>}
+    </For.ul>
+  );
+}
+```
+
+## Client-only utilities
+
+Use `'use client'` for components using `Observer`, `Slacker`, `Mount`, `useIntersectionObserver`, browser events, or client state.
+
+```tsx lineNumbers
+'use client';
+
+import { Slacker } from '@ilokesto/utilinent';
+```
+
+Register `PluginManager` entries in code that runs before the registered proxy property is rendered.

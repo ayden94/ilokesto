@@ -1,0 +1,36 @@
+---
+title: "Mount"
+description: "Resolve direct, synchronous, or promise-based children with fallback and error handling."
+---
+
+# Mount
+
+`Mount` renders direct children immediately. If `children` is a function, it calls the function after mount and renders `fallback` until the result is resolved.
+
+```tsx lineNumbers
+import { Mount } from '@ilokesto/utilinent';
+
+<Mount fallback={<p>Preparing preview...</p>}>
+  {async () => <Preview data={await loadPreview()} />}
+</Mount>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode`; `() => ReactNode`; `Promise<ReactNode>` | Direct node or node-producing function. |
+| `fallback` | `ReactNode` | Rendered while a function child is pending or after an error. |
+| `onError` | `(error) => void` | Called when the child function throws or rejects. |
+
+## Tag form
+
+```tsx lineNumbers
+<Mount.div fallback={<Spinner />} className="preview">
+  {() => <Preview />}
+</Mount.div>
+```
+
+## Race safety
+
+`Mount` tracks calls and ignores stale async results after cleanup or a newer call. Keep the `children` and `onError` functions stable when possible so work is not restarted unnecessarily.

@@ -1,0 +1,20 @@
+---
+title: "Truthiness 규칙"
+description: "Show, Match, array condition이 render 여부를 결정하는 방식입니다."
+---
+
+# Truthiness 규칙
+
+Utilinent는 작은 resolver를 사용합니다. Array는 모든 item이 truthy일 때 통과하고, 그 외 값은 `Boolean(value)`를 사용합니다.
+
+```ts lineNumbers
+Array.isArray(value) ? value.every(Boolean) : Boolean(value)
+```
+
+이 규칙은 `Show`와 `Match` condition에 영향을 줍니다.
+
+## 의미
+
+- Empty array는 `[].every(Boolean)`이 true이므로 통과합니다. List emptiness에는 `For`를 사용하세요.
+- `0`은 false입니다. 0이 valid value라면 별도 condition을 넘기고 value는 children 안에서 사용하세요.
+- Array condition은 list length 확인이 아니라 dependent requirement 확인에 적합합니다.

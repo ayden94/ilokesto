@@ -1,0 +1,37 @@
+---
+title: "useIntersectionObserver"
+description: "Low-level hook behind Observer for manual intersection logic."
+---
+
+# useIntersectionObserver
+
+`useIntersectionObserver` is the hook used by `Observer`. Use it directly when you need custom rendering or side effects around intersection state.
+
+```tsx lineNumbers
+import { useIntersectionObserver } from '@ilokesto/utilinent';
+
+function AnalyticsSection() {
+  const { ref, isIntersecting, entry } = useIntersectionObserver({
+    threshold: 0.5,
+    freezeOnceVisible: true,
+    onChange: () => console.log('seen'),
+  });
+
+  return <section ref={ref}>{isIntersecting ? 'Visible' : 'Hidden'}</section>;
+}
+```
+
+## Options
+
+| Option | Description |
+| --- | --- |
+| `threshold` | Number or array of numbers. Defaults to `0`. |
+| `root` | Optional root element. Defaults to viewport. |
+| `rootMargin` | Margin around root. Defaults to `"0%"`. |
+| `freezeOnceVisible` | Stop observing after the first visible state. |
+| `initialIsIntersecting` | Initial state before observing. |
+| `onChange` | Called when entering intersection after initial observation. |
+
+## Return value
+
+`ref` is a callback ref. Attach it to the element to observe. `isIntersecting` is the current boolean state. `entry` is the latest `IntersectionObserverEntry` when available.

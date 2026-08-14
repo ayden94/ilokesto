@@ -1,0 +1,37 @@
+---
+title: "useIntersectionObserver"
+description: "Observer의 기반이 되는 low-level hook입니다."
+---
+
+# useIntersectionObserver
+
+`useIntersectionObserver`는 `Observer`가 내부적으로 사용하는 hook입니다. Intersection state 주변에 custom rendering이나 side effect가 필요할 때 직접 사용하세요.
+
+```tsx lineNumbers
+import { useIntersectionObserver } from '@ilokesto/utilinent';
+
+function AnalyticsSection() {
+  const { ref, isIntersecting, entry } = useIntersectionObserver({
+    threshold: 0.5,
+    freezeOnceVisible: true,
+    onChange: () => console.log('seen'),
+  });
+
+  return <section ref={ref}>{isIntersecting ? 'Visible' : 'Hidden'}</section>;
+}
+```
+
+## Options
+
+| Option | 설명 |
+| --- | --- |
+| `threshold` | number 또는 number array입니다. 기본값은 `0`입니다. |
+| `root` | optional root element입니다. 기본값은 viewport입니다. |
+| `rootMargin` | root 주변 margin입니다. 기본값은 `"0%"`입니다. |
+| `freezeOnceVisible` | 처음 visible해진 뒤 observing을 멈춥니다. |
+| `initialIsIntersecting` | observing 전 initial state입니다. |
+| `onChange` | initial observation 이후 entering intersection 때 호출됩니다. |
+
+## Return value
+
+`ref`는 callback ref입니다. 관찰할 element에 연결하세요. `isIntersecting`은 현재 boolean state입니다. `entry`는 사용 가능한 최신 `IntersectionObserverEntry`입니다.

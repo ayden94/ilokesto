@@ -1,0 +1,42 @@
+---
+title: "For"
+description: "Render arrays with an empty fallback and optional wrapper tags."
+---
+
+# For
+
+`For` renders an array by calling `children(item, index)`. If `each` is `null`, `undefined`, or empty, it renders `fallback`.
+
+```tsx lineNumbers
+import { For } from '@ilokesto/utilinent';
+
+<For each={users} fallback={<p>No users found.</p>}>
+  {(user) => <UserCard key={user.id} user={user} />}
+</For>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `each` | `T[] | null | undefined` | Array to render. Empty or missing arrays render fallback. |
+| `children` | `(item, index) => ReactNode` | Render function for each item. |
+| `fallback` | `ReactNode` | Empty-state UI. Defaults to `null`. |
+
+## Tag form
+
+```tsx lineNumbers
+<For.ul each={todos} fallback={<li>No todos</li>} className="todos">
+  {(todo) => <li key={todo.id}>{todo.title}</li>}
+</For.ul>
+```
+
+The tag form creates the wrapper element. Use matching child elements (`li` inside `ul`) to keep semantic HTML valid.
+
+## Keys
+
+`For` does not invent keys. Return keyed elements from your render function when rendering arrays.
+
+```tsx lineNumbers
+<For each={items}>{(item) => <Row key={item.id} item={item} />}</For>
+```
