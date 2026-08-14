@@ -6,7 +6,7 @@ This document lists OpenCode commands, subagent skills, and conventions defined 
 
 - Always read `AGENTS.md` first when entering the ilokesto handbook repository.
 - Load relevant skills from `.opencode/skills/` when working on a specific package or cross-cutting concern.
-- Treat each package directory as an independent Git repository; do not commit cross-package changes in this handbook repo.
+- Treat `packages/*` as one Git repository and one pnpm workspace; cross-package changes should be atomic and dependency-aware.
 - Prefer conventions documented here over adding shared code between packages.
 
 ## Commands
@@ -17,12 +17,12 @@ Commands are triggered by user messages or slash commands. They route work to th
 
 Manually trigger the docs sync workflow for one or more packages.
 
-- Reads each package's `.github/workflows/sync-docs.yml`
-- Pushes a no-op change to `docs/` if needed to force a sync PR
+- Uses the root package-scoped docs sync workflows.
+- Watches `packages/<name>/docs/` and opens a sync PR in `ilokesto/docs`.
 
 ### `/release-patch`
 
-Adds a patch changeset to the current package and opens a release PR.
+Adds a root changeset for the selected package. The root release workflow opens the release PR after merge.
 
 ### `/compare-scope`
 
@@ -45,15 +45,16 @@ Trigger: working on `@ilokesto/form`
 
 Context:
 - Read `PACKAGES.md` form section
-- Read `form/package.json`
+- Read `packages/form/package.json`
 
 Rules:
-- Keep form state logic framework-agnostic in `form/src/core/`
-- Put React/Vue/Solid/Svelte adapters in `form/src/<framework>/`
+- Keep form state logic framework-agnostic in `packages/form/src/core/`
+- Put React/Vue/Solid/Svelte adapters in `packages/form/src/<framework>/`
 - Compare behavior to React Hook Form and TanStack Form when reviewing API changes
 ```
 
 ## Conventions
 
-- Use package-specific `AGENTS.md` only for repo-local rules; ecosystem-wide rules live here.
+- Use `packages/<name>/AGENTS.md` for package-local rules; ecosystem-wide rules live here.
 - Skills should be loaded via `load_skills` in task delegation when a package is involved.
+- Run package scripts with `pnpm --filter @ilokesto/<name> <script>`.
