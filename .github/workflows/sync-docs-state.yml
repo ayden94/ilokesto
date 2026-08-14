@@ -1,0 +1,14 @@
+name: Sync State Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/state/docs/**
+
+jobs:
+  sync:
+    uses: ./.github/workflows/_sync-docs.yml
+    with:
+      package: state
+    secrets: inherit
