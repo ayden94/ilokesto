@@ -1,0 +1,14 @@
+name: Sync Modal Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/modal/docs/**
+
+jobs:
+  sync:
+    uses: ./.github/workflows/_sync-docs.yml
+    with:
+      package: modal
+    secrets: inherit
