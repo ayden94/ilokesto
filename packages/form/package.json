@@ -51,7 +51,7 @@
   ],
   "dependencies": {
     "@ilokesto/store": "workspace:*",
-    "immer": "^11.1.8"
+    "immer": "11.1.8"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.2",
