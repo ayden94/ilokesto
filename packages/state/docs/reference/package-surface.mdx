@@ -1,0 +1,38 @@
+---
+title: "Package surface"
+description: "Entry points, peer dependencies, and the root entrypoint caveat."
+---
+
+# Package surface
+
+The public package surface is defined by `state/package.json` exports.
+
+## Entry point matrix
+
+| Import | Purpose |
+|---|---|
+| `@ilokesto/state` | Package identity and current empty runtime root. The source is `export {}`. |
+| `@ilokesto/state/react` | React `create()` adapter. |
+| `@ilokesto/state/vue` | Vue `create()` adapter. |
+| `@ilokesto/state/svelte` | Svelte `create()` adapter. |
+| `@ilokesto/state/solid` | Solid `create()` adapter. |
+| `@ilokesto/state/angular` | Angular `create()` adapter. |
+| `@ilokesto/state/middleware` | `logger`, `validate`, `debounce`, `devtools`, `persist`. |
+| `@ilokesto/state/utils` | `pipe`, `adaptor`. |
+
+## Root entrypoint caveat
+
+Do not import adapter APIs from the root entry point. The empty runtime root exists as package identity; use a subpath such as `@ilokesto/state/react` or `@ilokesto/state/middleware`.
+
+```ts lineNumbers
+// Good
+import { create } from '@ilokesto/state/react';
+import { logger } from '@ilokesto/state/middleware';
+
+// Not supported by the current root entrypoint
+import { create } from '@ilokesto/state';
+```
+
+## Peer dependencies
+
+Framework peers are optional: install only the adapter framework you use. `immer` is optional and only needed when you use `adaptor` from `@ilokesto/state/utils`.

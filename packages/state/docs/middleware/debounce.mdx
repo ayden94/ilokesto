@@ -1,0 +1,35 @@
+---
+title: "debounce"
+description: "Delay rapid updates and apply the latest accumulated state."
+---
+
+# debounce
+
+`debounce` collects rapid update requests and applies them after a wait window. It is useful for text inputs, resize-driven values, or other high-frequency updates where intermediate states do not need to notify immediately.
+
+## Signature
+
+```ts lineNumbers
+debounce<T>(initialState: T | Store<T>, wait: number | undefined): Store<T>
+debounce(wait?: number): <T>(initialState: T | Store<T>) => Store<T>
+```
+
+## Example
+
+```ts lineNumbers
+import { debounce } from '@ilokesto/state/middleware';
+
+const store = debounce({ query: '' }, 250);
+
+store.setState({ query: 'i' });
+store.setState({ query: 'il' });
+store.setState({ query: 'ilo' });
+```
+
+## Function updates
+
+Function updates are kept in order and replayed against an accumulated current state when the timer fires. That means updater functions still compose with one another inside the debounce window.
+
+## Timing caveat
+
+Until the timer fires, `getState()` still returns the previous committed state. Do not use `debounce` for state where every intermediate write must be immediately observable.

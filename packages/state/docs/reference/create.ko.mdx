@@ -1,0 +1,41 @@
+---
+title: "create"
+description: "프레임워크 어댑터가 공유하는 plain-state와 reducer-state create() overload입니다."
+---
+
+# create
+
+각 프레임워크 subpath는 `create`를 내보냅니다. 반환 형태는 프레임워크마다 다르지만 overload 개념은 같습니다.
+
+## Plain state overload
+
+```ts lineNumbers
+create<T>(initialState: T | Store<T>): UseState<T>
+
+const useSession = create({ user: null as null | { id: string } });
+```
+
+plain state는 `setState`라는 writer 또는 프레임워크 친화적인 equivalent를 제공합니다. React는 tuple을 반환하고, Svelte는 `set`, `update`, `setState`를 노출하며, Vue, Solid, Angular는 `state`와 `setState`를 가진 object를 반환합니다.
+
+## Reducer overload
+
+```ts lineNumbers
+create<T, Action extends object>(
+  reduceFn: (state: T, action: Action) => T,
+  initialState: T | Store<T>,
+): UseReducer<T, Action>
+```
+
+reducer state는 `dispatch` 또는 action을 받는 `writeOnly()` writer를 제공합니다. 내부적으로 action은 middleware에서 state로 변환된 뒤 store pipeline을 계속 통과합니다.
+
+## 기존 Store 재사용하기
+
+```ts lineNumbers
+import { Store } from '@ilokesto/store';
+import { create } from '@ilokesto/state/react';
+
+const store = new Store({ count: 0 });
+const useCounter = create(store);
+```
+
+여러 adapter 또는 프레임워크 밖 코드가 하나의 source of truth를 공유해야 한다면 기존 `Store<T>`를 넘기세요.

@@ -1,0 +1,81 @@
+import type { Store } from '@ilokesto/store';
+import { DestroyRef, computed, inject, signal } from '@angular/core';
+
+import { dispatchStoreAction } from '../../lib/actionMetadata.js';
+import type { ReducerAction } from '../../types/ReduceFn.js';
+import type {
+  ActionWriter,
+  AngularOptions,
+  Selector,
+  StateWriter,
+} from './types.js';
+
+const identity = <Value>(value: Value): Value => value;
+
+function createDispatch<T, Action extends ReducerAction>(store: Store<T>): ActionWriter<Action> {
+  return (action) => {
+    dispatchStoreAction(store, action);
+  };
+}
+
+function resolveDestroyRef(options?: AngularOptions): DestroyRef {
+  if (options?.destroyRef) {
+    return options.destroyRef;
+  }
+
+  try {
+    return inject(DestroyRef);
+  } catch {
+    throw new Error(
+      '[@ilokesto/state/angular] create() returned signals must run inside an injection context or receive { destroyRef }. Use readOnly() for synchronous reads outside Angular lifecycle.',
+    );
+  }
+}
+
+function createSelection<T, S>(store: Store<T>, selector: Selector<T, S>, options?: AngularOptions) {
+  const snapshot = signal(store.getState() as T);
+  const unsubscribe = store.subscribe(() => {
+    snapshot.set(store.getState() as T);
+  });
+
+  resolveDestroyRef(options).onDestroy(unsubscribe);
+
+  return computed(() => selector(snapshot()));
+}
+
+export function createUseSignal<T, Action extends ReducerAction>(store: Store<T>, isReduce: boolean) {
+  const write = store.setState.bind(store);
+  const dispatch = createDispatch<T, Action>(store);
+  const subscribe = store.subscribe.bind(store);
+
+  return Object.assign(
+    <S = T>(selectorOrOptions?: Selector<T, S> | AngularOptions, maybeOptions?: AngularOptions) => {
+      const state =
+        typeof selectorOrOptions === 'function'
+          ? createSelection(store, selectorOrOptions, maybeOptions)
+          : createSelection(store, identity<T>, selectorOrOptions);
+
+      if (isReduce) {
+        return {
+          state,
+          dispatch,
+          subscribe,
+        } as const;
+      }
+
+      return {
+        state,
+        setState: write as StateWriter<T>,
+        subscribe,
+      } as const;
+    },
+    {
+      writeOnly: () => (isReduce ? dispatch : write),
+      readOnly: <S = T>(selector?: Selector<T, S>): S => {
+        const select = (selector ?? identity<T>) as Selector<T, S>;
+        return select(store.getState() as T);
+      },
+      subscribe,
+    },
+  );
+}

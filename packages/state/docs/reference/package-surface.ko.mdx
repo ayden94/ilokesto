@@ -1,0 +1,38 @@
+---
+title: "패키지 표면"
+description: "Entrypoint, peer dependency, root entrypoint 주의점입니다."
+---
+
+# 패키지 표면
+
+public package surface는 `state/package.json`의 exports가 기준입니다.
+
+## Entrypoint 표
+
+| Import | Purpose |
+|---|---|
+| `@ilokesto/state` | package identity와 현재 empty runtime root입니다. source는 `export {}`입니다. |
+| `@ilokesto/state/react` | React `create()` adapter입니다. |
+| `@ilokesto/state/vue` | Vue `create()` adapter입니다. |
+| `@ilokesto/state/svelte` | Svelte `create()` adapter입니다. |
+| `@ilokesto/state/solid` | Solid `create()` adapter입니다. |
+| `@ilokesto/state/angular` | Angular `create()` adapter입니다. |
+| `@ilokesto/state/middleware` | `logger`, `validate`, `debounce`, `devtools`, `persist`입니다. |
+| `@ilokesto/state/utils` | `pipe`, `adaptor`입니다. |
+
+## Root entrypoint 주의점
+
+adapter API를 root entry point에서 import하지 마세요. empty runtime root는 package identity에 가깝습니다. `@ilokesto/state/react` 또는 `@ilokesto/state/middleware` 같은 subpath를 사용하세요.
+
+```ts lineNumbers
+// Good
+import { create } from '@ilokesto/state/react';
+import { logger } from '@ilokesto/state/middleware';
+
+// 현재 root entrypoint에서는 지원하지 않습니다
+import { create } from '@ilokesto/state';
+```
+
+## Peer dependencies
+
+프레임워크 peer는 optional입니다. 실제로 쓰는 어댑터의 프레임워크만 설치하세요. `immer`는 `@ilokesto/state/utils`의 `adaptor`를 사용할 때만 필요합니다.

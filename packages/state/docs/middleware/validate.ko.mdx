@@ -1,0 +1,46 @@
+---
+title: "validate"
+description: "Standard Schema로 invalid synchronous state update를 막습니다."
+---
+
+# validate
+
+`validate`는 store가 다음 state를 받아들이기 전에 Standard Schema v1 validator를 실행합니다. validation이 실패하면 update를 멈추고 error를 로그로 남깁니다.
+
+## Signature
+
+```ts lineNumbers
+validate<T>(initialState: T | Store<T>, schema: StandardSchemaV1<T, T>): Store<T>
+validate<T>(schema: StandardSchemaV1<T, T>): (initialState: T | Store<T>) => Store<T>
+```
+
+## 예제
+
+```ts lineNumbers
+import { validate } from '@ilokesto/state/middleware';
+
+type CounterState = { count: number };
+
+const schema = {
+  '~standard': {
+    version: 1,
+    vendor: 'counter',
+    validate(value: unknown) {
+      if (typeof value === 'object' && value !== null && typeof (value as CounterState).count === 'number') {
+        return { value: value as CounterState };
+      }
+      return { issues: [{ message: 'count must be a number' }] };
+    },
+  },
+} as const;
+
+const store = validate({ count: 0 }, schema);
+```
+
+## 실패하면 어떻게 되나
+
+schema가 `issues`를 반환하면 `validate`는 `[Validation Error] Invalid state:`를 로그로 남기고 다음 middleware를 호출하지 않습니다. store는 이전 state를 유지합니다.
+
+## Async 주의점
+
+async Standard Schema validation은 지원하지 않습니다. `validate()`가 Promise-like 결과를 반환하면 async validation error를 로그로 남기고 update를 멈춥니다. async check는 `setState` 호출 전에 수행하세요.

@@ -1,0 +1,41 @@
+---
+title: "create"
+description: "Plain-state and reducer-state create() overloads shared by framework adapters."
+---
+
+# create
+
+Each framework subpath exports `create`. The overloads are shared conceptually even though return shapes differ by framework.
+
+## Plain state overload
+
+```ts lineNumbers
+create<T>(initialState: T | Store<T>): UseState<T>
+
+const useSession = create({ user: null as null | { id: string } });
+```
+
+Plain state exposes a writer named `setState` or a framework-native equivalent. React returns a tuple, Svelte exposes `set`, `update`, and `setState`; Vue, Solid, and Angular return objects with `state` and `setState`.
+
+## Reducer overload
+
+```ts lineNumbers
+create<T, Action extends object>(
+  reduceFn: (state: T, action: Action) => T,
+  initialState: T | Store<T>,
+): UseReducer<T, Action>
+```
+
+Reducer state exposes `dispatch` or a writer returned by `writeOnly()` that accepts actions. Internally the action is converted to state by a middleware before continuing through the store pipeline.
+
+## Reusing an existing Store
+
+```ts lineNumbers
+import { Store } from '@ilokesto/store';
+import { create } from '@ilokesto/state/react';
+
+const store = new Store({ count: 0 });
+const useCounter = create(store);
+```
+
+Use an existing `Store<T>` when multiple adapters or non-framework code need to share one source of truth.
