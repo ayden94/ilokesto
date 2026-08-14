@@ -1,0 +1,75 @@
+{
+  "name": "@ilokesto/modal",
+  "version": "1.0.3",
+  "type": "module",
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test modal.e2e.ts",
+    "test:a11y": "playwright test modal.a11y.ts",
+    "test:pack": "pnpm run build && publint && attw --pack . --profile esm-only && node scripts/validate-package.mjs",
+    "test:ci": "pnpm test && pnpm test:e2e && pnpm test:a11y && pnpm test:pack",
+    "changeset": "changeset",
+    "version": "changeset version",
+    "release": "changeset publish"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilokesto/modal.git"
+  },
+  "homepage": "https://ilokesto.ayden94.com/en/modal",
+  "packageManager": "pnpm@10.17.1",
+  "sideEffects": false,
+  "types": "dist/index.d.ts",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "modal",
+    "react",
+    "overlay",
+    "dialog"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Jeong Jinho <wpfekdml@me.com>",
+  "license": "MIT",
+  "dependencies": {
+    "@ilokesto/overlay": "^1.1.0"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.4",
+    "@axe-core/playwright": "^4.12.1",
+    "@playwright/test": "^1.61.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.19.1",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.7.0",
+    "axe-core": "^4.12.1",
+    "jsdom": "^25.0.1",
+    "publint": "^0.3.21",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "vite": "^5.4.21",
+    "vitest": "^2.1.8",
+    "@changesets/cli": "^2.28.0"
+  }
+}

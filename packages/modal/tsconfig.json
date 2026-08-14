@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "dist",
+    "emitDeclarationOnly": false,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "rootDir": "src",
+    "target": "ESNext",
+    "strict": true,
+    "ignoreDeprecations": "6.0",
+    "allowJs": true,
+    "checkJs": true,
+    "esModuleInterop": true,
+    "removeComments": true,
+    "types": ["node", "react", "react-dom"],
+    "typeRoots": ["./node_modules/@types"]
+  },
+  "include": ["src"],
+  "exclude": ["test", "e2e", "scripts"]
+}
