@@ -6,17 +6,14 @@
     "typecheck": "tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "changeset": "changeset",
-    "version": "changeset version",
-    "release": "changeset publish"
+    "test:coverage": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ilokesto/overlay"
+    "url": "git+https://github.com/ilokesto/metarepo.git",
+    "directory": "packages/overlay"
   },
   "homepage": "https://ilokesto.ayden94.com/en/overlay",
-  "packageManager": "pnpm@10.17.1",
   "sideEffects": false,
   "types": "dist/index.d.ts",
   "module": "dist/index.js",
@@ -42,7 +39,7 @@
   "author": "Jeong Jinho <wpfekdml@me.com>",
   "license": "MIT",
   "dependencies": {
-    "@ilokesto/store": "^1.1.1"
+    "@ilokesto/store": "workspace:^1.1.1"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"
@@ -58,7 +55,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.10",
-    "@changesets/cli": "^2.28.0"
+    "vitest": "^4.1.10"
   }
 }
