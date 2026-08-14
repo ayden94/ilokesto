@@ -1,57 +1,42 @@
-# ilokesto Metarepo
+# ilokesto Monorepo
 
-This repository is the central handbook for the **ilokesto** library ecosystem. It does not contain library source code; each package lives in its own independent GitHub repository under the `ilokesto` organization.
+This repository is the source of truth for the **ilokesto** library ecosystem. It contains eight independently versioned npm packages managed with pnpm workspaces and Changesets.
 
 ## What this repository contains
 
-- **Cross-cutting documentation**: scope, architecture, and decisions shared across all ilokesto packages.
-- **OpenCode commands and skills**: conventions and subagent instructions for working on ilokesto libraries.
-- **Automation references**: how Changesets, CI, and docs synchronization work across the ecosystem.
+- **Package source**: publishable libraries under `packages/*`.
+- **Cross-cutting documentation**: scope, architecture, and decisions shared across packages.
+- **Central automation**: one lockfile, CI workflow, Changesets configuration, and release workflow.
 
 ## Repository layout
 
 ```
 ilokesto/
-├── .gitignore              # Excludes independent package directories
-├── README.md               # This file
-├── AGENTS.md               # OpenCode entrypoint
-├── PACKAGES.md             # Per-package scope and comparable libraries
-├── ARCHITECTURE.md         # Dependency graph and architectural decisions
-├── COMMANDS.md             # OpenCode commands and skills overview
-├── DECISIONS/              # Architecture Decision Records (ADRs)
-└── .opencode/              # OpenCode commands, agents, and skills
-    ├── commands.json
-    ├── agents.md
-    └── skills/
+├── .changeset/             # Release declarations and configuration
+├── .github/workflows/      # CI, release, and package docs sync
+├── packages/               # Publishable @ilokesto packages
+├── DECISIONS/              # Architecture Decision Records
+├── package.json            # Root scripts
+├── pnpm-lock.yaml          # Single dependency lockfile
+└── pnpm-workspace.yaml     # packages/* workspace boundary
 ```
 
-## How packages relate to this repo
+## Workspace packages
 
-The following directories are present locally but are ignored by Git because each one is an independent repository:
-
-- `store`
-- `state`
-- `form`
-- `modal`
-- `overlay`
-- `toast`
-- `fetcher`
-- `utilinent`
-- `docs`
-- `playground`
-
-When working on a specific package, open that directory as its own Git repository. Load the matching `.opencode/skills/ilokesto-<package>` skill for context.
+The workspace contains `store`, `state`, `form`, `overlay`, `modal`, `toast`, `fetcher`, and `utilinent` under `packages/`. The local top-level `docs/` and `playground/` directories remain separate repositories and are not workspace projects.
 
 ## Core principles
 
-- **Independent repositories**: Each package versions, releases, and maintains its own changelog.
-- **Changesets everywhere**: All published packages use `@changesets/cli` for release automation.
-- **Docs live with source**: Each package keeps its documentation in `docs/`. Changes are synced to `ilokesto/docs` via GitHub Actions.
+- **Independent package versions**: Packages share a repository but version and publish independently.
+- **Root Changesets**: Consumer-facing changes add one file under `.changeset/`.
+- **Docs live with source**: Each package keeps documentation in `packages/<name>/docs/`; root workflows sync it to `ilokesto/docs`.
 - **Shared patterns over shared code**: Prefer conventions documented here before adding cross-package abstractions.
 
 ## Getting started
 
-1. Read `AGENTS.md` for how OpenCode should navigate this ecosystem.
-2. Read `PACKAGES.md` to understand what each library does and what it compares to.
-3. Read `ARCHITECTURE.md` to see how packages depend on each other.
-4. Use the `.opencode/skills/` definitions when delegating work to subagents.
+```bash
+pnpm install
+pnpm build
+pnpm test
+pnpm changeset
+```

@@ -1,31 +1,32 @@
 # ilokesto Handbook
 
-This repository is the single source of truth for the ilokesto library ecosystem. Each package (`store`, `state`, `form`, `modal`, `overlay`, `toast`, `fetcher`, `utilinent`) lives in its own independent Git repository. This handbook tracks cross-cutting concerns only.
+This repository is the single source of truth for the ilokesto library ecosystem. Publishable packages live under `packages/` in one pnpm workspace and are released independently through root Changesets automation.
 
 ## When you work on ilokesto
 
 1. Read `PACKAGES.md` to understand the scope and comparable libraries for the package you are touching.
 2. Read `ARCHITECTURE.md` to see how packages depend on each other and why.
 3. Read `COMMANDS.md` for OpenCode commands and subagent skills defined for this ecosystem.
-4. Load relevant skills from `.opencode/skills/` when working on a specific package or cross-cutting concern.
-5. For package-specific details, look at that package's own repository.
+4. Read `packages/<name>/AGENTS.md` and load the matching skill before changing a package.
+5. Run package commands with `pnpm --filter @ilokesto/<name> <script>` or from that package directory.
+6. Add a root changeset for consumer-facing changes.
 
 ## Repository layout
 
 ```
 ilokesto/
-├── .gitignore              # Ignores independent package directories
-├── AGENTS.md               # This file
-├── PACKAGES.md             # Per-package scope and comparisons
-├── ARCHITECTURE.md         # Dependency graph and decisions
-├── COMMANDS.md             # OpenCode commands/skills overview
-├── DECISIONS/              # Architecture Decision Records (ADRs)
-└── SKILLS/                 # OpenCode skill definitions
+├── .changeset/             # Release declarations and configuration
+├── .github/workflows/      # CI, release, and docs sync
+├── packages/               # Publishable packages
+├── DECISIONS/              # Architecture Decision Records
+├── package.json
+├── pnpm-lock.yaml
+└── pnpm-workspace.yaml
 ```
 
 ## Core principles
 
-- **Independent repositories**: Each package versions, releases, and maintains its own changelog.
-- **Changesets everywhere**: All published packages use `@changesets/cli` for release automation.
-- **Docs live with source**: Each package keeps its documentation in `docs/`. Pushes to `docs/` on `main` open a sync PR in `ilokesto/docs`.
+- **Independent versions**: Packages share Git history but retain separate versions and changelogs.
+- **One release control plane**: Changesets, lockfile, CI, and publishing are rooted here.
+- **Docs live with source**: Package docs remain beside source and root workflows sync them to `ilokesto/docs`.
 - **Shared patterns over shared code**: Prefer conventions documented here before adding cross-package abstractions.
