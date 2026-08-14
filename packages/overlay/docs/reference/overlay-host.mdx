@@ -1,0 +1,26 @@
+---
+title: "OverlayHost"
+description: "Render overlay items by dispatching each item to its registered adapter."
+---
+
+# OverlayHost
+
+`OverlayHost` reads the current item list with `useOverlayItems()` and renders an `OverlayItemRenderer` for each item. The renderer looks up `adapters[item.type]`, creates `close` and `remove` callbacks bound to the item id, and passes `OverlayRenderProps` plus `item.props` to the adapter.
+
+```tsx lineNumbers
+const renderProps = {
+  id: item.id,
+  isOpen: item.status === 'open',
+  status: item.status,
+  close,
+  remove,
+};
+
+return <Adapter {...renderProps} {...item.props} />;
+```
+
+You usually do not mount `OverlayHost` yourself because `OverlayProvider` includes it. Read this page when you build a custom provider shell or need to understand why an item with an unknown type renders nothing. Missing adapters are intentionally ignored at render time rather than crashing the whole app.
+
+## Practical note
+
+The reference pages describe the runtime contract exactly. Guides may wrap these APIs into product-specific helpers, but those helpers should keep the same lifecycle language: open creates an item, close starts a closing state, remove settles and deletes an item, and clear ends every pending overlay in the provider scope.

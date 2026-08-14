@@ -1,0 +1,24 @@
+---
+title: "Adapter contracts"
+description: "Build render adapters with OverlayRenderProps and OverlayAdapterMap."
+---
+
+# Adapter contracts
+
+Adapters are React components registered by overlay `type`. `OverlayRenderProps<TResult>` supplies `id`, `isOpen`, `status`, `close(result?)`, and `remove()`. `OverlayAdapterComponent<TResult>` combines those render props with arbitrary item props, and `OverlayAdapterMap` maps type strings to adapter components.
+
+```tsx lineNumbers
+const adapters: OverlayAdapterMap = {
+  sheet: ({ isOpen, close, remove, side = 'right' }) => (
+    <aside data-open={isOpen} data-side={side} onAnimationEnd={() => !isOpen && remove()}>
+      <button onClick={() => close()}>Close</button>
+    </aside>
+  ),
+};
+```
+
+Keep semantic policy in adapters. A modal adapter may handle focus trap and backdrop clicks. A toast adapter may start timers and deduplicate messages. The overlay core only supplies lifecycle wiring and host dispatch. This boundary is what lets higher-level modal or toast packages depend on `@ilokesto/overlay` without the core importing them back.
+
+## Practical note
+
+The reference pages describe the runtime contract exactly. Guides may wrap these APIs into product-specific helpers, but those helpers should keep the same lifecycle language: open creates an item, close starts a closing state, remove settles and deletes an item, and clear ends every pending overlay in the provider scope.

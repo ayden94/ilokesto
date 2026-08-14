@@ -1,0 +1,23 @@
+---
+title: "Provider 범위"
+description: "런타임이 전역 싱글턴 대신 provider 단위 store를 사용하는 이유입니다."
+---
+
+# Provider 범위
+
+전역 overlay singleton은 애플리케이션에 격리가 필요해지기 전까지는 편합니다. Provider 범위는 overlay 상태를 그것을 소유한 UI tree 가까이에 둡니다. 테스트는 case마다 새 store를 만들 수 있고, embedded widget은 host page와 충돌하지 않을 수 있으며, 중첩 shell은 내부 overlay와 전역 app overlay를 의도적으로 분리할 수 있습니다.
+
+```tsx lineNumbers
+const store = createOverlayStore();
+render(
+  <OverlayProvider adapters={adapters} store={store}>
+    <Feature />
+  </OverlayProvider>,
+);
+```
+
+트레이드오프는 hook에 provider 위치가 필요하다는 점입니다. 이는 의도된 설계입니다. provider 누락은 설정 오류이지, 런타임이 전역 fallback으로 조용히 고쳐야 할 일이 아닙니다. overlay가 route나 shell 경계를 넘어야 한다면 provider를 공유 경계로 올리거나 store를 명시적으로 전달하세요.
+
+## 설계 요점
+
+런타임 안에 숨긴 편의보다 명시적인 경계를 우선하세요. 어떤 결정이 제품 의미에 의존한다면 코어 밖에 두고 어댑터가 책임지게 하세요. 모든 overlay item에 반드시 필요한 결정이라면 공유 lifecycle 계약에 들어갈 후보가 됩니다.

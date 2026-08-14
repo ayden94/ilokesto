@@ -1,0 +1,26 @@
+---
+title: "OverlayHost"
+description: "각 overlay item을 등록된 어댑터로 보내 렌더링합니다."
+---
+
+# OverlayHost
+
+`OverlayHost`는 `useOverlayItems()`로 현재 item 목록을 읽고 각 item마다 `OverlayItemRenderer`를 렌더링합니다. renderer는 `adapters[item.type]`을 찾고, item id에 묶인 `close`와 `remove` callback을 만든 뒤 `OverlayRenderProps`와 `item.props`를 어댑터에 전달합니다.
+
+```tsx lineNumbers
+const renderProps = {
+  id: item.id,
+  isOpen: item.status === 'open',
+  status: item.status,
+  close,
+  remove,
+};
+
+return <Adapter {...renderProps} {...item.props} />;
+```
+
+보통 `OverlayProvider`가 host를 포함하므로 직접 마운트할 필요는 없습니다. custom provider shell을 만들거나 알 수 없는 type의 item이 왜 아무것도 렌더링하지 않는지 이해해야 할 때 이 문서를 보세요. 등록되지 않은 어댑터는 앱 전체를 깨뜨리지 않도록 렌더링 시점에 의도적으로 무시됩니다.
+
+## 실무 메모
+
+레퍼런스 문서는 런타임 계약을 정확히 설명합니다. 가이드에서는 이 API를 제품별 helper로 감쌀 수 있지만, 같은 lifecycle 언어를 유지해야 합니다. open은 item을 만들고, close는 closing 상태를 시작하며, remove는 item을 완료하고 삭제하고, clear는 provider 범위의 모든 대기 중인 overlay를 끝냅니다.

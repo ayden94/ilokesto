@@ -1,0 +1,22 @@
+---
+title: "createOverlayStore"
+description: "overlay lifecycle을 소유하는 provider 단위 store API를 만듭니다."
+---
+
+# createOverlayStore
+
+`createOverlayStore()`는 `open`, `close`, `remove`, `clear`, `subscribe`, `getSnapshot`, `getInitialSnapshot`을 가진 `OverlayStoreApi`를 반환합니다. 내부적으로 `@ilokesto/store`에 `OverlayState`를 저장하고, overlay id별로 대기 중인 promise resolver를 보관합니다.
+
+```ts lineNumbers
+const store = createOverlayStore();
+const request = store.open<boolean>({ type: 'confirm', props: { title: 'Delete?' } });
+store.close(request.id, true);
+store.remove(request.id);
+const result = await request.promise;
+```
+
+`open`은 `OverlayItem`을 만들고 `{ id, promise }`를 반환합니다. `close`는 일치하는 열린 item을 `closing`으로 바꾸고 `closeResult`를 기록합니다. `remove`는 특정 item을 제거하거나 id가 없으면 마지막 item을 제거하고 promise를 완료합니다. `clear`는 모든 item을 완료하고 제거합니다. 일반 React 컴포넌트에서는 `useOverlay`를 쓰고, 테스트나 고급 shell에서는 store를 직접 사용하세요.
+
+## 실무 메모
+
+레퍼런스 문서는 런타임 계약을 정확히 설명합니다. 가이드에서는 이 API를 제품별 helper로 감쌀 수 있지만, 같은 lifecycle 언어를 유지해야 합니다. open은 item을 만들고, close는 closing 상태를 시작하며, remove는 item을 완료하고 삭제하고, clear는 provider 범위의 모든 대기 중인 overlay를 끝냅니다.

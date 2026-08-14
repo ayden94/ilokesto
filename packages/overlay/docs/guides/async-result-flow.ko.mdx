@@ -1,0 +1,24 @@
+---
+title: "비동기 결과 흐름"
+description: "타입이 있는 사용자 결정과 긴 UI 흐름에 display promise를 사용합니다."
+---
+
+# 비동기 결과 흐름
+
+`display<TResult>()`는 `Promise<TResult | undefined>`를 반환합니다. promise는 item이 제거될 때 완료됩니다. item이 먼저 닫혔다면 close result를 받습니다. result 없이 갑자기 제거되거나 clear되었다면 `undefined`로 완료됩니다.
+
+```tsx lineNumbers
+const choice = await display<'archive' | 'delete'>({
+  type: 'action-menu',
+  props: { itemName: project.name },
+});
+
+if (choice === 'archive') archiveProject();
+if (choice === 'delete') deleteProject();
+```
+
+이 흐름은 확인 다이얼로그, picker, command menu, 여러 단계의 UI 결정에 유용합니다. 결과 타입은 작게 유지하세요. overlay 안에서 큰 객체를 편집한다면 그 객체는 일반 상태나 form 패키지로 다루고, overlay result는 선택한 action을 알리는 데만 사용하는 편이 좋습니다.
+
+## 점검 목록
+
+`type` 이름은 안정적으로 유지하고, 어댑터가 필요한 props만 넘기세요. 흐름에 promise가 필요한지 id만 필요한지 결정하고, 시각적인 정책은 어댑터가 책임지게 하세요. 사용자 행동이 부수 효과로 이어진다면 item을 제거하기 전에 명시적인 result로 닫는 방식을 우선하세요.

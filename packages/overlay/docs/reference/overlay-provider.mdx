@@ -1,0 +1,20 @@
+---
+title: "OverlayProvider"
+description: "Create or receive a scoped overlay store and mount the built-in host."
+---
+
+# OverlayProvider
+
+`OverlayProvider` is the boundary that makes the runtime available to hooks and adapters. It receives `adapters`, `children`, and an optional `store`. If `store` is omitted, the provider creates one with `createOverlayStore()` and keeps it stable with React memoization.
+
+```tsx lineNumbers
+<OverlayProvider adapters={adapters}>
+  <AppRoutes />
+</OverlayProvider>
+```
+
+The provider renders children first and then `OverlayHost`, so overlays are hosted near the end of the provider subtree. Pass a custom store when tests need direct control or when a shell wants to share one overlay runtime across multiple mounted roots. Every component that calls `useOverlay` or `useOverlayItems` must be under this provider, otherwise the context hook throws an error.
+
+## Practical note
+
+The reference pages describe the runtime contract exactly. Guides may wrap these APIs into product-specific helpers, but those helpers should keep the same lifecycle language: open creates an item, close starts a closing state, remove settles and deletes an item, and clear ends every pending overlay in the provider scope.

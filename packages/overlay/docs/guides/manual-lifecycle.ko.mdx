@@ -1,0 +1,26 @@
+---
+title: "수동 lifecycle"
+description: "호출자가 overlay id를 직접 관리할 때 open, close, remove, clear를 사용합니다."
+---
+
+# 수동 lifecycle
+
+결과 promise가 핵심이 아닐 때는 수동 lifecycle 명령을 사용하세요. toast, 진행 패널, route 단위 sheet, 전역 loading overlay는 나중에 다른 이벤트가 닫거나 제거할 수 있도록 id가 필요한 경우가 많습니다.
+
+```tsx lineNumbers
+const { open, close, remove } = useOverlay();
+const id = open({ type: 'toast', props: { message: 'Uploading...' } });
+
+try {
+  await upload();
+  close(id);
+} finally {
+  window.setTimeout(() => remove(id), 200);
+}
+```
+
+`remove(id)`는 특정 item을 삭제합니다. id 없이 `remove()`를 호출하면 store의 최신 item을 제거합니다. `clear()`는 provider 범위의 모든 item을 제거하므로 신중하게 사용해야 합니다. 일반 버튼 handler보다는 route 전환이나 app shell cleanup에 더 잘 맞습니다.
+
+## 점검 목록
+
+`type` 이름은 안정적으로 유지하고, 어댑터가 필요한 props만 넘기세요. 흐름에 promise가 필요한지 id만 필요한지 결정하고, 시각적인 정책은 어댑터가 책임지게 하세요. 사용자 행동이 부수 효과로 이어진다면 item을 제거하기 전에 명시적인 result로 닫는 방식을 우선하세요.

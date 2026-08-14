@@ -1,0 +1,24 @@
+---
+title: "useOverlay"
+description: "React 컴포넌트에서 overlay를 열고 표시하고 닫고 제거하고 비웁니다."
+---
+
+# useOverlay
+
+`useOverlay()`는 `OverlayProvider` 안의 컴포넌트에서 쓰는 명령 API를 반환합니다. 반환값은 `display`, `open`, `close`, `remove`, `clear`입니다. `display<TResult>(options)`는 item을 열고 대기 중인 promise를 반환합니다. `open(options)`은 item을 열고 id만 반환합니다.
+
+```tsx lineNumbers
+const { display, open, close, remove, clear } = useOverlay();
+
+const confirmed = await display<boolean>({ type: 'confirm' });
+const id = open({ type: 'toast', props: { message: 'Saved' } });
+close(id);
+remove(id);
+clear();
+```
+
+결과가 필요한 modal류 흐름에는 `display`를 우선 사용하세요. toast처럼 외부에서 제어하거나 호출자가 id를 저장해 나중에 `close` 또는 `remove`를 호출해야 하는 흐름에는 `open`이 알맞습니다. id 없이 `remove()`를 호출하면 store 기준 최신 item이 제거됩니다. `clear()`는 넓은 명령이므로 보통 route 전환, provider 정리, 긴급 cleanup에만 사용하세요.
+
+## 실무 메모
+
+레퍼런스 문서는 런타임 계약을 정확히 설명합니다. 가이드에서는 이 API를 제품별 helper로 감쌀 수 있지만, 같은 lifecycle 언어를 유지해야 합니다. open은 item을 만들고, close는 closing 상태를 시작하며, remove는 item을 완료하고 삭제하고, clear는 provider 범위의 모든 대기 중인 overlay를 끝냅니다.

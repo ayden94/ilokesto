@@ -1,0 +1,25 @@
+---
+title: "Types"
+description: "Public runtime and contract types exported by @ilokesto/overlay."
+---
+
+# Types
+
+The most important public types are `OverlayId`, `OverlayStatus`, `OverlayItem`, `OverlayState`, `DisplayOptions`, `OverlayRequest`, `OverlayStoreApi`, `OverlayProviderProps`, `OverlayRenderProps`, `OverlayAdapterComponent`, `OverlayAdapterMap`, and `UseOverlayReturn`.
+
+```ts lineNumbers
+import type {
+  DisplayOptions,
+  OverlayAdapterMap,
+  OverlayItem,
+  OverlayRenderProps,
+  OverlayStoreApi,
+  UseOverlayReturn,
+} from '@ilokesto/overlay';
+```
+
+Use `DisplayOptions` when you write helper functions such as `openConfirm`. Use `OverlayAdapterMap` for the object passed to `OverlayProvider`. Use `OverlayRenderProps` when you type a reusable adapter component. Use `OverlayStoreApi` only at provider or test boundaries; most UI code should depend on `UseOverlayReturn` instead.
+
+## Practical note
+
+The reference pages describe the runtime contract exactly. Guides may wrap these APIs into product-specific helpers, but those helpers should keep the same lifecycle language: open creates an item, close starts a closing state, remove settles and deletes an item, and clear ends every pending overlay in the provider scope.

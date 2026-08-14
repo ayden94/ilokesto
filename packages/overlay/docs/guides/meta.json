@@ -1,0 +1,9 @@
+{
+  "title": "Guides",
+  "pages": [
+    "confirmation-dialog",
+    "custom-adapter",
+    "async-result-flow",
+    "manual-lifecycle"
+  ]
+}

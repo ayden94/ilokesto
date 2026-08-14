@@ -1,0 +1,29 @@
+---
+title: "타입"
+description: "@ilokesto/overlay가 내보내는 공개 런타임/계약 타입입니다."
+---
+
+# 타입
+
+중요한 공개 타입은 `OverlayId`, `OverlayStatus`, `OverlayItem`, `OverlayState`, `DisplayOptions`, `OverlayRequest`, `OverlayStoreApi`, `OverlayProviderProps`, `OverlayRenderProps`, `OverlayAdapterComponent`, `OverlayAdapterMap`, `UseOverlayReturn`입니다.
+
+```ts lineNumbers
+import type {
+  DisplayOptions,
+  OverlayAdapterMap,
+  OverlayItem,
+  OverlayRenderProps,
+  OverlayStoreApi,
+  UseOverlayReturn,
+} from '@ilokesto/overlay';
+```
+
+`openConfirm` 같은 helper를 만들 때는 `DisplayOptions`를 사용하세요. `OverlayProvider`에 넘기는 객체에는 `OverlayAdapterMap`을 씁니다. 재사용 어댑터 컴포넌트를 타입 지정할 때는 `OverlayRenderProps`가 유용합니다. `OverlayStoreApi`는 provider나 테스트 경계에서만 사용하고, 대부분의 UI 코드는 `UseOverlayReturn`에 의존하는 편이 좋습니다.
+
+## 실무 메모
+
+레퍼런스 문서는 런타임 계약을 정확히 설명합니다. 가이드에서는 이 API를 제품별 helper로 감쌀 수 있지만, 같은 lifecycle 언어를 유지해야 합니다. open은 item을 만들고, close는 closing 상태를 시작하며, remove는 item을 완료하고 삭제하고, clear는 provider 범위의 모든 대기 중인 overlay를 끝냅니다.
+
+## 타입을 둘 경계
+
+애플리케이션 코드에서는 모든 타입을 깊은 내부 경로에서 가져오지 말고 루트 `@ilokesto/overlay`에서 가져오세요. 그래야 빌드 결과물의 내부 파일 배치가 바뀌어도 문서화된 공개 계약에만 의존하게 됩니다.

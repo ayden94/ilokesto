@@ -1,0 +1,24 @@
+---
+title: "useOverlay"
+description: "Open, display, close, remove, and clear overlays from React components."
+---
+
+# useOverlay
+
+`useOverlay()` returns the command API for components inside `OverlayProvider`: `display`, `open`, `close`, `remove`, and `clear`. `display<TResult>(options)` opens an item and returns the pending promise. `open(options)` opens an item and returns only its id.
+
+```tsx lineNumbers
+const { display, open, close, remove, clear } = useOverlay();
+
+const confirmed = await display<boolean>({ type: 'confirm' });
+const id = open({ type: 'toast', props: { message: 'Saved' } });
+close(id);
+remove(id);
+clear();
+```
+
+Prefer `display` for modal-like flows that need a result. Prefer `open` for toast-like or externally controlled flows where the caller stores the id and later calls `close` or `remove`. `remove()` without an id removes the latest item according to the store. `clear()` is a broad command and should usually be reserved for route transitions, provider teardown, or emergency cleanup.
+
+## Practical note
+
+The reference pages describe the runtime contract exactly. Guides may wrap these APIs into product-specific helpers, but those helpers should keep the same lifecycle language: open creates an item, close starts a closing state, remove settles and deletes an item, and clear ends every pending overlay in the provider scope.

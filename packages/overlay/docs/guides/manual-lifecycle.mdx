@@ -1,0 +1,26 @@
+---
+title: "Manual lifecycle"
+description: "Use open, close, remove, and clear when callers manage overlay ids directly."
+---
+
+# Manual lifecycle
+
+Use manual lifecycle commands when a result promise is not the main concern. Toasts, progress panels, route-level sheets, and global loading overlays often need an id so another event can close or remove them later.
+
+```tsx lineNumbers
+const { open, close, remove } = useOverlay();
+const id = open({ type: 'toast', props: { message: 'Uploading...' } });
+
+try {
+  await upload();
+  close(id);
+} finally {
+  window.setTimeout(() => remove(id), 200);
+}
+```
+
+`remove(id)` deletes a specific item. `remove()` without an id removes the latest item in the store. `clear()` removes everything in the provider scope, so it should be used deliberately. Route transitions and app shell cleanup are better fits than normal button handlers.
+
+## Checklist
+
+Keep `type` names stable, pass only the props an adapter needs, decide whether the flow needs a promise or only an id, and make the adapter responsible for visual policy. When a user action has side effects, prefer closing with an explicit result before removing the item.

@@ -1,0 +1,13 @@
+{
+  "title": "Reference",
+  "pages": [
+    "entrypoints",
+    "overlay-provider",
+    "overlay-host",
+    "create-overlay-store",
+    "use-overlay",
+    "use-overlay-items",
+    "adapter-contracts",
+    "types"
+  ]
+}

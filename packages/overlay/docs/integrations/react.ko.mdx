@@ -1,0 +1,44 @@
+---
+title: "React"
+description: "React 애플리케이션에서 OverlayProvider, hook, 어댑터 컴포넌트를 사용합니다."
+---
+
+# React
+
+`@ilokesto/overlay`는 React 런타임입니다. `react`를 peer dependency로 설치하고 모든 API를 `@ilokesto/overlay`에서 가져옵니다. 이 패키지는 React context, `useMemo`, `useCallback`, `useSyncExternalStore`를 사용해 provider 단위 lifecycle을 안정적으로 제공합니다.
+
+## Provider 위치
+
+오버레이를 여는 트리 주변에 `OverlayProvider`를 마운트하세요. 많은 앱에서는 app shell이 적절하지만, 특정 제품 영역이 별도의 overlay stack을 가져야 한다면 고립된 provider도 유효합니다.
+
+```tsx lineNumbers
+export function RootLayout() {
+  return (
+    <OverlayProvider adapters={adapters}>
+      <Navigation />
+      <Outlet />
+    </OverlayProvider>
+  );
+}
+```
+
+## Hook
+
+명령에는 `useOverlay()`를 사용하고, 읽기 전용 진단이나 custom host에는 `useOverlayItems()`를 사용하세요. 두 hook 모두 `OverlayProvider` 아래에서 실행되어야 합니다.
+
+```tsx lineNumbers
+function SaveButton() {
+  const { display } = useOverlay();
+
+  async function onClick() {
+    const confirmed = await display<boolean>({ type: 'confirm' });
+    if (confirmed) await save();
+  }
+
+  return <button onClick={() => void onClick()}>Save</button>;
+}
+```
+
+## 어댑터 컴포넌트
+
+어댑터는 일반 React 컴포넌트입니다. 런타임 props와 임의의 item props를 함께 받으므로, 사용자에게 보여줄 값을 렌더링하기 전에 unknown 값을 검증하거나 좁히세요. 접근성은 어댑터의 책임입니다. `role="dialog"`, focus 처리, label, keyboard 동작, backdrop 의미는 코어가 제공하지 않습니다.

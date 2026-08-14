@@ -1,0 +1,68 @@
+import { useCallback } from "react";
+import type { DisplayOptions, OverlayId } from "../contracts/overlay";
+import type { OverlayContextValue } from "./createOverlayContext";
+
+export type OverlayContextGetter = () => OverlayContextValue;
+
+export interface UseOverlayReturn {
+  readonly display: <TResult = unknown>(
+    options: DisplayOptions
+  ) => Promise<TResult | undefined>;
+  readonly open: (options: DisplayOptions) => OverlayId;
+  readonly close: (id: OverlayId, result?: unknown) => void;
+  readonly closeAll: () => void;
+  readonly reject: (id: OverlayId, reason?: unknown) => void;
+  readonly remove: (id?: OverlayId) => void;
+  readonly clear: () => void;
+}
+
+export function useOverlay(getContext: OverlayContextGetter): UseOverlayReturn {
+  const { store } = getContext();
+
+  const display = useCallback(
+    <TResult = unknown>(options: DisplayOptions): Promise<TResult | undefined> => {
+      const { promise } = store.open<TResult>(options);
+      return promise;
+    },
+    [store]
+  );
+
+  const open = useCallback(
+    (options: DisplayOptions): OverlayId => {
+      const { id } = store.open(options);
+      return id;
+    },
+    [store]
+  );
+
+  const close = useCallback(
+    (id: OverlayId, result?: unknown): void => {
+      store.close(id, result);
+    },
+    [store]
+  );
+
+  const closeAll = useCallback((): void => {
+    store.closeAll();
+  }, [store]);
+
+  const reject = useCallback(
+    (id: OverlayId, reason?: unknown): void => {
+      store.reject(id, reason);
+    },
+    [store]
+  );
+
+  const remove = useCallback(
+    (id?: OverlayId): void => {
+      store.remove(id);
+    },
+    [store]
+  );
+
+  const clear = useCallback((): void => {
+    store.clear();
+  }, [store]);
+
+  return { display, open, close, closeAll, reject, remove, clear };
+}

@@ -1,0 +1,26 @@
+---
+title: "문제 해결"
+description: "provider, 어댑터, lifecycle, 비동기 결과에서 자주 생기는 실수."
+---
+
+# 문제 해결
+
+## `useOverlay`가 provider 오류를 던짐
+
+`useOverlay`와 `useOverlayItems`는 반드시 `OverlayProvider` 아래에서 실행되어야 합니다. provider를 React tree의 더 높은 위치로 옮기거나, 해당 기능을 소유한 provider에 공유 store를 전달하세요.
+
+## `display()` 후 아무것도 렌더링되지 않음
+
+`display` 또는 `open`에 넘긴 `type`을 확인하세요. `OverlayHost`는 `adapters[item.type]`을 찾습니다. 그 key에 맞는 어댑터가 없으면 item은 아무것도 렌더링하지 않습니다. `OverlayProvider`가 기대한 adapter map을 받고 있는지도 확인하세요.
+
+## promise가 끝나지 않음
+
+`display()`는 item이 제거될 때 완료됩니다. `close(result)`만 호출하면 item은 `closing` 상태가 되고 result가 저장될 뿐입니다. 어댑터는 exit animation이 끝난 뒤 `remove()`를 호출해야 합니다. animation이 없다면 close 직후 바로 `remove()`를 호출하세요.
+
+## result가 `undefined`임
+
+`undefined`는 item이 close result 없이 제거되었거나 clear되었다는 뜻입니다. 사용자 결정에는 먼저 `close(value)`를 호출하세요. 갑작스러운 `remove`나 `clear`는 teardown, route 전환, 결정 없이 취소되는 흐름에 남겨두는 편이 좋습니다.
+
+## modal 동작이 없음
+
+코어는 modal 의미를 포함하지 않습니다. focus trap, scroll lock, escape key 처리, aria label, backdrop 정책은 modal 어댑터나 상위 modal 패키지에서 추가하세요.

@@ -1,0 +1,10 @@
+{
+  "title": "Advanced",
+  "defaultOpen": false,
+  "collapsible": true,
+  "pages": [
+    "provider-scoping",
+    "lifecycle-model",
+    "adapter-boundaries"
+  ]
+}

@@ -1,0 +1,16 @@
+---
+title: "Adapter boundaries"
+description: "Keep modal, toast, and presentation policy outside the overlay core."
+---
+
+# Adapter boundaries
+
+Overlay core owns lifecycle and hosting, not semantics. That boundary is what makes it possible for a modal package and a toast package to share the same runtime without forcing the core to import either package. Adapter packages should depend on `@ilokesto/overlay`; `@ilokesto/overlay` should not depend on adapter packages.
+
+Good adapter responsibilities include focus trap, scroll lock, escape key behavior, backdrop click policy, toast timers, deduplication, animation, and accessibility markup. Good core responsibilities include item identity, provider scoping, subscription, close/remove/clear commands, and dispatching items to adapters.
+
+When a behavior seems broadly useful, ask whether it belongs to every overlay family. If the answer is no, keep it in the adapter or a higher-level package.
+
+## Design takeaway
+
+Prefer explicit boundaries over convenience hidden in the runtime. If a decision depends on product semantics, keep it outside the core and make the adapter own it. If a decision is required for every overlay item, it is a better candidate for the shared lifecycle contract.

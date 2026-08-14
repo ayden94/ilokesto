@@ -1,0 +1,16 @@
+---
+title: "어댑터 경계"
+description: "modal, toast, 표시 정책을 overlay 코어 밖에 둡니다."
+---
+
+# 어댑터 경계
+
+Overlay 코어는 lifecycle과 hosting을 소유하고, 의미는 소유하지 않습니다. 이 경계 덕분에 modal 패키지와 toast 패키지가 같은 런타임을 공유하면서도 코어가 둘 중 어느 패키지도 import하지 않을 수 있습니다. 어댑터 패키지는 `@ilokesto/overlay`에 의존해야 하고, `@ilokesto/overlay`가 어댑터 패키지에 의존하면 안 됩니다.
+
+어댑터의 좋은 책임에는 focus trap, scroll lock, escape key 동작, backdrop click 정책, toast timer, 중복 제거, animation, 접근성 마크업이 있습니다. 코어의 좋은 책임에는 item identity, provider scoping, subscription, close/remove/clear 명령, item을 어댑터로 보내는 dispatch가 있습니다.
+
+어떤 동작이 넓게 유용해 보인다면 모든 overlay 계열에 필요한지 물어보세요. 답이 아니라면 어댑터나 상위 패키지에 두는 편이 좋습니다.
+
+## 설계 요점
+
+런타임 안에 숨긴 편의보다 명시적인 경계를 우선하세요. 어떤 결정이 제품 의미에 의존한다면 코어 밖에 두고 어댑터가 책임지게 하세요. 모든 overlay item에 반드시 필요한 결정이라면 공유 lifecycle 계약에 들어갈 후보가 됩니다.

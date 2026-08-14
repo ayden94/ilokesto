@@ -1,0 +1,26 @@
+---
+title: "Custom adapter"
+description: "Create adapter components for modal, toast, sheet, or custom layer families."
+---
+
+# Custom adapter
+
+A custom adapter receives runtime props and the props supplied by `display` or `open`. Keep item props small and serializable-looking even though the runtime only requires `Record<string, unknown>`. This makes debugging snapshots easier.
+
+```tsx lineNumbers
+function ToastAdapter({ isOpen, close, remove, message, tone = 'info' }: OverlayRenderProps & { message?: unknown; tone?: unknown }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => close(), 3000);
+    return () => window.clearTimeout(timer);
+  }, [close, isOpen]);
+
+  return <div data-tone={String(tone)} onAnimationEnd={() => !isOpen && remove()}>{String(message)}</div>;
+}
+```
+
+Place focus trap, scroll lock, timer, deduplication, and animation policy here or in a higher-level package. Do not push those decisions into the overlay core if they are specific to one overlay family.
+
+## Checklist
+
+Keep `type` names stable, pass only the props an adapter needs, decide whether the flow needs a promise or only an id, and make the adapter responsible for visual policy. When a user action has side effects, prefer closing with an explicit result before removing the item.
