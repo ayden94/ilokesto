@@ -1,0 +1,26 @@
+---
+title: "Submit and reset"
+description: "Validate, call valid or invalid callbacks, count submits, and restore baselines."
+---
+
+# Submit and reset
+
+`submit(onValid, onInvalid)` validates the form, increments `submitCount`, and calls the appropriate callback. It resolves to the value returned by `onValid`, or `undefined` when validation fails. Use this method instead of reading values first and validating later; it keeps submit attempts and validation in one flow.
+
+```ts lineNumbers
+await form.submit(
+  async (values) => {
+    await api.save(values);
+    form.reset(values);
+  },
+  (fields) => {
+    console.warn('invalid fields', fields);
+  },
+);
+```
+
+`reset()` restores the original `initialValues`. `reset(nextValues)` replaces the baseline and clears field metadata around the new values. Combine `submit`, `setErrors`, and `clearErrors` for server flows: submit valid client values, map server errors to fields, clear those errors when the user changes or retries.
+
+## Practical guidance
+
+Keep this page near the source when you build abstractions. The reference describes what the package exposes, while guides show one way to compose those pieces. If a helper hides `FieldPathInput`, validation triggers, or array rebasing, document that helper with the same precision so future maintainers know whether strings, tuples, or stable keys are expected.

@@ -1,0 +1,20 @@
+---
+title: "정규화 저장소"
+description: "정규화된 필드 기록이 getState, getValues, 어댑터 구독을 설명하는 방식입니다."
+---
+
+# 정규화 저장소
+
+관찰 가능한 내부 상태는 `FormState<TValues>` 모양입니다. 여기에는 `initialValues`, `fields`, `submitCount`, `arrayKeys`가 있습니다. `fields` 기록은 정규화된 경로 키로 저장되며 말단 값마다 하나의 `FieldState`를 가집니다. 그래서 `getFieldState(path)`가 가볍게 동작하고, 어댑터가 하나의 스냅샷에서 errors, dirty fields, touched fields를 요약할 수 있습니다.
+
+```ts lineNumbers
+const snapshot = form.getState();
+const values = form.getValues();
+const unsubscribe = form.subscribe(() => render(form.getState()));
+```
+
+`getState()`는 진단과 어댑터 작업에 유용합니다. 비즈니스 로직에는 값을 다시 조립하는 `getValues()`가 더 적합합니다. 스냅샷은 수정하지 마세요. 폼 컨트롤러 상태를 보여주는 읽기 전용 근거로 다루는 편이 안전합니다.
+
+## 언제 중요해지나
+
+대부분의 애플리케이션은 빠른 시작과 가이드에서 시작하면 충분합니다. 재사용 추상화를 만들거나, 경계 사례를 디버깅하거나, Form이 더 큰 프레임워크 뒤에 숨기지 않고 명시적 경로, 중립적인 스키마 계약, 안정적인 키, 정규화 상태를 선택한 이유를 설명해야 할 때 이 문서를 읽으세요.

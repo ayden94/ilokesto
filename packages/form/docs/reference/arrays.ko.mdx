@@ -1,0 +1,25 @@
+---
+title: "배열"
+description: "FormArray 키와 명령으로 자식 메타데이터를 보존하며 배열을 다룹니다."
+---
+
+# 배열
+
+`array(path)`는 배열 값에 대한 `FormArray` 컨트롤러를 반환합니다. 여기에는 `keys`, `insert`, `push`, `remove`, `move`, `swap`, `replace`가 있습니다. 이 명령들은 값을 바꾸면서 자식 필드 상태를 재배치해 메타데이터가 논리적인 항목을 따라가게 합니다.
+
+```ts lineNumbers
+const phones = form.array(['profile', 'phones']);
+const keys = phones.keys();
+phones.push({ label: 'Work', value: '' });
+phones.insert(0, { label: 'Home', value: '' });
+phones.move(0, 1);
+phones.swap(0, 1);
+phones.remove(1);
+phones.replace([{ label: 'Main', value: '010' }]);
+```
+
+렌더 키에는 원시 인덱스 대신 `keys()`를 사용하세요. 원시 인덱스는 경로 조각으로는 괜찮지만 프레임워크 목록 정체성으로는 충분히 안정적이지 않습니다. 자식 필드에 errors, dirty, touched, modified 메타데이터가 있고 사용자가 배열 순서를 바꿀 때 재배치 동작이 중요해집니다.
+
+## 실무 사용 팁
+
+추상화를 만들 때는 이 레퍼런스를 가까이 두세요. 레퍼런스는 패키지가 무엇을 노출하는지 설명하고, 가이드는 그 조각들을 조합하는 한 가지 방식을 보여줍니다. 어떤 도우미가 `FieldPathInput`, 검증 시점, 배열 재배치를 감춘다면 그 도우미도 같은 정밀도로 문서화하세요. 그래야 나중에 문자열, 튜플, 안정적인 키 중 무엇을 기대하는지 유지보수자가 알 수 있습니다.

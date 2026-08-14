@@ -1,0 +1,34 @@
+---
+title: "Vue"
+description: "Use v-bind-ready register props and reactive getters from @ilokesto/form/vue."
+---
+
+# Vue
+
+Install `vue` as the peer and import from `@ilokesto/form/vue`. The adapter keeps the React-like helper names but returns Vue-friendly objects with `onInput`, `onChange`, `onBlur`, and `onFocus` handlers.
+
+```vue lineNumbers
+<script setup lang="ts">
+import { useForm } from '@ilokesto/form/vue';
+const { form: controller, useField, useRegister, useFormState } = useForm(form);
+const email = useField({ name: 'email', schema: emailSchema });
+const remember = useRegister({ name: 'remember', type: 'checkbox' });
+const [role] = useRegister<HTMLSelectElement>([{ name: 'role' }]);
+const state = useFormState();
+</script>
+
+<template>
+  <form @submit.prevent="controller.submit(save)">
+    <input v-bind="email.props" />
+    <input type="checkbox" v-bind="remember" />
+    <select v-bind="role" multiple />
+    <button :disabled="!state.isDirty || !state.isValid">Save</button>
+  </form>
+</template>
+```
+
+The returned state uses getter-backed reads so templates see fresh values. Field-local schemas are cleaned up with the current Vue effect scope. For custom components, pass through DOM-compatible value, checked, and event behavior.
+
+## Cautions
+
+Create the core form in a stable place, install the matching peer dependency, and import only from this adapter subpath in framework components. Keep server actions and domain helpers on the root `@ilokesto/form` API when they do not need rendering.

@@ -1,0 +1,26 @@
+---
+title: "Standard Schema"
+description: "Form이 특정 검증 라이브러리에 의존하지 않고 Standard Schema를 소비하는 방식입니다."
+---
+
+# Standard Schema
+
+`StandardSchemaV1`은 검증 경계입니다. 호환 스키마는 `~standard.version`, `vendor`, 선택적인 타입 정보, `validate(value, options)` 함수를 노출합니다. Form은 성공 값과 issue 목록에 관심이 있으며, 어떤 라이브러리가 그 결과를 만들었는지는 알 필요가 없습니다.
+
+```ts lineNumbers
+type StandardSchemaV1<Input = unknown, Output = Input> = {
+  readonly '~standard': {
+    readonly version: 1;
+    readonly vendor: string;
+    readonly validate: (value: unknown, options?: unknown) =>
+      | { value: Output; issues?: undefined }
+      | { issues: readonly { message: string; path?: readonly unknown[] }[] };
+  };
+};
+```
+
+이 구조 덕분에 Zod류나 Valibot류 도구를 직접 의존성으로 두지 않고 사용할 수 있습니다. field-local 스키마는 한 경로에서 폼 전체 검증을 덮어쓸 수 있습니다. 이 우선순위는 고립된 필드 규칙에 사용하고, 전체 값 객체가 필요한 교차 필드 제약에는 쓰지 않는 편이 좋습니다.
+
+## 언제 중요해지나
+
+대부분의 애플리케이션은 빠른 시작과 가이드에서 시작하면 충분합니다. 재사용 추상화를 만들거나, 경계 사례를 디버깅하거나, Form이 더 큰 프레임워크 뒤에 숨기지 않고 명시적 경로, 중립적인 스키마 계약, 안정적인 키, 정규화 상태를 선택한 이유를 설명해야 할 때 이 문서를 읽으세요.

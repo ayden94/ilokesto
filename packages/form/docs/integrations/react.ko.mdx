@@ -1,0 +1,35 @@
+---
+title: "React"
+description: "React 훅, DOM 바인딩 속성, 검증 상태, 비텍스트 입력을 사용합니다."
+---
+
+# React
+
+`react` 피어를 설치하고 `@ilokesto/form/react`에서 어댑터를 가져옵니다. `useForm(form)`은 원래 `form`, `useRegister`, `useField`, `useFormState`를 반환합니다. 반환된 도우미는 React 훅이므로 컴포넌트나 커스텀 훅 안에서 호출하세요.
+
+```tsx lineNumbers
+import { useForm } from '@ilokesto/form/react';
+
+function ProfileForm({ form }) {
+  const { form: controller, useField, useRegister, useFormState } = useForm(form);
+  const name = useField({ name: ['profile', 'name'] });
+  const newsletter = useRegister({ name: 'newsletter', type: 'checkbox' });
+  const [role] = useRegister<HTMLSelectElement>([{ name: 'role' }]);
+  const state = useFormState();
+
+  return (
+    <form onSubmit={(event) => { event.preventDefault(); void controller.submit(save); }}>
+      <input {...name.props} />
+      <input type="checkbox" {...newsletter} />
+      <select {...role}><option value="user">User</option></select>
+      <button disabled={!state.isDirty || !state.isValid}>Save</button>
+    </form>
+  );
+}
+```
+
+text input은 `onChange`로 갱신됩니다. checkbox와 radio는 checked 상태를 사용합니다. select와 textarea 바인딩은 제네릭으로 좁힐 수 있습니다. 오류를 렌더링하거나 `setValue`를 호출해야 하면 `useField`를 쓰고, 평범한 입력에 속성만 필요하면 `useRegister`를 사용하세요.
+
+## 주의할 점
+
+코어 폼은 안정적인 위치에서 만들고, 해당 프레임워크 피어 의존성을 설치하며, 프레임워크 컴포넌트에서는 이 어댑터 하위 경로에서만 가져오세요. 서버 액션이나 도메인 도우미처럼 렌더링이 필요 없는 코드는 루트 `@ilokesto/form` API에 남겨두는 편이 좋습니다.

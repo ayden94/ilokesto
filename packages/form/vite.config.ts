@@ -1,0 +1,22 @@
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  build: {
+    lib: {
+      entry: {
+        index: 'src/index.ts',
+        'react/index': 'src/react/index.ts',
+        'vue/index': 'src/vue/index.ts',
+        'solid/index': 'src/solid/index.ts',
+        'svelte/index': 'src/svelte/index.ts',
+      },
+      formats: ['es'],
+      fileName: (_format, entryName) => `${entryName}.js`,
+    },
+    rollupOptions: {
+      external: ['@ilokesto/store', 'immer', 'react', 'vue', 'solid-js', 'svelte', 'svelte/action', 'svelte/store'],
+    },
+    sourcemap: false,
+    emptyOutDir: false,
+  },
+});

@@ -1,0 +1,23 @@
+---
+title: "Field paths and values"
+description: "Read and write field values with literal strings and tuple paths."
+---
+
+# Field paths and values
+
+`FieldPathInput` accepts a string or tuple path. This is the API used by `getValue`, `setValue`, `getFieldState`, `setErrors`, `clearErrors`, `trigger`, and `array`. A string is not split on dots. A tuple path is the only way to target nested data.
+
+```ts lineNumbers
+form.setValue('user.email', 'literal key');
+form.setValue(['user', 'email'], 'nested value');
+
+const literal = form.getValue('user.email');
+const nested = form.getValue(['user', 'email']);
+const values = form.getValues();
+```
+
+`setValue` accepts `SetValueOptions`. `source: 'user'` marks the field as modified, while programmatic writes can leave that signal alone. `validate: true` requests validation after the write. `getValues()` reconstructs an object from normalized field states, so it is the method to call before submit, persistence, or debugging.
+
+## Practical guidance
+
+Keep this page near the source when you build abstractions. The reference describes what the package exposes, while guides show one way to compose those pieces. If a helper hides `FieldPathInput`, validation triggers, or array rebasing, document that helper with the same precision so future maintainers know whether strings, tuples, or stable keys are expected.

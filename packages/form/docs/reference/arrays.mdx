@@ -1,0 +1,25 @@
+---
+title: "Arrays"
+description: "Use FormArray keys and commands while preserving child metadata."
+---
+
+# Arrays
+
+`array(path)` returns a `FormArray` controller for an array value. It exposes `keys`, `insert`, `push`, `remove`, `move`, `swap`, and `replace`. The commands update values and rebase child field state so metadata follows logical items.
+
+```ts lineNumbers
+const phones = form.array(['profile', 'phones']);
+const keys = phones.keys();
+phones.push({ label: 'Work', value: '' });
+phones.insert(0, { label: 'Home', value: '' });
+phones.move(0, 1);
+phones.swap(0, 1);
+phones.remove(1);
+phones.replace([{ label: 'Main', value: '010' }]);
+```
+
+Use `keys()` as render keys instead of raw indices. A raw index is fine for a path segment, but it is not stable enough for framework list identity. Rebase behavior matters when a child field has errors, dirty, touched, or modified metadata and the user reorders the array.
+
+## Practical guidance
+
+Keep this page near the source when you build abstractions. The reference describes what the package exposes, while guides show one way to compose those pieces. If a helper hides `FieldPathInput`, validation triggers, or array rebasing, document that helper with the same precision so future maintainers know whether strings, tuples, or stable keys are expected.

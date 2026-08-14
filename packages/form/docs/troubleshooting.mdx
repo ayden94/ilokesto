@@ -1,0 +1,28 @@
+---
+title: "Troubleshooting"
+description: "Diagnose common mistakes around paths, adapters, validation, arrays, and submit handling."
+---
+
+# Troubleshooting
+
+This page lists failure patterns that usually come from mixing Form's explicit model with assumptions from other libraries.
+
+## `user.name` does not update nested data
+
+A string path is literal. Use `['user', 'name']` for nested data. If you intentionally need a top-level key with a dot, keep the string.
+
+## The adapter import fails
+
+Install the matching peer dependency and import from the subpath: `@ilokesto/form/react`, `@ilokesto/form/vue`, `@ilokesto/form/solid`, or `@ilokesto/form/svelte`. The root package does not export framework helpers.
+
+## Validation seems to run at the wrong time
+
+Check `validateOn`. `change` runs after user writes, `blur` runs when the field blurs, `submit` runs during submit, and `manual` means you should call `trigger()` explicitly. Field-local schemas take precedence for their field, so compare them with the form-level Standard Schema.
+
+## Array errors move strangely
+
+Use `form.array(path)` commands and `keys()` for rendering. Directly replacing arrays can be correct for a new dataset, but `insert`, `push`, `remove`, `move`, `swap`, and `replace` are the intended way to rebase child metadata.
+
+## Submit succeeds but server returns an error
+
+Server errors often depend on remote state. Add them with `setErrors`, show them near the field or summary, and clear them with `clearErrors` when the user edits or retries. Track repeated attempts with `submitCount` from `useFormState()`.

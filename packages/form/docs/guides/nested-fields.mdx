@@ -1,0 +1,22 @@
+---
+title: "Nested fields"
+description: "Model nested values with tuple paths and keep literal dot-string fields explicit."
+---
+
+# Nested fields
+
+Nested data should use tuple paths. This is true in the core API and in adapter `RegisterOptions`. The same rule applies to values, errors, validation, and array operations.
+
+```tsx lineNumbers
+const name = useField({ name: ['profile', 'name'] });
+const literal = useField({ name: 'profile.name' });
+
+form.setValue(['profile', 'address', 'city'], 'Seoul');
+form.setErrors(['profile', 'address', 'city'], [{ message: 'Required' }]);
+```
+
+The explicit rule is useful when you integrate with backends that already use dotted field names. It also makes refactors safer: changing a flat field into a nested object is a visible tuple-path edit rather than a hidden parser behavior. In reusable components, type the prop as `FieldPathInput` and document whether callers should pass strings or tuples.
+
+## Checklist
+
+Before shipping, verify that labels and accessibility attributes live in your markup, schema errors are shown near fields and summarized when useful, tuple paths are used for nested values, and array commands are the only way dynamic list structure changes. This keeps the form predictable even as product requirements grow.

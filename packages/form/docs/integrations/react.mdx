@@ -1,0 +1,35 @@
+---
+title: "React"
+description: "Use useForm with React hooks, DOM binding props, validation state, and non-text inputs."
+---
+
+# React
+
+Install `react` as the peer and import the adapter from `@ilokesto/form/react`. `useForm(form)` returns the original `form`, `useRegister`, `useField`, and `useFormState`. The returned helpers are React hooks, so call them inside components or custom hooks.
+
+```tsx lineNumbers
+import { useForm } from '@ilokesto/form/react';
+
+function ProfileForm({ form }) {
+  const { form: controller, useField, useRegister, useFormState } = useForm(form);
+  const name = useField({ name: ['profile', 'name'] });
+  const newsletter = useRegister({ name: 'newsletter', type: 'checkbox' });
+  const [role] = useRegister<HTMLSelectElement>([{ name: 'role' }]);
+  const state = useFormState();
+
+  return (
+    <form onSubmit={(event) => { event.preventDefault(); void controller.submit(save); }}>
+      <input {...name.props} />
+      <input type="checkbox" {...newsletter} />
+      <select {...role}><option value="user">User</option></select>
+      <button disabled={!state.isDirty || !state.isValid}>Save</button>
+    </form>
+  );
+}
+```
+
+Text inputs update through `onChange`; checkbox and radio fields use checked state; select and textarea bindings can be narrowed with a generic. Use `useField` when rendering errors or calling `setValue`, and `useRegister` when a plain input only needs props.
+
+## Cautions
+
+Create the core form in a stable place, install the matching peer dependency, and import only from this adapter subpath in framework components. Keep server actions and domain helpers on the root `@ilokesto/form` API when they do not need rendering.

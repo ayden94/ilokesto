@@ -1,0 +1,33 @@
+---
+title: "Core concepts"
+description: "The mental model behind paths, field state, validation, arrays, and adapters."
+---
+
+# Core concepts
+
+`@ilokesto/form` is easiest to understand as a small controller around normalized field records. A `CreateForm` instance accepts initial values, splits leaf values into `FieldState` records, and reconstructs the object when you call `getValues()`. Framework adapters subscribe to that controller and expose binding shapes that feel natural for their renderer.
+
+## Framework independence
+
+The root package exports `CreateForm` and core types. It has no React, Vue, Solid, Svelte, or DOM runtime import. That separation lets you create forms in shared modules, test the core directly, and choose a framework adapter only at the component boundary. Adapters depend on the `Form<TValues>` interface: `getState`, `subscribe`, value operations, validation operations, array operations, and submit/reset commands.
+
+## Tuple paths, not dot paths
+
+`FieldPathInput` is `string | FieldPath`. A string is a literal name. A tuple is a nested path. This rule is more explicit than dot parsing and avoids surprises with names like `user.email` that should remain a single field.
+
+```ts lineNumbers
+form.setValue(['user', 'email'], 'ada@example.com');
+form.setValue('user.email', 'literal top-level value');
+```
+
+## Field state and metadata
+
+Every field has `value`, `errors`, `touched`, `dirty`, and `modified`. `dirty` compares the current value with the initial value. `modified` records whether a user-originated write happened. `touched` is set by `blur()`. These flags power UI decisions without forcing every framework adapter to invent its own metadata model.
+
+## Validation and Standard Schema
+
+Form-level `schema` and field-local schemas both use `StandardSchemaV1`. Field-local schemas are registered through adapter options or `registerFieldSchema` and take precedence for that field. `validateOn` supports `change`, `blur`, `submit`, and `manual`; manual validation is always available through `trigger()`.
+
+## Arrays and rebasing
+
+`array(path)` returns commands that update array values and rebase child field metadata. When you `move`, `swap`, `insert`, or `remove`, errors and touched state should follow the logical item rather than stay glued to a numeric index. Stable `keys()` support list rendering while this rebasing happens.

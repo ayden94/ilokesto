@@ -1,0 +1,20 @@
+---
+title: "Normalized store"
+description: "How normalized field records explain getState, getValues, and adapter subscriptions."
+---
+
+# Normalized store
+
+Internally visible state is shaped as `FormState<TValues>`: `initialValues`, `fields`, `submitCount`, and `arrayKeys`. The `fields` record is keyed by normalized path keys and stores one `FieldState` per leaf. This is why `getFieldState(path)` can be cheap and why adapters can summarize errors, dirty fields, and touched fields from one snapshot.
+
+```ts lineNumbers
+const snapshot = form.getState();
+const values = form.getValues();
+const unsubscribe = form.subscribe(() => render(form.getState()));
+```
+
+`getState()` is useful for diagnostics and adapter work. `getValues()` is better for business logic because it reconstructs the values object. Avoid mutating the snapshot. Treat it as read-only evidence of the form controller state.
+
+## When to care
+
+Most applications can start with Quick start and Guides. Read this page when you build reusable abstractions, debug edge cases, or need to explain why Form chooses explicit paths, source-neutral schemas, stable keys, and normalized state instead of hiding those decisions behind a larger framework.

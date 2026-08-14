@@ -1,0 +1,21 @@
+---
+title: "Array rebasing"
+description: "How array commands keep child metadata attached to logical items."
+---
+
+# Array rebasing
+
+Array field state is tricky because indices are both paths and positions. If a user edits `items[2].name`, then moves that item to index `0`, the error and touched metadata should follow the item. `FormArray` commands are the documented way to make that happen.
+
+```ts lineNumbers
+const items = form.array(['items']);
+items.move(2, 0);
+items.swap(0, 1);
+items.remove(1);
+```
+
+`keys()` gives stable render identity while paths continue to use current indices. `replace()` resets child field state for the new array value. Prefer these commands over manual `setValue(['items'], nextItems)` when preserving metadata matters. Manual replacement can be acceptable for loading a completely new dataset.
+
+## When to care
+
+Most applications can start with Quick start and Guides. Read this page when you build reusable abstractions, debug edge cases, or need to explain why Form chooses explicit paths, source-neutral schemas, stable keys, and normalized state instead of hiding those decisions behind a larger framework.

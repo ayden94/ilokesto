@@ -1,0 +1,22 @@
+---
+title: "Entrypoints"
+description: "Import the core and framework adapters from the correct package subpaths."
+---
+
+# Entrypoints
+
+`@ilokesto/form` has one framework-neutral root entrypoint and four adapter entrypoints. Import `CreateForm`, `CreateFormOptions`, `FieldPathInput`, `FieldState`, `FormState`, `FormError`, and `StandardSchemaV1` from the root. Import framework helpers from `@ilokesto/form/react`, `@ilokesto/form/vue`, `@ilokesto/form/solid`, or `@ilokesto/form/svelte`.
+
+```ts lineNumbers
+import { CreateForm, type FormError } from '@ilokesto/form';
+import { useForm as useReactForm } from '@ilokesto/form/react';
+import { useForm as useVueForm } from '@ilokesto/form/vue';
+import { useForm as useSolidForm } from '@ilokesto/form/solid';
+import { useForm as useSvelteForm } from '@ilokesto/form/svelte';
+```
+
+The root entrypoint stays free of framework peers. The adapter subpaths declare optional peer expectations through the package: React, Vue, Solid, and Svelte applications should install their own renderer. Keeping imports explicit also prevents accidentally documenting Svelte as if it had React-like hooks. Svelte exposes `register` and `useFormState`, not the same `useField` and `useRegister` helper names.
+
+## Practical guidance
+
+Keep this page near the source when you build abstractions. The reference describes what the package exposes, while guides show one way to compose those pieces. If a helper hides `FieldPathInput`, validation triggers, or array rebasing, document that helper with the same precision so future maintainers know whether strings, tuples, or stable keys are expected.

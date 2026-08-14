@@ -1,0 +1,14 @@
+{
+  "title": "Reference",
+  "pages": [
+    "entrypoints",
+    "create-form",
+    "field-paths-and-values",
+    "field-state-and-errors",
+    "validation",
+    "submit-and-reset",
+    "arrays",
+    "adapter-use-form",
+    "types"
+  ]
+}

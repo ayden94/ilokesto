@@ -1,0 +1,26 @@
+---
+title: "Types"
+description: "Public types exported by the core and adapters."
+---
+
+# Types
+
+The most important core types are `CreateFormOptions`, `FieldPathInput`, `FieldState`, `FormState`, `FormError`, `StandardSchemaV1`, `ValidationTrigger`, `FieldSchemaOptions`, `SetValueOptions`, `Form`, and `FormArray`. Adapter packages also export their `RegisterOptions` alias and framework-specific return types.
+
+```ts lineNumbers
+import type {
+  CreateFormOptions,
+  FieldPathInput,
+  FieldState,
+  FormState,
+  FormError,
+  StandardSchemaV1,
+} from '@ilokesto/form';
+import type { RegisterOptions } from '@ilokesto/form/react';
+```
+
+Use these types at boundaries: shared form factories, custom hooks, reusable field components, and schema helpers. Avoid depending on internal normalized store keys unless a page explicitly documents them as observable through `FormState`. Public types describe the stable contract; implementation helpers can change without becoming part of application code.
+
+## Practical guidance
+
+Keep this page near the source when you build abstractions. The reference describes what the package exposes, while guides show one way to compose those pieces. If a helper hides `FieldPathInput`, validation triggers, or array rebasing, document that helper with the same precision so future maintainers know whether strings, tuples, or stable keys are expected.

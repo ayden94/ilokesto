@@ -1,0 +1,21 @@
+---
+title: "Field state and errors"
+description: "Understand value, errors, touched, dirty, modified, and manual error commands."
+---
+
+# Field state and errors
+
+A `FieldState` contains `value`, `errors`, `touched`, `dirty`, and `modified`. `getFieldState(path)` returns a readable shape even when the field has not been explicitly edited yet. `FormError` contains a `message` and optional machine-readable `type`.
+
+```ts lineNumbers
+const email = form.getFieldState('email');
+form.setErrors('email', [{ type: 'server', message: 'Already registered' }]);
+form.clearErrors('email');
+form.clearErrors();
+```
+
+Use `setErrors` for server responses, optimistic checks, or UI-driven errors that do not belong in the schema. `clearErrors(path)` removes errors from selected fields, and `clearErrors()` removes all field errors. `blur(path)` marks a field touched and can validate when `validateOn` includes `blur`. `dirty` compares against the initial value; `modified` records user-originated interaction.
+
+## Practical guidance
+
+Keep this page near the source when you build abstractions. The reference describes what the package exposes, while guides show one way to compose those pieces. If a helper hides `FieldPathInput`, validation triggers, or array rebasing, document that helper with the same precision so future maintainers know whether strings, tuples, or stable keys are expected.

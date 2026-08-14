@@ -1,0 +1,23 @@
+---
+title: "Array fields"
+description: "Render dynamic lists with stable keys and metadata rebasing."
+---
+
+# Array fields
+
+Dynamic lists need two paths: the array path and each child field path. Get stable render keys from `form.array(path).keys()` and use tuple paths for child fields.
+
+```tsx lineNumbers
+const phones = form.array(['phones']);
+const keys = phones.keys();
+
+return keys.map((key, index) => (
+  <input key={key} {...useRegister({ name: ['phones', index, 'value'] })} />
+));
+```
+
+When the user adds, removes, moves, swaps, or replaces items, call the `FormArray` command rather than directly setting unrelated fields. That lets the core rebase `dirty`, `touched`, `modified`, and errors. The rendered key keeps the framework from reusing a DOM node for the wrong logical item while the path index still describes the current value location.
+
+## Checklist
+
+Before shipping, verify that labels and accessibility attributes live in your markup, schema errors are shown near fields and summarized when useful, tuple paths are used for nested values, and array commands are the only way dynamic list structure changes. This keeps the form predictable even as product requirements grow.

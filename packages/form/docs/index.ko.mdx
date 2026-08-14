@@ -1,0 +1,50 @@
+---
+title: "Form"
+description: "프레임워크와 분리된 폼 상태, 검증, 배열 메타데이터, 프레임워크 바인딩 문서."
+---
+
+# Form
+
+`@ilokesto/form`은 React, Vue, Solid, Svelte 어댑터와 함께 쓰는 프레임워크 독립 폼 상태 코어입니다. 코어는 값, 필드 메타데이터, 검증 오류, 제출 시도 횟수, 배열 항목의 안정적인 키를 하나의 정규화된 저장소에 보관합니다. 화면 렌더링은 각 프레임워크가 맡습니다. React, Vue, Solid는 `useForm(form)`에서 `useRegister`, `useField`, `useFormState`를 제공하고, Svelte는 `register` 액션과 읽기 가능한 폼 상태 저장소를 제공합니다.
+
+## 설치
+
+```package-install
+@ilokesto/form
+```
+
+사용하는 프레임워크 피어 의존성도 함께 설치하세요. 예를 들면 `react`, `vue`, `solid-js`, `svelte` 중 하나입니다. 루트 진입점은 의도적으로 프레임워크를 가져오지 않습니다. 그래서 서버 유틸리티, 테스트, 공유 도메인 모듈에서도 UI 런타임 없이 폼 인스턴스를 만들 수 있습니다.
+
+## 작은 코어 예시
+
+```ts lineNumbers
+import { CreateForm } from '@ilokesto/form';
+
+const form = new CreateForm({
+  initialValues: {
+    email: '',
+    profile: { name: 'Ada' },
+    tags: ['docs'],
+  },
+  validateOn: ['blur', 'submit'],
+});
+
+form.setValue('email', 'ada@example.com', { source: 'user' });
+form.setValue(['profile', 'name'], 'Grace', { source: 'user' });
+
+const values = form.getValues();
+const email = form.getFieldState('email');
+```
+
+가장 중요한 규칙은 경로 의미입니다. 문자열은 그대로 하나의 필드 이름입니다. 따라서 `'profile.name'`은 점으로 나뉘는 경로가 아니라 최상위 필드 하나입니다. 중첩 값을 가리키려면 `['profile', 'name']` 같은 튜플 경로를 사용하세요. 이 명시성 덕분에 실제 제품 데이터의 필드 이름에 점이 들어가도 의도하지 않은 분리가 일어나지 않습니다.
+
+## 이 패키지가 하지 않는 일
+
+- 특정 렌더러나 컴포넌트 모델에 묶이지 않습니다.
+- 스키마 라이브러리가 아닙니다. Standard Schema v1의 `~standard.validate` 계약을 소비합니다.
+- 폼 생성기가 아닙니다. 마크업, 레이아웃, 라벨, 접근성은 애플리케이션이 결정합니다.
+- 전역 앱 상태 대체재가 아닙니다. 오래 유지되는 앱 상태는 상태 계층에 두고, Form은 필드 상호작용 상태에 집중하세요.
+
+## 다음에 읽을 문서
+
+작동하는 React 예시는 [빠른 시작](/ko/form/quick-start), 설계 모델은 [핵심 개념](/ko/form/core-concepts), 코어 API는 [CreateForm](/ko/form/reference/create-form), DOM 바인딩은 사용하는 프레임워크 통합 문서를 읽으세요.

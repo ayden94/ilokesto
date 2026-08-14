@@ -1,0 +1,26 @@
+---
+title: "Standard Schema"
+description: "How Form consumes Standard Schema without depending on a validation library."
+---
+
+# Standard Schema
+
+`StandardSchemaV1` is the validation boundary. A compatible schema exposes `~standard.version`, `vendor`, optional phantom `types`, and a `validate(value, options)` function. Form cares about success values and issue lists, not the library that produced them.
+
+```ts lineNumbers
+type StandardSchemaV1<Input = unknown, Output = Input> = {
+  readonly '~standard': {
+    readonly version: 1;
+    readonly vendor: string;
+    readonly validate: (value: unknown, options?: unknown) =>
+      | { value: Output; issues?: undefined }
+      | { issues: readonly { message: string; path?: readonly unknown[] }[] };
+  };
+};
+```
+
+This makes Zod-like or Valibot-like tools possible without a direct dependency. Field-local schemas can override form-level validation for one path. Use that override for isolated field rules, not for cross-field constraints that need the whole values object.
+
+## When to care
+
+Most applications can start with Quick start and Guides. Read this page when you build reusable abstractions, debug edge cases, or need to explain why Form chooses explicit paths, source-neutral schemas, stable keys, and normalized state instead of hiding those decisions behind a larger framework.
