@@ -1,0 +1,62 @@
+---
+title: "subscribe"
+description: "리스너를 등록하고, 리스너 안에서 상태를 읽고, 구독을 정리합니다."
+---
+
+# subscribe
+
+`subscribe()`는 리스너를 등록하고 cleanup 함수를 반환합니다.
+
+```ts
+subscribe(listener: () => void): () => void
+```
+
+리스너는 상태가 바뀐 뒤 호출됩니다. 인자를 받지 않으므로 최신 값이 필요하면 리스너 안에서 `getState()`를 호출하세요.
+
+## 기본 사용법
+
+```ts lineNumbers
+const unsubscribe = store.subscribe(() => {
+  console.log(store.getState());
+});
+
+store.setState((prev) => ({ ...prev, ready: true }));
+unsubscribe();
+```
+
+## cleanup은 계약의 일부입니다
+
+`subscribe()`를 호출할 때마다 내부 `Set`에 리스너가 추가됩니다. 반환된 구독 해제 함수를 호출하지 않으면 그 리스너는 계속 등록된 상태로 남습니다.
+
+cleanup을 소유자의 lifecycle에 연결하세요.
+
+```ts lineNumbers
+function connectPanel(panel: { render(value: unknown): void; destroy(cb: () => void): void }) {
+  const unsubscribe = store.subscribe(() => {
+    panel.render(store.getState());
+  });
+
+  panel.destroy(unsubscribe);
+}
+```
+
+## 알림 시점
+
+리스너는 상태가 저장된 뒤 동기적으로 실행됩니다. store가 `Array.from(this.listeners)`를 순회하므로 알림 중에 추가된 리스너는 현재 알림 cycle에는 호출되지 않습니다. 알림 중에 제거된 리스너는 이미 그 cycle의 배열에 복사되어 있었다면 실행될 수 있습니다.
+
+## 같은 값이면 알림이 없습니다
+
+`setState()`가 `Object.is` 기준 같은 값 또는 같은 참조로 계산되면 리스너는 실행되지 않습니다.
+
+```ts lineNumbers
+const unsubscribe = store.subscribe(() => {
+  console.log("changed");
+});
+
+store.setState((prev) => prev); // log 없음
+unsubscribe();
+```
+
+## Listener error
+
+store는 리스너 error를 잡지 않습니다. 어떤 리스너가 throw하면 `setState()` 호출도 throw하고, 그 알림 cycle의 뒤쪽 리스너가 실행되지 않을 수 있습니다. 리스너는 작게 유지하거나 예상 가능한 error는 리스너 안에서 잡으세요.

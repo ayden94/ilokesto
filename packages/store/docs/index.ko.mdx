@@ -1,0 +1,51 @@
+---
+title: "Store"
+description: "작은 프레임워크 중립 TypeScript 상태 컨테이너인 @ilokesto/store 공식 문서입니다."
+---
+
+# Store
+
+`@ilokesto/store`는 애플리케이션이 소유한 상태 값 하나를 다루는 작은 TypeScript 상태 컨테이너입니다. `Store<T>` 클래스, `getState()` 동기 읽기, `setState()` 교체 업데이트, `subscribe()` 변경 구독, 명시적인 미들웨어 파이프라인을 제공합니다.
+
+React, Vue, Svelte, Angular 같은 UI 런타임과 분리된 작은 상태 원시 도구가 필요할 때 사용하세요. 이 패키지는 UI 렌더링, 데이터 영속화, 네트워크 요청, 중첩 객체 병합을 대신하지 않습니다.
+
+## 설치
+
+```package-install
+@ilokesto/store
+```
+
+## 제공하는 것
+
+```ts lineNumbers
+import { Store } from "@ilokesto/store";
+
+type CounterState = { count: number };
+
+const counterStore = new Store<CounterState>({ count: 0 });
+
+const unsubscribe = counterStore.subscribe(() => {
+  console.log(counterStore.getState().count);
+});
+
+counterStore.setState((prev) => ({ count: prev.count + 1 }));
+unsubscribe();
+```
+
+`setState()`는 저장된 값을 교체합니다. 계산된 다음 값이 이전 값과 `Object.is` 기준으로 같으면 기존 값을 유지하고 리스너에게 알리지 않습니다.
+
+## 언제 쓰면 좋은가
+
+작은 공유 상태, 컴포넌트 트리 밖의 도메인 상태, 프레임워크 어댑터 내부, 큰 상태 라이브러리가 과한 단순 이벤트 기반 모듈에 적합합니다.
+
+셀렉터, 리듀서, devtools, 영속화, 비동기 캐싱, 정규화된 엔티티, 분산 동기화가 필요하다면 이 패키지 하나만으로는 부족합니다. 그런 기능은 store 주변에 만들 수 있지만 패키지 자체의 역할은 아닙니다.
+
+## 문서 지도
+
+- [빠른 시작](./quick-start): 작은 장바구니 store를 만들고 정리합니다.
+- [핵심 개념](./core-concepts): 교체 업데이트, 구독자, 미들웨어를 한 번에 봅니다.
+- [Store 레퍼런스](./reference/store): constructor, `getState()`, `getInitialState()`.
+- [setState 레퍼런스](./reference/set-state): 값 업데이트, updater 함수, 알림이 없는 경우.
+- [subscribe 레퍼런스](./reference/subscribe): 리스너 생명주기와 cleanup.
+- [middleware 레퍼런스](./reference/middleware): `pushMiddleware()`와 `unshiftMiddleware()` 순서.
+- [문제 해결](./troubleshooting): 실무 적용 전에 흔히 만나는 실수를 점검합니다.
