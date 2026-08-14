@@ -1,0 +1,14 @@
+name: Sync Overlay Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - packages/overlay/docs/**
+
+jobs:
+  sync:
+    uses: ./.github/workflows/_sync-docs.yml
+    with:
+      package: overlay
+    secrets: inherit
