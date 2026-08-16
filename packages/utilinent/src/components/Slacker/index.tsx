@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Observer } from "../Observer";
 import type { SlackerProps } from "./types";
 
 type LoadState<T> =
   | { readonly status: "idle" }
   | { readonly status: "loading" }
-  | { readonly status: "error"; readonly error: Error }
+  | { readonly status: "error"; readonly error: Error; readonly generation: number }
   | { readonly status: "success"; readonly data: T };
 
 const IDLE_STATE = { status: "idle" } as const;
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function Slacker<T = any>({
   children,
@@ -24,6 +25,7 @@ export function Slacker<T = any>({
   const [loadState, setLoadState] = useState<LoadState<T>>(IDLE_STATE);
   const activeRef = useRef(false);
   const activatedRef = useRef(false);
+  const completedRef = useRef(false);
   const generationRef = useRef(0);
   const inFlightRef = useRef(false);
   const retriesUsedRef = useRef(0);
@@ -47,10 +49,12 @@ export function Slacker<T = any>({
     runAttemptRef.current?.();
   }, []);
 
-  const retry = useCallback(() => {
+  const retry = useCallback((generation: number) => {
     if (
       !activeRef.current ||
       !activatedRef.current ||
+      completedRef.current ||
+      generation !== generationRef.current ||
       inFlightRef.current ||
       retriesUsedRef.current >= maxRetriesRef.current
     ) {
@@ -75,7 +79,7 @@ export function Slacker<T = any>({
 
   useEffect(() => {
     runAttemptRef.current = () => {
-      if (!activeRef.current || inFlightRef.current) {
+      if (!activeRef.current || completedRef.current || inFlightRef.current) {
         return;
       }
 
@@ -90,6 +94,8 @@ export function Slacker<T = any>({
             return;
           }
 
+          retriesUsedRef.current = 0;
+          completedRef.current = true;
           invalidate();
           setLoadState({ status: "success", data });
         })
@@ -102,14 +108,14 @@ export function Slacker<T = any>({
           const error = reason instanceof Error ? reason : new Error(String(reason));
           console.error("Slacker loader failed:", error);
           onErrorRef.current?.(error);
-          setLoadState({ status: "error", error });
+          setLoadState({ status: "error", error, generation });
 
           if (retriesUsedRef.current < maxRetriesRef.current) {
             const retryGeneration = generationRef.current;
             retryTimerRef.current = setTimeout(() => {
               retryTimerRef.current = null;
               if (activeRef.current && retryGeneration === generationRef.current) {
-                retry();
+                retry(retryGeneration);
               }
             }, retryDelayRef.current);
           }
@@ -121,31 +127,23 @@ export function Slacker<T = any>({
     };
   }, [invalidate, retry]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     onErrorRef.current = onError;
-  }, [onError]);
-
-  useEffect(() => {
     maxRetriesRef.current = maxRetries;
-  }, [maxRetries]);
-
-  useEffect(() => {
     retryDelayRef.current = retryDelay;
-  }, [retryDelay]);
-
-  useEffect(() => {
     if (loaderRef.current === loader) {
       return;
     }
 
     loaderRef.current = loader;
     invalidate();
+    completedRef.current = false;
     retriesUsedRef.current = 0;
     setLoadState(IDLE_STATE);
     if (activatedRef.current) {
       runAttempt();
     }
-  }, [invalidate, loader, runAttempt]);
+  }, [invalidate, loader, maxRetries, onError, retryDelay, runAttempt]);
 
   const handleIntersect = useCallback(
     (isIntersecting: boolean) => {
@@ -166,7 +164,11 @@ export function Slacker<T = any>({
   } else if (loadState.status === "error") {
     content =
       typeof errorFallback === "function"
-        ? errorFallback({ isLoading: false, error: loadState.error, retry })
+        ? errorFallback({
+            isLoading: false,
+            error: loadState.error,
+            retry: () => retry(loadState.generation),
+          })
         : errorFallback;
   } else if (loadState.status === "loading") {
     content = loadingFallback;

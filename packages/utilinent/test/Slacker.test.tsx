@@ -2,83 +2,10 @@ import { StrictMode, type ComponentProps } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Slacker } from "../src/index";
-
-const observers: ControlledIntersectionObserver[] = [];
-
-class ControlledIntersectionObserver implements IntersectionObserver {
-  readonly root = null;
-  readonly rootMargin: string;
-  readonly thresholds: readonly number[];
-  private target: Element | null = null;
-
-  constructor(
-    private readonly callback: IntersectionObserverCallback,
-    options: IntersectionObserverInit = {},
-  ) {
-    this.rootMargin = options.rootMargin ?? "0px";
-    this.thresholds = Array.isArray(options.threshold)
-      ? options.threshold
-      : [options.threshold ?? 0];
-    observers.push(this);
-  }
-
-  observe(target: Element) {
-    this.target = target;
-  }
-
-  unobserve(target: Element) {
-    if (this.target === target) {
-      this.target = null;
-    }
-  }
-
-  disconnect() {
-    this.target = null;
-  }
-
-  takeRecords(): IntersectionObserverEntry[] {
-    return [];
-  }
-
-  emit(isIntersecting: boolean) {
-    if (!this.target) {
-      return;
-    }
-
-    const rect = new DOMRectReadOnly();
-    const entry: IntersectionObserverEntry = {
-      boundingClientRect: rect,
-      intersectionRatio: isIntersecting ? 1 : 0,
-      intersectionRect: rect,
-      isIntersecting,
-      rootBounds: null,
-      target: this.target,
-      time: 0,
-    };
-    this.callback([entry], this);
-  }
-
-  get active() {
-    return this.target !== null;
-  }
-}
-
-function activeObserver() {
-  const observer = [...observers].reverse().find((candidate) => candidate.active);
-  if (!observer) {
-    throw new Error("Expected an active IntersectionObserver");
-  }
-  return observer;
-}
-
-async function enterViewport() {
-  await act(async () => {
-    const observer = activeObserver();
-    observer.emit(false);
-    observer.emit(true);
-    await Promise.resolve();
-  });
-}
+import {
+  enterViewport,
+  installControlledIntersectionObserver,
+} from "./controlledIntersectionObserver";
 
 async function advanceTimer(milliseconds: number) {
   await act(async () => {
@@ -104,8 +31,7 @@ function stringSlacker(props: StringSlackerProps) {
 
 describe("Slacker retry lifecycle", () => {
   beforeEach(() => {
-    observers.length = 0;
-    globalThis.IntersectionObserver = ControlledIntersectionObserver;
+    installControlledIntersectionObserver();
     vi.useFakeTimers();
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
@@ -190,17 +116,21 @@ describe("Slacker retry lifecycle", () => {
   });
 
   it("cancels the automatic retry when a manual retry succeeds", async () => {
+    const retryCallbacks: Array<() => void> = [];
     const loader = vi
       .fn<() => Promise<string>>()
       .mockRejectedValueOnce(new Error("failure"))
       .mockResolvedValue("loaded");
 
-    render(
+    const rendered = render(
       stringSlacker({
         loader,
         maxRetries: 1,
         retryDelay: 1000,
-        errorFallback: ({ retry }) => <button onClick={retry}>Retry</button>,
+        errorFallback: ({ retry }) => {
+          retryCallbacks.push(retry);
+          return <button onClick={retry}>Retry</button>;
+        },
       }),
     );
     await enterViewport();
@@ -211,6 +141,15 @@ describe("Slacker retry lifecycle", () => {
 
     expect(loader).toHaveBeenCalledTimes(2);
     expect(screen.getByText("loaded")).toBeInTheDocument();
+
+    rendered.rerender(stringSlacker({ loader, maxRetries: 2, retryDelay: 1000 }));
+    const staleRetry = retryCallbacks[0];
+    if (!staleRetry) {
+      throw new Error("Expected the error fallback retry callback");
+    }
+    act(() => staleRetry());
+    await act(async () => Promise.resolve());
+    expect(loader).toHaveBeenCalledTimes(2);
   });
 
   it("coalesces rapid manual retries with the in-flight attempt", async () => {
@@ -273,6 +212,41 @@ describe("Slacker retry lifecycle", () => {
     expect(newLoader).toHaveBeenCalledTimes(1);
     expect(screen.getByText("new data")).toBeInTheDocument();
     expect(screen.queryByText("old data")).not.toBeInTheDocument();
+  });
+
+  it("invalidates manual retry callbacks when the loader is replaced", async () => {
+    const retryCallbacks: Array<() => void> = [];
+    const errorFallback = ({ retry }: { retry: () => void }) => {
+      retryCallbacks.push(retry);
+      return <button onClick={retry}>Retry</button>;
+    };
+    const oldLoader = vi.fn<() => Promise<string>>().mockRejectedValue(new Error("old failure"));
+    const newLoader = vi.fn<() => Promise<string>>().mockRejectedValue(new Error("new failure"));
+    const rendered = render(stringSlacker({ loader: oldLoader, maxRetries: 1, errorFallback }));
+    await enterViewport();
+    const staleRetry = retryCallbacks[0];
+
+    rendered.rerender(stringSlacker({ loader: newLoader, maxRetries: 1, errorFallback }));
+    await act(async () => Promise.resolve());
+    if (!staleRetry) {
+      throw new Error("Expected the original retry callback");
+    }
+    act(() => staleRetry());
+    await act(async () => Promise.resolve());
+
+    expect(oldLoader).toHaveBeenCalledTimes(1);
+    expect(newLoader).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels a scheduled retry when unmounted", async () => {
+    const loader = vi.fn<() => Promise<string>>().mockRejectedValue(new Error("failure"));
+    const rendered = render(stringSlacker({ loader, maxRetries: 1, retryDelay: 1000 }));
+    await enterViewport();
+
+    rendered.unmount();
+    await advanceTimer(1000);
+
+    expect(loader).toHaveBeenCalledTimes(1);
   });
 
   it("ignores a failed settlement after unmount", async () => {
