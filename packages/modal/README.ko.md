@@ -11,6 +11,7 @@ Grunfeld의 awaitable dialog 철학을 유지하면서, 기본 motion을 더 부
 - **Awaitable modal flow** — `display()`가 exit 애니메이션 완료 후 resolve되는 Promise 반환
 - **Hook 기반 API** — `useModal()`로 `display`, `close`, `closeAll`, `reject`, `remove`, `clear` 제공
 - **글로벌 facade** — 모듈 레벨에서 사용할 수 있는 `modal`과 `globalModalStore`
+- **provider-scoped stack 정책** — provider마다 독립적인 topness, z-index, dismiss, focus 정책
 - **inline transport** — 기본 fade/scale motion으로 완전한 제어
 - **top-layer transport** — 네이티브 `<dialog>` + `showModal()`
 - **ESC / backdrop dismiss** — `onDismiss` 콜백과 함께 light dismiss 지원
@@ -143,6 +144,8 @@ modal이 닫힐 때마다 callback이 필요하면 `onModalClose(result)`를 사
 
 모듈 레벨 API를 선호한다면 기본 `ModalProvider`를 한 번 마운트한 뒤 `modal` facade를 사용할 수 있습니다.
 
+`store`가 없는 provider는 하나만 지원합니다. 모든 기본 provider는 `globalModalStore`를 공유하므로 여러 개를 마운트해도 독립적인 facade stack이 만들어지지 않습니다. 여러 provider를 동시에 사용하려면 각 `ModalProvider`에 서로 다른 overlay store를 전달하세요. 그러면 각 provider가 inline 및 top-layer transport의 modal stack 정책을 독립적으로 소유합니다.
+
 ```tsx
 import { ModalProvider, modal } from '@ilokesto/modal';
 
@@ -255,7 +258,7 @@ await display({
 
 ### `ModalProvider`
 
-Context provider. `@ilokesto/overlay`의 `OverlayProvider`를 감싸고, modal adapter를 등록하고, 공유 CSS를 주입합니다. Props: `children`, `store?`.
+Context provider. `@ilokesto/overlay`의 `OverlayProvider`를 감싸고, modal adapter를 등록하고, 공유 CSS를 주입하며, 두 transport가 사용하는 내부 stack runtime을 소유합니다. Props: `children`, `store?`.
 
 ### `useModal()`
 
@@ -313,14 +316,14 @@ src/
 - `ModalAdapterTopLayer.tsx` — 네이티브 `<dialog>`: cancel/backdrop 처리, 위치 지정, scoped backdrop, animation
 
 **`src/components`** — provider:
-- `ModalProvider.tsx` — `OverlayProvider` 감싸기, adapter 등록, CSS 주입, 기본 global store 사용
+- `ModalProvider.tsx` — `OverlayProvider` 감싸기, modal stack 정책 소유, adapter 등록, CSS 주입, 기본 global store 사용
 
 **`src/facade`** — 모듈 레벨 API:
 - `modalFacade.ts` — `modal` facade와 `globalModalStore`
 
 **`src/hooks`** — React 훅:
 - `useModal.ts` — 명령형 API (`display`, `close`, `closeAll`, `reject`, `remove`, `clear`)
-- `useIsTopModal.ts` — z-index 및 focus 관리를 위한 modal stack 추적
+- `useIsTopModal.ts` — z-index, dismiss, focus 관리를 위한 provider-scoped modal stack 추적
 - `usePrefersReducedMotion.ts` — 레거시 fallback 포함 `prefers-reduced-motion` 감지
 
 **`src/shared`** — 내부:

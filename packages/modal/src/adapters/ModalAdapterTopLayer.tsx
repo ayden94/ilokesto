@@ -64,7 +64,7 @@ export function ModalAdapterTopLayer<TResult>({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const uniqueId = useId().replace(/:/g, '');
-  const isTopModal = useIsTopModal(id);
+  const isTopModal = useIsTopModal(id, dialogRef);
   const prefersReducedMotion = usePrefersReducedMotion();
 
   // Reduced motion fast-track removal

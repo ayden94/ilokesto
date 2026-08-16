@@ -1,8 +1,9 @@
 /// <reference types="@testing-library/jest-dom" />
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import { ModalAdapterTopLayer } from '../src/adapters/ModalAdapterTopLayer';
+import { renderWithModalStack } from './modalStackTestUtils';
 
 describe('ModalAdapterTopLayer', () => {
   afterEach(() => {
@@ -10,7 +11,7 @@ describe('ModalAdapterTopLayer', () => {
   });
 
   it('renders a named native dialog and moves focus inside after showModal', () => {
-    render(
+    renderWithModalStack(
       <ModalAdapterTopLayer
         id="modal-id"
         isOpen
@@ -29,7 +30,7 @@ describe('ModalAdapterTopLayer', () => {
   it('closes on native cancel when dismissible', () => {
     const close = vi.fn();
 
-    render(
+    renderWithModalStack(
       <ModalAdapterTopLayer
         id="modal-id"
         isOpen
@@ -49,7 +50,7 @@ describe('ModalAdapterTopLayer', () => {
   it('passes scoped close to render content', () => {
     const close = vi.fn();
 
-    render(
+    renderWithModalStack(
       <ModalAdapterTopLayer
         id="modal-id"
         isOpen

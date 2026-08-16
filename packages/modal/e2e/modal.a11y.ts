@@ -5,7 +5,9 @@ test('inline modal has no detectable axe violations', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Open inline confirm' }).click();
 
-  await expect(page.getByRole('dialog', { name: 'Delete item?' })).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: 'Delete item?' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveCSS('opacity', '1');
 
   const results = await new AxeBuilder({ page }).include('body').analyze();
 
@@ -16,7 +18,9 @@ test('top-layer modal has no detectable axe violations', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: 'Open top-layer settings' }).click();
 
-  await expect(page.getByRole('dialog', { name: 'Settings dialog' })).toBeVisible();
+  const dialog = page.getByRole('dialog', { name: 'Settings dialog' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveCSS('opacity', '1');
 
   const results = await new AxeBuilder({ page }).include('body').analyze();
 

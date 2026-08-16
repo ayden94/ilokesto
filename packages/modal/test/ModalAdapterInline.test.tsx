@@ -1,15 +1,16 @@
 /// <reference types="@testing-library/jest-dom" />
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen } from '@testing-library/react';
 import type { ModalAdapterProps } from '../src/shared/types';
 import { ModalAdapterInline } from '../src/adapters/ModalAdapterInline';
+import { renderWithModalStack } from './modalStackTestUtils';
 
 function renderInline(props: Partial<ModalAdapterProps<unknown>> = {}) {
   const close = vi.fn();
   const remove = vi.fn();
 
-  render(
+  renderWithModalStack(
     <ModalAdapterInline
       id="modal-id"
       isOpen
@@ -56,7 +57,7 @@ describe('ModalAdapterInline', () => {
     document.body.appendChild(opener);
     opener.focus();
 
-    const { unmount } = render(
+    const { unmount } = renderWithModalStack(
       <ModalAdapterInline
         id="modal-id"
         isOpen
@@ -140,7 +141,7 @@ describe('ModalAdapterInline', () => {
     const outerClose = vi.fn();
     const innerClose = vi.fn();
 
-    render(
+    renderWithModalStack(
       <>
         <ModalAdapterInline
           id="outer-modal"
@@ -170,7 +171,7 @@ describe('ModalAdapterInline', () => {
   });
 
   it('stacks nested inline modals above earlier inline modals', () => {
-    render(
+    renderWithModalStack(
       <>
         <ModalAdapterInline
           id="outer-modal"
