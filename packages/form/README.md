@@ -187,6 +187,21 @@ The event model is DOM-event centered. Custom components can use `useRegister` w
 
 Vue bindings are exposed through the `./vue` subpath. They use the same `useForm(form)` shape as the React adapter, but return Vue-friendly `v-bind` props with `onInput`, `onChange`, `onBlur`, and `onFocus` handlers.
 
+`useForm` also accepts a `VueFormOptions` object with a `values` field (a `ref`, `computed`, getter, or plain value) and an optional `resetOptions`. When `values` changes by reference, the adapter calls `form.reset(values, resetOptions)` — the same model as the React adapter. Pass reactive sources (`ref`/`computed`) directly so Vue can track them; plain values are evaluated once on creation and re-evaluated when the component re-renders and `useForm` is called again.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useForm } from '@ilokesto/form/vue';
+
+const serverValues = ref({ email: 'initial@example.com' });
+const { form, useRegister } = useForm({
+  defaultValues: { email: '' },
+  values: serverValues,
+});
+</script>
+```
+
 ```vue
 <script setup lang="ts">
 import { CreateForm } from '@ilokesto/form';

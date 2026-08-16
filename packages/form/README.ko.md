@@ -185,6 +185,21 @@ Event model은 DOM event 중심이다. Custom component도 DOM-compatible `value
 
 Vue binding은 `./vue` subpath로 노출된다. React adapter와 같은 `useForm(form)` 형태를 쓰지만, Vue template의 `v-bind`에 바로 전달할 수 있도록 `onInput`, `onChange`, `onBlur`, `onFocus` handler를 가진 props를 반환한다.
 
+`useForm`은 `values` 필드(`ref`, `computed`, getter, 평면 값 모두 가능)와 optional `resetOptions`를 가진 `VueFormOptions` 객체도 받는다. `values` reference가 바뀌면 adapter가 `form.reset(values, resetOptions)`를 호출한다 — React adapter와 동일한 모델. 추적을 보장하려면 반응형 소스(`ref`/`computed`)를 직접 전달하라. 평면 값은 생성 시 1회 평가되며 컴포넌트가 다시 렌더링되어 `useForm`이 다시 호출될 때 다시 평가된다.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useForm } from '@ilokesto/form/vue';
+
+const serverValues = ref({ email: 'initial@example.com' });
+const { form, useRegister } = useForm({
+  defaultValues: { email: '' },
+  values: serverValues,
+});
+</script>
+```
+
 ```vue
 <script setup lang="ts">
 import { CreateForm } from '@ilokesto/form';

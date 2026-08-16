@@ -1,7 +1,22 @@
-import type { Form, FormError, FormState } from '../core/index';
+import type { MaybeRefOrGetter } from 'vue';
+import type { CreateFormOptions, Form, FormError, FormState, ResetOptions } from '../core/index';
 import type { DomValue, RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
 
 export type { RegisterOptions } from '../adapters/dom';
+
+/**
+ * Vue adapter가 form 생성 옵션에 더해 reactive external values를 받을 때 쓰는 옵션이다.
+ *
+ * @remarks
+ * React 어댑터와 동일한 의미이지만, Vue의 반응형 모델에 맞춰 `values`를 `MaybeRefOrGetter<TValues>`로 받는다.
+ * ref, computed, getter, 평면 값 모두 전달할 수 있으며 adapter는 `watch`로 참조 변화를 감지해 `form.reset()`을 호출한다.
+ */
+export type VueFormOptions<TValues> = CreateFormOptions<TValues> & {
+  /** 외부 서버/query/props 값이다. ref, computed, getter, 평면 값 모두 가능하며 값이 바뀌면 adapter가 reset을 트리거한다. */
+  values?: MaybeRefOrGetter<TValues>;
+  /** `values` 변경으로 reset할 때 적용할 상태 보존 옵션이다. */
+  resetOptions?: ResetOptions;
+};
 
 type VueBindingHandlers<TElement extends HTMLElement> = {
   onInput: (event: Event & { currentTarget: TElement }) => void;
@@ -70,6 +85,7 @@ export type VueFormStateReturn<TValues> = {
   readonly errors: Record<string, FormError[]>;
   readonly dirtyFields: Record<string, true>;
   readonly touchedFields: Record<string, true>;
+  readonly focusedField: string | null;
   readonly isDirty: boolean;
   readonly isValid: boolean;
   readonly isSubmitting: boolean;

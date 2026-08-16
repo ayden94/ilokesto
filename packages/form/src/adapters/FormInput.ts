@@ -9,7 +9,9 @@ export type ReactiveFormOptions<TValues> = CreateFormOptions<TValues> & {
 
 export type FormInput<TValues> = Form<TValues> | ReactiveFormOptions<TValues>;
 
-export function isFormInstance<TValues>(input: FormInput<TValues>): input is Form<TValues> {
+export function isFormInstance<TValues>(
+  input: Form<TValues> | CreateFormOptions<TValues>,
+): input is Form<TValues> {
   return 'subscribe' in input && 'submit' in input;
 }
 
