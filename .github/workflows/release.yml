@@ -1,0 +1,114 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.repository == 'ayden94/ilokesto' &&
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      - name: Create or update release PR
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          branch: main
+          version: pnpm version-packages
+          commit: "ci: release"
+          title: "ci: release"
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Resolve release PR head
+        id: release_pr
+        if: steps.changesets.outputs.pullRequestNumber != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ steps.changesets.outputs.pullRequestNumber }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+
+          pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
+          readarray -t fields < <(
+            jq -r '.state, .base.ref, .head.ref, .head.repo.full_name, .head.sha' <<<"$pr_json"
+          )
+
+          [[ "${fields[0]}" == "open" ]]
+          [[ "${fields[1]}" == "main" ]]
+          [[ "${fields[2]}" == "changeset-release/main" ]]
+          [[ "${fields[3]}" == "$GITHUB_REPOSITORY" ]]
+          [[ "${fields[4]}" =~ ^[0-9a-f]{40}$ ]]
+
+          branch_sha="$(
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/changeset-release/main" \
+              --jq '.object.sha'
+          )"
+          [[ "$branch_sha" == "${fields[4]}" ]]
+
+          printf 'number=%s\nhead_sha=%s\n' \
+            "$PR_NUMBER" "${fields[4]}" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch release-head verification
+        if: steps.release_pr.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.release_pr.outputs.head_sha }}
+          PR_NUMBER: ${{ steps.release_pr.outputs.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --arg ref "changeset-release/main" \
+            --arg sha "$HEAD_SHA" \
+            --arg pr "$PR_NUMBER" \
+            '{
+              ref: $ref,
+              inputs: {
+                expected_head_sha: $sha,
+                release_pr_number: $pr
+              }
+            }' |
+            gh api \
+              --method POST \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/dispatches" \
+              --input -
