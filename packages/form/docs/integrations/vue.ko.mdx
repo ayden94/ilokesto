@@ -31,7 +31,7 @@ const state = useFormState();
 
 ## 외부 값 동기화
 
-`useForm`에 `values` 옵션(`ref`, `computed`, getter, 평면 값 모두 가능)과 optional `resetOptions`를 전달하면, `values` reference가 바뀔 때 adapter가 `form.reset(values, resetOptions)`를 호출합니다 — React adapter와 동일한 모델입니다.
+`VueFormOptions`는 `values`를 `MaybeRefOrGetter<T | undefined>`로 받고 plain `resetOptions`를 받습니다. 처음 정의된 값과 이후 `Object.is` identity가 달라진 값마다 `form.reset(values, resetOptions)`를 호출합니다. `undefined`는 reset 없이 동기화를 중단하고, 마지막으로 정의되었던 같은 object를 다시 emit해도 no-op입니다. `resetOptions`는 value-driven reset에만 사용됩니다.
 
 ```vue
 <script setup lang="ts">
@@ -42,11 +42,12 @@ const serverValues = ref({ email: 'initial@example.com' });
 const { form, useRegister } = useForm({
   defaultValues: { email: '' },
   values: serverValues,
+  resetOptions: { keepDirtyValues: true },
 });
 </script>
 ```
 
-변화 추적을 보장하려면 반응형 소스(`ref`/`computed`)를 직접 전달하세요. 평면 값은 생성 시 1회 평가되며 컴포넌트가 다시 렌더링되어 `useForm`이 다시 호출될 때 다시 평가됩니다.
+변화 추적을 보장하려면 반응형 소스(`ref`/`computed`/getter)를 직접 전달하세요. 평면 값은 생성 시 한 번만 평가됩니다. 이 overload에는 active Vue effect scope가 필요하며 scope가 없으면 form 생성 전에 실패합니다. Watcher는 해당 scope와 함께 중지되며 `useForm(existingForm)`은 values watcher를 설치하지 않습니다.
 
 ## 주의할 점
 

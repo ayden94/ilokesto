@@ -3,4 +3,5 @@ export type {
   RegisterOptions,
   SvelteFieldReturn,
   SvelteFieldSnapshot,
+  SvelteFormOptions,
 } from './types';

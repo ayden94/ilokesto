@@ -1,9 +1,9 @@
-import { ref, toValue, watch } from 'vue';
+import { getCurrentScope, toValue, watch } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 
 import { createSubmitHandler } from '../adapters/dom';
-import { isFormInstance } from '../adapters/FormInput';
-import { CreateForm, type Form, type ResetOptions } from '../core/index';
+import { createExternalValuesSynchronizer, createFormFromOptions, isFormInstance } from '../adapters/FormInput';
+import type { Form, ResetOptions } from '../core/index';
 import type { RegisterOptions, VueForm, VueFormOptions } from './types';
 import { useFieldWithForm } from './useField';
 import { useFormStateWithForm } from './useFormState';
@@ -13,11 +13,16 @@ import { useRegisterWithForm } from './useRegister';
 export function useForm<TValues>(form: Form<TValues>): VueForm<TValues>;
 export function useForm<TValues>(options: VueFormOptions<TValues>): VueForm<TValues>;
 export function useForm<TValues>(input: Form<TValues> | VueFormOptions<TValues>): VueForm<TValues> {
+  const isForm = isFormInstance(input);
+  if (!isForm && input.values !== undefined && getCurrentScope() === undefined) {
+    throw new TypeError('Reactive Vue form options require an active effect scope');
+  }
+
   let form: Form<TValues>;
-  let values: MaybeRefOrGetter<TValues> | undefined;
+  let values: MaybeRefOrGetter<TValues | undefined> | undefined;
   let resetOptions: ResetOptions | undefined;
 
-  if (isFormInstance(input)) {
+  if (isForm) {
     form = input;
     values = undefined;
     resetOptions = undefined;
@@ -28,29 +33,20 @@ export function useForm<TValues>(input: Form<TValues> | VueFormOptions<TValues>)
       ...createOptions
     } = input;
 
-    form = new CreateForm(createOptions);
+    form = createFormFromOptions(createOptions);
     values = reactiveValues;
     resetOptions = reactiveResetOptions;
   }
 
   if (values !== undefined) {
-    const previousValuesRef = ref<TValues | undefined>(undefined);
+    const synchronizeValues = createExternalValuesSynchronizer(form);
 
-    const sync = (nextValues: TValues) => {
-      if (previousValuesRef.value === nextValues) {
-        return;
-      }
-
-      previousValuesRef.value = nextValues;
-      form.reset(nextValues, resetOptions);
-    };
-
-    sync(toValue(values));
+    synchronizeValues(toValue(values), resetOptions);
 
     watch(
       () => toValue(values),
       nextValues => {
-        sync(nextValues);
+        synchronizeValues(nextValues, resetOptions);
       },
     );
   }

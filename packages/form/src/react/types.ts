@@ -6,18 +6,14 @@ import type {
   TextareaHTMLAttributes,
   FormEvent,
 } from 'react';
-import type { CreateFormOptions, FieldPathInput, FieldPathValue, FieldState, Form, FormError, FormState, ResetOptions } from '../core/index';
+import type { FieldPathInput, FieldPathValue, FieldState, Form, FormError, FormState } from '../core/index';
 import type { RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
+import type { ReactiveFormOptions } from '../adapters/FormInput';
 
 export type { RegisterOptions } from '../adapters/dom';
 
 /** React adapter가 form 생성 옵션에 더해 reactive external values를 받을 때 쓰는 옵션이다. */
-export type ReactFormOptions<TValues> = CreateFormOptions<TValues> & {
-  /** 외부 서버/query/props 값이다. reference가 바뀌면 adapter가 reset을 트리거한다. */
-  values?: TValues;
-  /** `values` 변경으로 reset할 때 적용할 상태 보존 옵션이다. */
-  resetOptions?: ResetOptions;
-};
+export type ReactFormOptions<TValues> = ReactiveFormOptions<TValues, TValues | undefined>;
 
 type InputValue = InputHTMLAttributes<HTMLInputElement>['value'];
 type InputType = InputHTMLAttributes<HTMLInputElement>['type'];

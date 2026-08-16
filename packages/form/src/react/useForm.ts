@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { createSubmitHandler } from '../adapters/dom';
-import { createFormFromOptions, isFormInstance, type FormInput } from '../adapters/FormInput';
+import {
+  createExternalValuesSynchronizer,
+  createFormFromOptions,
+  isFormInstance,
+  type FormInput,
+} from '../adapters/FormInput';
 import type { FieldPathInput, Form } from '../core/index';
 import type { ReactForm, ReactFormOptions, RegisterOptions } from './types';
 import { useFieldWithForm } from './useField';
@@ -11,24 +16,19 @@ import { useRegisterWithForm } from './useRegister';
 /** React hook surface를 core Form 인스턴스에 바인딩한다. */
 export function useForm<TValues>(form: Form<TValues>): ReactForm<TValues>;
 export function useForm<TValues>(options: ReactFormOptions<TValues>): ReactForm<TValues>;
-export function useForm<TValues>(input: FormInput<TValues>): ReactForm<TValues> {
+export function useForm<TValues>(input: FormInput<TValues, ReactFormOptions<TValues>>): ReactForm<TValues> {
   const optionsFormRef = useRef<Form<TValues> | undefined>(undefined);
-  const previousValuesRef = useRef<TValues | undefined>(undefined);
   const isForm = isFormInstance(input);
   const form = isForm
     ? input
     : (optionsFormRef.current ??= createFormFromOptions(input));
   const values = isForm ? undefined : input.values;
   const resetOptions = isForm ? undefined : input.resetOptions;
+  const synchronizeValues = useMemo(() => createExternalValuesSynchronizer(form), [form]);
 
   useEffect(() => {
-    if (values === undefined || previousValuesRef.current === values) {
-      return;
-    }
-
-    previousValuesRef.current = values;
-    form.reset(values, resetOptions);
-  }, [form, resetOptions, values]);
+    synchronizeValues(values, resetOptions);
+  }, [resetOptions, synchronizeValues, values]);
 
   const useRegister = ((
     first: RegisterOptions | readonly RegisterOptions[],
