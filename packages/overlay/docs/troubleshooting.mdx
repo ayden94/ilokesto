@@ -11,7 +11,7 @@ description: "Common mistakes around providers, adapters, lifecycle, and async r
 
 ## Nothing renders after `display()`
 
-Check the `type` passed to `display` or `open`. `OverlayHost` looks up `adapters[item.type]`. If no adapter exists for that key, the item renders nothing. Also confirm that `OverlayProvider` receives the adapter map you expect.
+Check the `type` passed to `display` or `open`. `OverlayHost` looks up `adapters[item.type]`. If no adapter exists for that key, the item renders nothing and development emits one error diagnostic for that mounted item with its `id` and `type`. Production stays silent. The item remains in the store and any `display()` promise stays pending because the host never resolves, rejects, or removes missing-adapter items automatically. Also confirm that `OverlayProvider` receives the adapter map you expect.
 
 ## The promise never resolves
 

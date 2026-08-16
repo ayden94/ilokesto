@@ -17,7 +17,7 @@ Each `OverlayItem` has `id`, `type`, `props`, `status`, `createdAt`, and an opti
 
 ## Adapter registry and host
 
-`OverlayHost` subscribes to the current items through `useOverlayItems()` and renders each item with `adapters[item.type]`. If an adapter is missing, the item renders nothing. That makes adapter registration an application boundary: the runtime can host any overlay family, but each family must provide its own rendering and behavior.
+`OverlayHost` subscribes to the current items through `useOverlayItems()` and renders each item with `adapters[item.type]`. If an adapter is missing, the item renders nothing. Development emits one error diagnostic per mounted item identity with its `id` and `type`, while production remains silent. The item stays in the store and its promise remains pending because the host does not settle or remove it automatically. That makes adapter registration an application boundary: the runtime can host any overlay family, but each family must provide its own rendering and behavior.
 
 ## close vs remove
 

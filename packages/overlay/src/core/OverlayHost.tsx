@@ -20,6 +20,7 @@ function OverlayItemRenderer({
   const Adapter = adapters[item.type];
   const hooksRef = useRef<OverlayAdapterHooks | null>(null);
   const prevStatusRef = useRef<"open" | "closing" | "mounted">("mounted");
+  const missingAdapterReportedRef = useRef(false);
 
   const close = useCallback(
     (result?: unknown) => {
@@ -68,6 +69,23 @@ function OverlayItemRenderer({
       runPhase("onUnmount", item.id, item);
     };
   }, [item.id]);
+
+  useEffect(() => {
+    if (
+      typeof process === "undefined" ||
+      process.env.NODE_ENV !== "development" ||
+      Adapter ||
+      missingAdapterReportedRef.current
+    ) {
+      return;
+    }
+
+    missingAdapterReportedRef.current = true;
+    console.error("[@ilokesto/overlay] Missing adapter", {
+      id: item.id,
+      type: item.type,
+    });
+  }, [Adapter, item.id, item.type]);
 
   if (!Adapter) {
     return null;
