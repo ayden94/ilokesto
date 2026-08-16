@@ -49,6 +49,6 @@ test("changeset status is required only for ordinary pull requests", async () =>
 
   assert.match(
     workflow,
-    /- name: Check changesets\n\s+if: github\.event_name == 'pull_request'\n\s+run: pnpm changeset:status/,
+    /- name: Check changesets\n\s+if: github\.event_name == 'pull_request' && github\.head_ref != 'changeset-release\/main'\n\s+run: pnpm changeset:status/,
   );
 });
