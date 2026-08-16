@@ -1,22 +1,9 @@
 import { defineConfig } from 'vite';
 
+// This config is used by vitest only. Production builds use `tsc` (see package.json `build` script).
+// The `build.lib` block was removed because it was dead code — `pnpm build` runs `rm -rf dist && tsc`, not `vite build`.
 export default defineConfig({
-  build: {
-    lib: {
-      entry: {
-        index: 'src/index.ts',
-        'react/index': 'src/react/index.ts',
-        'vue/index': 'src/vue/index.ts',
-        'solid/index': 'src/solid/index.ts',
-        'svelte/index': 'src/svelte/index.ts',
-      },
-      formats: ['es'],
-      fileName: (_format, entryName) => `${entryName}.js`,
-    },
-    rollupOptions: {
-      external: ['@ilokesto/store', 'immer', 'react', 'vue', 'solid-js', 'svelte', 'svelte/action', 'svelte/store'],
-    },
-    sourcemap: false,
-    emptyOutDir: false,
+  test: {
+    environment: 'jsdom',
   },
 });

@@ -1,9 +1,0 @@
-.DS_Store
-.git*
-node_modules/
-src/
-vite.config.ts
-tsconfig.json
-stats.html
-.omx
-.examplesdocs/
