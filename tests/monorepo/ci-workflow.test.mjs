@@ -43,3 +43,12 @@ test("changeset status receives a local main base ref", async () => {
   assert.ok(changesetStatus > prepareBase);
   assert.match(workflow, /git branch --force main origin\/main/);
 });
+
+test("changeset status is required only for ordinary pull requests", async () => {
+  const workflow = await readWorkflow("ci.yml");
+
+  assert.match(
+    workflow,
+    /- name: Check changesets\n\s+if: github\.event_name == 'pull_request'\n\s+run: pnpm changeset:status/,
+  );
+});
