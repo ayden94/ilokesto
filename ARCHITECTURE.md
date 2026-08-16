@@ -47,6 +47,10 @@ All package source lives under `packages/` in one pnpm workspace. Changesets ver
 
 Both `modal` and `toast` are built on `overlay`. This keeps lifecycle, provider scoping, and adapter behavior consistent across layered UI components.
 
+Each `ModalProvider` also owns an internal modal stack runtime. Inline and top-layer adapters share that provider-local runtime for topness, stack indexes, Escape, backdrop, and focus policy while `overlay` continues to own presence lifecycle and the item store. Multiple modal providers are isolated when they receive distinct overlay stores.
+
+The `modal` / `globalModalStore` facade is the backward-compatible exception: providers without an explicit `store` all use the same global store, so applications must mount only one default `ModalProvider`. Applications that need multiple providers must pass a distinct store to each provider.
+
 ### 4. Framework adapters live in consumer packages
 
 `state`, `form`, and future packages provide React/Vue/Solid/Svelte/Angular adapters in their own package directories. The core stays framework-agnostic.
