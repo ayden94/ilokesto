@@ -1,7 +1,15 @@
+import type { Accessor } from 'solid-js';
 import type { Form, FormError, FormState } from '../core/index';
 import type { DomValue, RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
+import type { ReactiveFormOptions } from '../adapters/FormInput';
 
 export type { RegisterOptions } from '../adapters/dom';
+
+/** Solid owner가 외부 values accessor와 함께 form을 만들 때 쓰는 옵션이다. */
+export type SolidFormOptions<TValues> = ReactiveFormOptions<
+  TValues,
+  Accessor<TValues | undefined>
+>;
 
 type SolidBindingHandlers<TElement extends HTMLElement> = {
   onInput: (event: InputEvent & { currentTarget: TElement }) => void;
