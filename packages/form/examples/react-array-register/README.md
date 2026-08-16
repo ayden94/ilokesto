@@ -61,8 +61,8 @@ setQueryValues({
 Run it from the repository root:
 
 ```sh
-pnpm --dir examples/react-array-register install
-pnpm --dir examples/react-array-register dev
+pnpm --dir packages/form/examples/react-array-register install
+pnpm --dir packages/form/examples/react-array-register dev
 ```
 
 The example aliases `@ilokesto/form` and `@ilokesto/form/react` to the local `src/` files, so it can run before the package is built.

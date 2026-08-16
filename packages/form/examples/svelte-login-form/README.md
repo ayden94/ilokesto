@@ -15,8 +15,8 @@ This Vite + Svelte 5 + TypeScript example shows a simple email/password login fo
 From the repository root:
 
 ```sh
-pnpm --dir examples/svelte-login-form install
-pnpm --dir examples/svelte-login-form dev
+pnpm --dir packages/form/examples/svelte-login-form install
+pnpm --dir packages/form/examples/svelte-login-form dev
 ```
 
 The example aliases `@ilokesto/form` and `@ilokesto/form/svelte` to the local `src/` files, so it can run before the package is built.

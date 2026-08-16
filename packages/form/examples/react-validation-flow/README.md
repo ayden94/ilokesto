@@ -11,15 +11,15 @@ This Vite + React + TypeScript example demonstrates sync and async validation wi
 - `useFormState` for form-wide state (isDirty, isValid, submitCount)
 - `handleSubmit` with type-safe onValid callback
 
-Async validation uses a generation counter internally, so rapid typing always reflects the most recent values. Stale async results are discarded.
+Async validation supersedes only overlapping field targets. Stale results are discarded, and submit validation retries against the latest values before invoking `onValid`.
 
 ## Run
 
 From the repository root:
 
 ```sh
-pnpm --dir examples/react-validation-flow install
-pnpm --dir examples/react-validation-flow dev
+pnpm --dir packages/form/examples/react-validation-flow install
+pnpm --dir packages/form/examples/react-validation-flow dev
 ```
 
 The example aliases `@ilokesto/form` and `@ilokesto/form/react` to the local `src/` files, so it can run before the package is built.

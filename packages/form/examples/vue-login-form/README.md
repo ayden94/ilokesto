@@ -15,8 +15,8 @@ This Vite + Vue 3 + TypeScript example shows a simple email/password login form 
 From the repository root:
 
 ```sh
-pnpm --dir examples/vue-login-form install
-pnpm --dir examples/vue-login-form dev
+pnpm --dir packages/form/examples/vue-login-form install
+pnpm --dir packages/form/examples/vue-login-form dev
 ```
 
 The example aliases `@ilokesto/form` and `@ilokesto/form/vue` to the local `src/` files, so it can run before the package is built.
