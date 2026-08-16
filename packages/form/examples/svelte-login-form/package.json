@@ -1,0 +1,22 @@
+{
+  "name": "@ilokesto/form-svelte-login-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json"
+  },
+  "dependencies": {
+    "@ilokesto/form": "workspace:*",
+    "svelte": "^5.55.9"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.1.0",
+    "@tsconfig/svelte": "^5.0.4",
+    "svelte-check": "^4.2.2",
+    "typescript": "^6.0.2",
+    "vite": "^8.1.0"
+  }
+}
