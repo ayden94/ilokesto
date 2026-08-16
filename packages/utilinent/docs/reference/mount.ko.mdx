@@ -1,11 +1,11 @@
 ---
 title: "Mount"
-description: "직접 children, synchronous function, promise 기반 children을 fallback과 error handling으로 resolve합니다."
+description: "직접 node를 렌더링하거나 동기 및 비동기 node factory를 resolve합니다."
 ---
 
 # Mount
 
-`Mount`는 직접 children을 즉시 렌더링합니다. `children`이 function이면 mount 후 function을 호출하고 결과가 resolve될 때까지 `fallback`을 렌더링합니다.
+`Mount`는 직접 전달한 React node를 즉시 렌더링합니다. 비동기 작업은 Promise를 반환하는 factory로 전달해야 합니다. 직접 `Promise` 및 `PromiseLike` child는 React 18과 React 19 type 모두에서 지원하지 않습니다.
 
 ```tsx lineNumbers
 import { Mount } from '@ilokesto/utilinent';
@@ -19,9 +19,30 @@ import { Mount } from '@ilokesto/utilinent';
 
 | Prop | Type | 설명 |
 | --- | --- | --- |
-| `children` | `ReactNode`; `() => ReactNode`; `Promise<ReactNode>` | 직접 node 또는 node-producing function입니다. |
-| `fallback` | `ReactNode` | Function child가 pending이거나 error 이후 렌더링됩니다. |
-| `onError` | `(error) => void` | Child function이 throw/reject하면 호출됩니다. |
+| `children` | `MountNode \| (() => ReactNode \| Promise<ReactNode>)` | 직접 node 또는 동기/비동기 node factory입니다. `MountNode`는 `PromiseLike` 값을 제외한 `ReactNode`입니다. |
+| `fallback` | `ReactNode` | Factory의 초기 출력이며 Promise가 pending인 동안과 error 이후에 유지됩니다. 기본값은 `null`입니다. |
+| `onError` | `(error: unknown) => void` | 현재 factory가 throw 또는 reject하면 원래 error를 받습니다. |
+
+## Factory로만 비동기 작업 전달하기
+
+비동기 작업은 child factory 안에서 호출하세요.
+
+```tsx lineNumbers
+<Mount fallback={<Spinner />} onError={reportError}>
+  {() => loadPreview().then((preview) => <Preview data={preview} />)}
+</Mount>
+```
+
+Render 중에 작업을 시작하고 그 Promise를 `children`으로 직접 전달하지 마세요. React 19가 promise를 `ReactNode`에 포함하더라도 직접 `Promise<ReactElement>`, `Promise<string>`, 기타 `PromiseLike` child는 public type과 runtime contract 모두에서 의도적으로 지원하지 않습니다.
+
+## Timing, fallback, error
+
+- 직접 node는 초기 출력이며 `fallback`을 사용하지 않습니다.
+- Function child는 `fallback`으로 시작합니다. `Mount`는 commit 이후 layout effect에서 function을 호출합니다.
+- 동기 결과는 해당 effect에서 fallback을 교체하며, 일반적으로 browser paint 전에 반영됩니다.
+- Promise 결과가 pending인 동안에는 fallback이 계속 보입니다.
+- 동기 throw 또는 현재 Promise의 rejection은 fallback을 유지하고, 기존 console error를 기록하며, 실패한 invocation에 대해 `onError`를 한 번 호출합니다.
+- React Strict Mode는 development에서 effect를 다시 실행할 수 있으므로 factory는 여러 번 호출되어도 안전해야 합니다.
 
 ## Tag form
 
@@ -33,4 +54,6 @@ import { Mount } from '@ilokesto/utilinent';
 
 ## Race safety
 
-`Mount`는 call id를 추적해서 cleanup 이후나 더 최신 call 이후 도착한 stale async result를 무시합니다. 불필요한 재시작을 피하려면 `children`과 `onError` function을 가능하면 안정적으로 유지하세요.
+`children`이 바뀌면 더 최신 call이 시작됩니다. 이전 call의 fulfillment 또는 rejection은 무시되므로 현재 출력을 교체할 수 없고 `onError`도 호출하지 않습니다. Unmount 이후 settlement도 같은 방식으로 무시합니다. Pending 비동기 작업을 직접 node로 교체하면 해당 node를 즉시 표시합니다.
+
+불필요하게 effect를 다시 시작하지 않도록 `children`과 `onError` function을 가능하면 안정적으로 유지하세요.

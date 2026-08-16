@@ -1,11 +1,11 @@
 ---
 title: "Mount"
-description: "Resolve direct, synchronous, or promise-based children with fallback and error handling."
+description: "Render direct nodes or resolve synchronous and asynchronous node factories."
 ---
 
 # Mount
 
-`Mount` renders direct children immediately. If `children` is a function, it calls the function after mount and renders `fallback` until the result is resolved.
+`Mount` renders a direct React node immediately. To perform asynchronous work, pass a factory that returns a Promise. Direct `Promise` and `PromiseLike` children are unsupported with both React 18 and React 19 types.
 
 ```tsx lineNumbers
 import { Mount } from '@ilokesto/utilinent';
@@ -19,9 +19,30 @@ import { Mount } from '@ilokesto/utilinent';
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `children` | `ReactNode`; `() => ReactNode`; `Promise<ReactNode>` | Direct node or node-producing function. |
-| `fallback` | `ReactNode` | Rendered while a function child is pending or after an error. |
-| `onError` | `(error) => void` | Called when the child function throws or rejects. |
+| `children` | `MountNode \| (() => ReactNode \| Promise<ReactNode>)` | Direct node or a synchronous/asynchronous node factory. `MountNode` is `ReactNode` without `PromiseLike` values. |
+| `fallback` | `ReactNode` | Initial output for a factory, retained while its Promise is pending and after an error. Defaults to `null`. |
+| `onError` | `(error: unknown) => void` | Receives the original error when the current factory throws or rejects. |
+
+## Factory-only async work
+
+Call the asynchronous operation inside the child factory:
+
+```tsx lineNumbers
+<Mount fallback={<Spinner />} onError={reportError}>
+  {() => loadPreview().then((preview) => <Preview data={preview} />)}
+</Mount>
+```
+
+Do not start the operation during render and pass its Promise as `children`. Direct `Promise<ReactElement>`, `Promise<string>`, and other `PromiseLike` children are intentionally unsupported by both the public type and runtime contract, even though React 19 includes promises in `ReactNode`.
+
+## Timing, fallback, and errors
+
+- A direct node is the initial output and does not use `fallback`.
+- A function child starts with `fallback`. `Mount` invokes the function in a layout effect after commit.
+- A synchronous result replaces the fallback in that effect, normally before the browser paints.
+- A Promise result keeps the fallback visible until fulfillment.
+- A synchronous throw or active Promise rejection keeps the fallback visible, writes the existing console error, and calls `onError` once for that failed invocation.
+- React Strict Mode can replay effects in development, so factories must be safe to invoke more than once.
 
 ## Tag form
 
@@ -33,4 +54,6 @@ import { Mount } from '@ilokesto/utilinent';
 
 ## Race safety
 
-`Mount` tracks calls and ignores stale async results after cleanup or a newer call. Keep the `children` and `onError` functions stable when possible so work is not restarted unnecessarily.
+Changing `children` starts a newer call. Fulfillment or rejection from an older call is ignored: it cannot replace the current output and does not call `onError`. Settlements after unmount are ignored in the same way. Replacing pending async work with a direct node displays that node immediately.
+
+Keep the `children` and `onError` functions stable when possible so effects are not restarted unnecessarily.
