@@ -19,7 +19,7 @@ const renderProps = {
 return <Adapter {...renderProps} {...item.props} />;
 ```
 
-보통 `OverlayProvider`가 host를 포함하므로 직접 마운트할 필요는 없습니다. custom provider shell을 만들거나 알 수 없는 type의 item이 왜 아무것도 렌더링하지 않는지 이해해야 할 때 이 문서를 보세요. 등록되지 않은 어댑터는 앱 전체를 깨뜨리지 않도록 렌더링 시점에 의도적으로 무시됩니다.
+보통 `OverlayProvider`가 host를 포함하므로 직접 마운트할 필요는 없습니다. custom provider shell을 만들거나 알 수 없는 type의 item이 왜 아무것도 렌더링하지 않는지 이해해야 할 때 이 문서를 보세요. 어댑터가 없으면 `null`을 렌더링합니다. 개발 환경에서는 마운트된 item identity마다 item의 `id`와 `type`을 포함한 오류 진단을 한 번 출력하고, production에서는 아무 진단도 출력하지 않습니다. host는 item을 자동으로 resolve, reject, remove하지 않으므로 애플리케이션 코드가 명시적으로 remove 또는 clear할 때까지 item은 store에 남고 `display()` promise도 pending 상태를 유지합니다.
 
 ## 실무 메모
 
