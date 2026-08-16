@@ -3,7 +3,9 @@
   "version": "1.1.4",
   "scripts": {
     "build": "rm -rf dist && tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p test/tsconfig.json && pnpm typecheck:react19",
+    "typecheck:react19": "pnpm build && tsc --noEmit -p test/react19/tsconfig.json"
   },
   "repository": {
     "type": "git",
@@ -44,6 +46,7 @@
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
+    "@types/react19": "npm:@types/react@19.2.18",
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "@typescript-eslint/parser": "^7.7.1",
     "@vitejs/plugin-react": "^4.3.3",

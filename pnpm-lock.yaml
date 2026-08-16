@@ -435,6 +435,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.7
         version: 18.3.7(@types/react@18.3.31)
+      '@types/react19':
+        specifier: npm:@types/react@19.2.18
+        version: '@types/react@19.2.18'
       '@typescript-eslint/eslint-plugin':
         specifier: ^7.7.1
         version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)

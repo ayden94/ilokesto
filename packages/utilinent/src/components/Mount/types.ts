@@ -1,7 +1,9 @@
 import type { BaseTypeHelperFn, Fallback, ProxyType } from "../../types";
 
+type MountNode<Node = React.ReactNode> = Node extends PromiseLike<unknown> ? never : Node;
+
 export interface MountProps extends Fallback {
-  children: React.ReactNode | (() => React.ReactNode | Promise<React.ReactNode>);
+  children: MountNode | (() => React.ReactNode | Promise<React.ReactNode>);
   onError?: (error: unknown) => void;
 }
 
