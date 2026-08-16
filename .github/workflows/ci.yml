@@ -70,6 +70,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_head_sha || github.sha }}
+          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up pnpm

@@ -30,5 +30,6 @@ test("release dispatch validation precedes checkout and binds the exact PR head"
   assert.match(workflow, /\.base\.ref, \.head\.ref, \.head\.repo\.full_name, \.head\.sha/);
   assert.match(workflow, /git\/ref\/heads\/changeset-release\/main/);
   assert.match(workflow, /ref: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.expected_head_sha \|\| github\.sha \}\}/);
+  assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /persist-credentials: false/);
 });
