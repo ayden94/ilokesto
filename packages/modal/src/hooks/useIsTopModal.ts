@@ -1,52 +1,87 @@
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { createContext, useContext, useEffect, useRef, useSyncExternalStore } from 'react';
+import type { RefObject } from 'react';
 
 interface ModalStackEntry {
-  id: string;
-  token: symbol;
+  readonly id: string;
+  readonly token: symbol;
+  readonly elementRef: RefObject<HTMLElement | null>;
 }
 
-const modalStack: ModalStackEntry[] = [];
-const listeners = new Set<() => void>();
-let stackVersion = 0;
-
-function emitChange() {
-  stackVersion++;
-  listeners.forEach((listener) => {
-    listener();
-  });
+interface ModalStackInfo {
+  readonly isTopModal: boolean;
+  readonly stackIndex: number;
+  readonly containsTarget: (target: Node) => boolean;
 }
 
-function registerModal(entry: ModalStackEntry) {
-  modalStack.push(entry);
-  emitChange();
+export interface ModalStackRuntime {
+  readonly register: (entry: ModalStackEntry) => () => void;
+  readonly subscribe: (listener: () => void) => () => void;
+  readonly getVersion: () => number;
+  readonly getStackInfo: (token: symbol) => ModalStackInfo;
+}
 
-  return () => {
-    const index = modalStack.findIndex((item) => item.token === entry.token);
+export function createModalStackRuntime(): ModalStackRuntime {
+  const entries: ModalStackEntry[] = [];
+  const listeners = new Set<() => void>();
+  let version = 0;
 
-    if (index !== -1) {
-      modalStack.splice(index, 1);
+  const emitChange = () => {
+    version++;
+    listeners.forEach((listener) => {
+      listener();
+    });
+  };
+
+  const containsTarget = (target: Node) => entries.some(
+    (entry) => entry.elementRef.current?.contains(target) ?? false
+  );
+
+  return {
+    register: (entry) => {
+      entries.push(entry);
       emitChange();
-    }
-  };
-}
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
+      return () => {
+        const index = entries.findIndex((item) => item.token === entry.token);
 
-function getStackVersion() {
-  return stackVersion;
+        if (index !== -1) {
+          entries.splice(index, 1);
+          emitChange();
+        }
+      };
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    getVersion: () => version,
+    getStackInfo: (token) => {
+      const stackIndex = entries.findIndex((item) => item.token === token);
+
+      return {
+        isTopModal: stackIndex !== -1 && stackIndex === entries.length - 1,
+        stackIndex: stackIndex === -1 ? 0 : stackIndex,
+        containsTarget,
+      };
+    },
+  };
 }
 
 function getServerSnapshot() {
   return 0;
 }
 
-export function useModalStackInfo(id: string) {
+export const ModalStackRuntimeContext = createContext<ModalStackRuntime | null>(null);
+
+export function useModalStackInfo(id: string, elementRef: RefObject<HTMLElement | null>) {
+  const runtime = useContext(ModalStackRuntimeContext);
   const tokenRef = useRef<symbol | null>(null);
+
+  if (runtime === null) {
+    throw new Error('Modal adapters must be rendered within a ModalProvider.');
+  }
 
   if (!tokenRef.current) {
     tokenRef.current = Symbol(id);
@@ -55,20 +90,14 @@ export function useModalStackInfo(id: string) {
   useEffect(() => {
     if (!tokenRef.current) return;
 
-    return registerModal({ id, token: tokenRef.current });
-  }, [id]);
+    return runtime.register({ id, token: tokenRef.current, elementRef });
+  }, [elementRef, id, runtime]);
 
-  useSyncExternalStore(subscribe, getStackVersion, getServerSnapshot);
+  useSyncExternalStore(runtime.subscribe, runtime.getVersion, getServerSnapshot);
 
-  const stackIndex = modalStack.findIndex((item) => item.token === tokenRef.current);
-  const topIndex = modalStack.length - 1;
-
-  return {
-    isTopModal: stackIndex !== -1 && stackIndex === topIndex,
-    stackIndex: stackIndex === -1 ? 0 : stackIndex,
-  };
+  return runtime.getStackInfo(tokenRef.current);
 }
 
-export function useIsTopModal(id: string) {
-  return useModalStackInfo(id).isTopModal;
+export function useIsTopModal(id: string, elementRef: RefObject<HTMLElement | null>) {
+  return useModalStackInfo(id, elementRef).isTopModal;
 }

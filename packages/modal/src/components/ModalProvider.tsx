@@ -4,6 +4,7 @@ import type { OverlayStoreApi } from '@ilokesto/overlay';
 import { ModalAdapter } from '../adapters/ModalAdapter';
 import { globalStyles } from '../shared/styles';
 import { globalModalStore } from '../facade/modalFacade';
+import { createModalStackRuntime, ModalStackRuntimeContext } from '../hooks/useIsTopModal';
 import { createModalLifecycleStore } from '../shared/lifecycle';
 
 export interface ModalProviderProps {
@@ -16,6 +17,7 @@ export function ModalProvider({ children, store }: ModalProviderProps) {
     () => store ? createModalLifecycleStore(store) : globalModalStore,
     [store]
   );
+  const modalStackRuntime = useMemo(createModalStackRuntime, []);
   const adapters = useMemo(() => ({ modal: ModalAdapter }), []);
 
   useEffect(() => {
@@ -30,8 +32,10 @@ export function ModalProvider({ children, store }: ModalProviderProps) {
   }, []);
 
   return (
-    <OverlayProvider store={overlayStore} adapters={adapters}>
-      {children}
-    </OverlayProvider>
+    <ModalStackRuntimeContext.Provider value={modalStackRuntime}>
+      <OverlayProvider store={overlayStore} adapters={adapters}>
+        {children}
+      </OverlayProvider>
+    </ModalStackRuntimeContext.Provider>
   );
 }

@@ -34,6 +34,7 @@ function getPositionStyles(pos?: ModalPosition): React.CSSProperties {
 }
 
 let scrollLockCount = 0;
+let originalBodyOverflow = '';
 
 export function ModalAdapterInline<TResult>({
   id,
@@ -56,23 +57,24 @@ export function ModalAdapterInline<TResult>({
   autoFocus = true,
   restoreFocus = true,
 }: ModalAdapterProps<TResult>) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
-  const { isTopModal, stackIndex } = useModalStackInfo(id);
+  const { containsTarget, isTopModal, stackIndex } = useModalStackInfo(id, wrapperRef);
   const prefersReducedMotion = usePrefersReducedMotion();
 
   // Body scroll lock
   useEffect(() => {
-    scrollLockCount++;
-    const originalOverflow = document.body.style.overflow;
-    if (scrollLockCount === 1) {
+    if (scrollLockCount === 0) {
+      originalBodyOverflow = document.body.style.overflow;
       document.body.style.overflow = 'hidden';
     }
+    scrollLockCount++;
     
     return () => {
       scrollLockCount--;
       if (scrollLockCount === 0) {
-        document.body.style.overflow = originalOverflow;
+        document.body.style.overflow = originalBodyOverflow;
       }
     };
   }, []);
@@ -105,9 +107,14 @@ export function ModalAdapterInline<TResult>({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isTopModal && dismissible && status !== 'closing') {
-          e.preventDefault();
+          const targetIsForeignTopLayer = e.target instanceof Element &&
+            e.target.closest('.ilokesto-modal-dialog') !== null &&
+            !containsTarget(e.target);
+
+          if (!targetIsForeignTopLayer) {
+            e.preventDefault();
+          }
           e.stopPropagation();
-          e.stopImmediatePropagation();
           onDismiss?.();
           close();
         }
@@ -134,7 +141,7 @@ export function ModalAdapterInline<TResult>({
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [close, dismissible, isTopModal, onDismiss, status]);
+  }, [close, containsTarget, dismissible, isTopModal, onDismiss, status]);
 
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
@@ -142,6 +149,11 @@ export function ModalAdapterInline<TResult>({
       const target = e.target instanceof Node ? e.target : null;
 
       if (target && containerRef.current.contains(target)) return;
+      if (
+        target instanceof Element &&
+        target.closest('.ilokesto-modal-inline-wrapper, .ilokesto-modal-dialog') &&
+        !containsTarget(target)
+      ) return;
 
       const focusable = getFocusableElements(containerRef.current)[0] ?? containerRef.current;
       focusable.focus();
@@ -149,7 +161,7 @@ export function ModalAdapterInline<TResult>({
 
     document.addEventListener('focusin', handleFocusIn);
     return () => document.removeEventListener('focusin', handleFocusIn);
-  }, [isTopModal, status]);
+  }, [containsTarget, isTopModal, status]);
 
   const handleBackdropClick = useCallback(
     (e: React.MouseEvent) => {
@@ -180,6 +192,7 @@ export function ModalAdapterInline<TResult>({
 
   return (
     <div
+      ref={wrapperRef}
       className={`ilokesto-modal-inline-wrapper ${isClosing ? 'ilokesto-modal-closing' : 'ilokesto-modal-open'}`}
       style={{
         position: 'fixed',
