@@ -1,5 +1,5 @@
 ---
-"@ilokesto/state": patch
+"@ilokesto/state": minor
 ---
 
 ### persist: SSR safety and manual hydration API
@@ -10,6 +10,7 @@
 - Added `store.persist.rehydrate()` to manually trigger hydration from storage. Safe to call once; subsequent calls are no-ops.
 - Added `store.persist.hasHydrated()` to check whether hydration has completed.
 - Added `onRehydrateStorage` option: a factory that receives the current state and returns a callback invoked with the rehydrated state and any error.
+- Eager and manual hydration now share one callback lifecycle. Empty or failed reads preserve the latest live state, hydration errors retain their original identity, and the post callback runs exactly once after `hasHydrated()` becomes `true`.
 - New exported types: `PersistControls`, `PersistStore`, `OnRehydrateStorage`, `OnRehydrateStorageCallback`.
 - `persist` now adds a `@ilokesto/state/persist-controls` capability to the pipe chain.
 
