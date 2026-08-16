@@ -33,3 +33,13 @@ test("release dispatch validation precedes checkout and binds the exact PR head"
   assert.match(workflow, /fetch-depth: 0/);
   assert.match(workflow, /persist-credentials: false/);
 });
+
+test("changeset status receives a local main base ref", async () => {
+  const workflow = await readWorkflow("ci.yml");
+  const prepareBase = workflow.indexOf("name: Prepare changeset base branch");
+  const changesetStatus = workflow.indexOf("name: Check changesets");
+
+  assert.ok(prepareBase >= 0);
+  assert.ok(changesetStatus > prepareBase);
+  assert.match(workflow, /git branch --force main origin\/main/);
+});

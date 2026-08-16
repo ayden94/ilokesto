@@ -73,6 +73,9 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Prepare changeset base branch
+        run: git branch --force main origin/main
+
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
 
