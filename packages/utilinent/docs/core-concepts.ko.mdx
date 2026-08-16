@@ -82,7 +82,7 @@ PluginManager.register({ show: { Link } });
 - `For`: list 또는 empty state.
 - `Repeat`: fixed count 또는 fallback.
 - `Switch` + `Match`: 처음 matching되는 branch.
-- `Mount`: promise를 포함한 node-producing function resolve.
+- `Mount`: Promise를 반환할 수 있는 node factory를 resolve합니다. React type version과 관계없이 직접 Promise-like child는 지원하지 않습니다.
 - `Observer`: element가 viewport와 intersect할 때 render.
 - `Slacker`: visible해질 때 data를 lazy load.
 - `Slot`: child component에 prop merge.
