@@ -3,11 +3,16 @@ import { getStore } from '../../lib/getStore.js';
 import { definePipeableMiddleware } from '../../utils/pipe/metadata.js';
 import type { PipeableMiddleware } from '../../utils/pipe/metadata.js';
 import type {
+  PipeAnyMiddleware,
+  PipeCapability,
   PipeMiddleware,
   PipeMiddlewareMetadata,
 } from '../../utils/pipe/types.js';
 import type {
   MigrationFn,
+  OnRehydrateStorage,
+  PersistControls,
+  PersistStore,
   SafePersistConfig,
 } from './Persist.js';
 import { getSafeStorage, parseOptions, setStorage } from './persistUtils.js';
@@ -20,42 +25,119 @@ type PersistMetadata = PipeMiddlewareMetadata<
   readonly []
 >;
 
+type PersistCapability = PipeCapability<
+  '@ilokesto/state/persist-controls',
+  { readonly persist: PersistControls<unknown> }
+>;
+
+const persistCapability = {
+  id: '@ilokesto/state/persist-controls',
+  shape: {
+    persist: {
+      hasHydrated: (): boolean => false,
+      rehydrate: (): void => undefined,
+    },
+  },
+} satisfies PersistCapability;
+
 type SafeCurriedPersist<State> = PipeableMiddleware<
   PipeMiddleware<State>,
-  PersistMetadata,
+  PipeMiddlewareMetadata<
+    '@ilokesto/state/persist',
+    readonly [],
+    readonly [PersistCapability],
+    'reject',
+    readonly []
+  >,
   'persist-decoder'
 >;
+
+const definePersistControls = <State>(
+  store: Store<State>,
+  controls: PersistControls<State>,
+): PersistStore<State> => {
+  Object.defineProperties(store, {
+    persist: { configurable: false, enumerable: true, value: controls, writable: false },
+  });
+  return store as PersistStore<State>;
+};
 
 const applyPersist = <T>(
   initialState: T | Store<T>,
   options: SafePersistConfig<T, readonly MigrationFn[]>,
-): Store<T> => {
+): PersistStore<T> => {
   const store = getStore(initialState);
   const baseSetState = store.setState.bind(store);
   const optionObj = parseOptions(options);
-  const currentState = store.getState() as T;
-  const initialValue = optionObj.storageType
-    ? getSafeStorage({ ...optionObj, decode: options.decode, initState: currentState }).state
-    : currentState;
+  const skipHydration = options.skipHydration === true;
+  const onRehydrateStorage: OnRehydrateStorage<T> | undefined = options.onRehydrateStorage;
 
-  baseSetState(initialValue);
+  let hydrated = false;
+  let prevPersistedState = store.getState() as T;
+
+  const runRehydration = (fallbackState: T) => {
+    if (!optionObj.storageType) {
+      return { kind: 'empty', state: fallbackState, version: optionObj.storageVersion } as const;
+    }
+
+    return getSafeStorage({
+      ...optionObj,
+      decode: options.decode,
+      initState: fallbackState,
+    });
+  };
+
+  const rehydrate = (): void => {
+    if (hydrated) return;
+
+    const preState = store.getState() as T;
+    const callback = onRehydrateStorage?.(preState);
+    const result = runRehydration(preState);
+
+    switch (result.kind) {
+      case 'hydrated':
+        baseSetState(result.state);
+        prevPersistedState = result.state;
+        hydrated = true;
+        callback?.(store.getState() as T, undefined);
+        break;
+      case 'empty':
+        prevPersistedState = preState;
+        hydrated = true;
+        callback?.(preState, undefined);
+        break;
+      case 'failed':
+        hydrated = true;
+        callback?.(undefined, result.error);
+        break;
+    }
+  };
+
+  const controls: PersistControls<T> = {
+    hasHydrated: () => hydrated,
+    rehydrate,
+  };
+
+  const persistedStore = definePersistControls(store, controls);
+
+  if (!skipHydration) {
+    rehydrate();
+  }
 
   if (optionObj.storageType) {
-    let prevPersistedState = initialValue;
-
     store.pushMiddleware((nextState, next) => {
       next(nextState);
 
-      const currentState = store.getState() as T;
+      const currentAfterUpdate = store.getState() as T;
 
-      if (!Object.is(prevPersistedState, currentState)) {
-        setStorage({ ...optionObj, value: currentState });
-        prevPersistedState = currentState;
+      if (!Object.is(prevPersistedState, currentAfterUpdate)) {
+        setStorage({ ...optionObj, value: currentAfterUpdate });
+        prevPersistedState = currentAfterUpdate;
       }
     });
   }
 
-  return store;
+  return persistedStore;
 };
 
 export function persist<DecodedState, const Steps extends readonly MigrationFn[]>(
@@ -71,7 +153,7 @@ export function persist<DecodedState, const Steps extends readonly MigrationFn[]
         options as unknown as SafePersistConfig<State, readonly MigrationFn[]>,
       ),
     {
-      adds: [],
+      adds: [persistCapability],
       after: [],
       before: [],
       conflicts: [],

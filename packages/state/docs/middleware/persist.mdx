@@ -52,5 +52,58 @@ const settings = persist(
 - Values are stored as `{ state, version }` JSON.
 - `version` is based on migration array length.
 - Migrations run for `local` and `cookie`, not `session`.
-- Storage read/write failures are caught and logged in the browser.
+- Storage read failures keep the live state and are passed to `onRehydrateStorage`; write failures are caught and logged in the browser.
 - Cookie writing uses a simple `document.cookie = key=value` assignment; configure advanced cookie attributes outside this helper if needed.
+
+## SSR and hydration
+
+`persist` is safe to evaluate on the server. Storage reads return `null` when `window` or `document` is unavailable, so the store stays at its initial state during server rendering.
+
+By default, `persist` hydrates eagerly — it reads storage and applies the persisted value at store creation time. In a client-only SPA this is fine, but in SSR frameworks like Next.js App Router, eager hydration causes a React hydration mismatch: the server renders the initial state while the client renders the persisted state.
+
+### `skipHydration` and manual `rehydrate()`
+
+Pass `skipHydration: true` to defer hydration. The store keeps the initial state on both server and client until you call `store.persist.rehydrate()` explicitly.
+
+```ts lineNumbers
+import { persist } from '@ilokesto/state/middleware';
+import { pipe } from '@ilokesto/state/utils';
+
+const counterStore = pipe
+  .use(persist({ local: 'counter', decode: decodeCounter, skipHydration: true }))
+  .create({ count: 0 });
+
+// In a React client component:
+useEffect(() => {
+  counterStore.persist.rehydrate();
+}, []);
+```
+
+### `hasHydrated()`
+
+Check `store.persist.hasHydrated()` to gate UI that should only render after hydration.
+
+```ts lineNumbers
+const hydrated = counterStore.persist.hasHydrated();
+```
+
+### `onRehydrateStorage`
+
+Pass `onRehydrateStorage` to observe eager or manual hydration. The factory runs before storage is read and receives the live pre-hydration state. Its returned callback runs exactly once after the attempt completes.
+
+On success, the callback receives the hydrated state and `undefined`. Empty storage is also successful and preserves the live pre-hydration state. Storage, parsing, migration, and decoding failures preserve that live state and call the callback with `undefined` and the original error. `store.persist.hasHydrated()` is already `true` inside the post callback. If the post callback throws, that exception propagates and is not passed back into the same callback.
+
+```ts lineNumbers
+persist({
+  local: 'theme',
+  decode: decodeTheme,
+  skipHydration: true,
+  onRehydrateStorage: (state) => (rehydratedState, error) => {
+    if (error) {
+      console.error('Rehydration failed', error);
+      return;
+    }
+    console.log('Rehydrated from', state, 'to', rehydratedState);
+  },
+});
+```
