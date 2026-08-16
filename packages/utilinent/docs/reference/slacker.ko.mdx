@@ -33,6 +33,12 @@ import { Slacker } from '@ilokesto/utilinent';
 | `maxRetries`, `retryDelay` | optional automatic retry behavior입니다. |
 | `onError` | loader error와 함께 호출됩니다. |
 
+## Retry lifecycle
+
+첫 intersection으로 시작하는 load가 첫 번째 attempt입니다. `maxRetries`는 최초 attempt 이후에 허용할 추가 attempt 수이며, 각 automatic retry 전에 `retryDelay`가 적용됩니다. `errorFallback`이 제공하는 `retry` function은 automatic retry와 같은 retry budget을 사용하고 즉시 시작하며, 대기 중인 automatic retry를 취소합니다.
+
+한 번에 하나의 attempt만 실행되므로 request가 진행 중일 때 반복해서 retry를 눌러도 하나로 합쳐집니다. 활성 상태에서 실패한 각 attempt는 `onError`를 한 번 호출합니다. Load가 성공하거나 `loader` reference가 바뀌거나 component가 unmount되면 예약된 retry가 취소되고 오래된 loader 결과는 무시됩니다.
+
 ## Guidance
 
 Component 안에서 `loader`를 선언한다면 `useCallback`으로 안정적으로 유지하세요. Loader가 매번 바뀌면 작업이 다시 시작될 수 있습니다. Below-the-fold panel, 비싼 recommendation, visible해질 때까지 load하지 않아도 되는 optional UI에 적합합니다.

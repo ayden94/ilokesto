@@ -33,6 +33,12 @@ import { Slacker } from '@ilokesto/utilinent';
 | `maxRetries`, `retryDelay` | Optional automatic retry behavior. |
 | `onError` | Called with loader errors. |
 
+## Retry lifecycle
+
+The load triggered by the first intersection is attempt one. `maxRetries` is the number of additional attempts available after that initial attempt, and `retryDelay` is applied before each automatic retry. The `retry` function from `errorFallback` uses the same retry budget as automatic retries, starts immediately, and cancels any automatic retry that is waiting.
+
+Only one attempt can run at a time, so repeated retry clicks while a request is in flight are coalesced. Each failed active attempt calls `onError` once. A successful load, a new `loader` reference, or unmounting cancels scheduled retries and ignores stale loader results.
+
 ## Guidance
 
 Keep `loader` stable with `useCallback` when it is declared inside a component. A changing loader can cause work to restart. Use `Slacker` for below-the-fold panels, expensive recommendations, or optional UI that should not load until visible.

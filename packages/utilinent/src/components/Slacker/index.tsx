@@ -1,6 +1,15 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Observer } from "../Observer";
-import { SlackerProps } from "./types";
+import type { SlackerProps } from "./types";
+
+type LoadState<T> =
+  | { readonly status: "idle" }
+  | { readonly status: "loading" }
+  | { readonly status: "error"; readonly error: Error; readonly generation: number }
+  | { readonly status: "success"; readonly data: T };
+
+const IDLE_STATE = { status: "idle" } as const;
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function Slacker<T = any>({
   children,
@@ -13,69 +22,157 @@ export function Slacker<T = any>({
   maxRetries = 0,
   retryDelay = 1000,
 }: SlackerProps<T>) {
-  const [loadedData, setLoadedData] = useState<T | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const [loadState, setLoadState] = useState<LoadState<T>>(IDLE_STATE);
+  const activeRef = useRef(false);
+  const activatedRef = useRef(false);
+  const completedRef = useRef(false);
+  const generationRef = useRef(0);
+  const inFlightRef = useRef(false);
+  const retriesUsedRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loaderRef = useRef(loader);
+  const onErrorRef = useRef(onError);
+  const maxRetriesRef = useRef(maxRetries);
+  const retryDelayRef = useRef(retryDelay);
+  const runAttemptRef = useRef<(() => void) | null>(null);
 
-  const load = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await loader();
-      setLoadedData(data);
-      setRetryCount(0); // 성공 시 재시도 카운트 리셋
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      setError(error);
-      console.error('Slacker loader failed:', error);
-      onError?.(error);
-    } finally {
-      setIsLoading(false);
+  const invalidate = useCallback(() => {
+    generationRef.current += 1;
+    inFlightRef.current = false;
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
     }
-  }, [loader, onError]);
+  }, []);
 
-  const retry = useCallback(async () => {
-    if (retryCount < maxRetries) {
-      setRetryCount(prev => prev + 1);
-      if (retryDelay > 0) {
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
+  const runAttempt = useCallback(() => {
+    runAttemptRef.current?.();
+  }, []);
+
+  const retry = useCallback((generation: number) => {
+    if (
+      !activeRef.current ||
+      !activatedRef.current ||
+      completedRef.current ||
+      generation !== generationRef.current ||
+      inFlightRef.current ||
+      retriesUsedRef.current >= maxRetriesRef.current
+    ) {
+      return;
+    }
+
+    if (retryTimerRef.current !== null) {
+      clearTimeout(retryTimerRef.current);
+      retryTimerRef.current = null;
+    }
+    retriesUsedRef.current += 1;
+    runAttempt();
+  }, [runAttempt]);
+
+  useEffect(() => {
+    activeRef.current = true;
+    return () => {
+      activeRef.current = false;
+      invalidate();
+    };
+  }, [invalidate]);
+
+  useEffect(() => {
+    runAttemptRef.current = () => {
+      if (!activeRef.current || completedRef.current || inFlightRef.current) {
+        return;
       }
-      await load();
-    }
-  }, [retryCount, maxRetries, retryDelay, load]);
 
-  const handleIntersect = useCallback(async (isIntersecting: boolean) => {
-    if (isIntersecting && !isLoading && loadedData === null) {
-      await load();
-    }
-  }, [isLoading, loadedData, load]);
+      const generation = generationRef.current;
+      inFlightRef.current = true;
+      setLoadState({ status: "loading" });
 
-  // 자동 재시도
-  const shouldAutoRetry = error && maxRetries > 0 && retryCount < maxRetries;
-  
-  if (shouldAutoRetry && !isLoading) {
-    retry();
-  }
+      Promise.resolve()
+        .then(() => loaderRef.current())
+        .then((data) => {
+          if (!activeRef.current || generation !== generationRef.current) {
+            return;
+          }
 
-  // 렌더링할 내용 결정
-  const renderContent = () => {
-    if (loadedData !== null) {
-      return children(loadedData);
+          retriesUsedRef.current = 0;
+          completedRef.current = true;
+          invalidate();
+          setLoadState({ status: "success", data });
+        })
+        .catch((reason: unknown) => {
+          if (!activeRef.current || generation !== generationRef.current) {
+            return;
+          }
+
+          inFlightRef.current = false;
+          const error = reason instanceof Error ? reason : new Error(String(reason));
+          console.error("Slacker loader failed:", error);
+          onErrorRef.current?.(error);
+          setLoadState({ status: "error", error, generation });
+
+          if (retriesUsedRef.current < maxRetriesRef.current) {
+            const retryGeneration = generationRef.current;
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              if (activeRef.current && retryGeneration === generationRef.current) {
+                retry(retryGeneration);
+              }
+            }, retryDelayRef.current);
+          }
+        });
+    };
+
+    return () => {
+      runAttemptRef.current = null;
+    };
+  }, [invalidate, retry]);
+
+  useIsomorphicLayoutEffect(() => {
+    onErrorRef.current = onError;
+    maxRetriesRef.current = maxRetries;
+    retryDelayRef.current = retryDelay;
+    if (loaderRef.current === loader) {
+      return;
     }
-    
-    if (error) {
-      return typeof errorFallback === 'function'
-        ? errorFallback({ isLoading, error, retry })
+
+    loaderRef.current = loader;
+    invalidate();
+    completedRef.current = false;
+    retriesUsedRef.current = 0;
+    setLoadState(IDLE_STATE);
+    if (activatedRef.current) {
+      runAttempt();
+    }
+  }, [invalidate, loader, maxRetries, onError, retryDelay, runAttempt]);
+
+  const handleIntersect = useCallback(
+    (isIntersecting: boolean) => {
+      if (!isIntersecting || activatedRef.current) {
+        return;
+      }
+
+      activatedRef.current = true;
+      retriesUsedRef.current = 0;
+      runAttempt();
+    },
+    [runAttempt],
+  );
+
+  let content: React.ReactNode = null;
+  if (loadState.status === "success") {
+    content = children(loadState.data);
+  } else if (loadState.status === "error") {
+    content =
+      typeof errorFallback === "function"
+        ? errorFallback({
+            isLoading: false,
+            error: loadState.error,
+            retry: () => retry(loadState.generation),
+          })
         : errorFallback;
-    }
-    
-    if (isLoading) {
-      return loadingFallback;
-    }
-    
-    return null;
-  };
+  } else if (loadState.status === "loading") {
+    content = loadingFallback;
+  }
 
   return (
     <Observer
@@ -84,7 +181,7 @@ export function Slacker<T = any>({
       triggerOnce={true}
       onIntersect={handleIntersect}
     >
-      {renderContent()}
+      {content}
     </Observer>
   );
 }
