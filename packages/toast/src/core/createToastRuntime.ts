@@ -227,9 +227,7 @@ export function createToastRuntime(toasterId: ToasterId): ToastRuntimeApi {
 
     view.limit = nextLimit;
     view.position = config.position;
-    if (config.toastOptions !== undefined) {
-      view.toastOptions = config.toastOptions;
-    }
+    view.toastOptions = config.toastOptions;
     notify();
   }
 
