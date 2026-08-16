@@ -5,6 +5,7 @@
     "emitDeclarationOnly": false,
     "sourceMap": true,
     "jsx": "react-jsx",
+    "ignoreDeprecations": "6.0",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "dist",
