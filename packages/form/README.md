@@ -148,9 +148,7 @@ const { form, useRegister, handleSubmit } = useForm({
 });
 ```
 
-Options passed to `useForm(options)` are used only to create the form instance for that component lifetime. They are not reactive. When hydrating values from async data such as a query result, initialize with safe defaults and call `form.reset(nextValues)` explicitly when you want that data to become the new default baseline.
-
-The React adapter also accepts reactive external `values`. When the `values` reference changes, the adapter calls `form.reset(values, resetOptions)` for you. This is useful for server/query data; use `keepDirtyValues` when refetches should not overwrite fields the user already edited.
+`defaultValues` and the other `CreateForm` options create the component-owned form once. `ReactFormOptions` also accepts the current render `values` and plain `resetOptions`. The first defined value and each later value with a different `Object.is` identity call `form.reset(values, resetOptions)`. `undefined` pauses synchronization without resetting; passing the last defined object again remains a no-op. Changing only `resetOptions` is also a no-op because it applies only when a new `values` reference drives a reset.
 
 ```tsx
 const { useRegister } = useForm({
@@ -162,6 +160,8 @@ const { useRegister } = useForm({
   },
 });
 ```
+
+The values effect ends on component unmount. `useForm(existingForm)` keeps its existing overload behavior and does not install external-value synchronization.
 
 The React adapter has three first-version hooks. `useRegister` is overloaded for single, array, and rest-argument registration:
 
@@ -189,7 +189,7 @@ The event model is DOM-event centered. Custom components can use `useRegister` w
 
 Vue bindings are exposed through the `./vue` subpath. They use the same `useForm(form)` shape as the React adapter, but return Vue-friendly `v-bind` props with `onInput`, `onChange`, `onBlur`, and `onFocus` handlers.
 
-`useForm` also accepts a `VueFormOptions` object with a `values` field (a `ref`, `computed`, getter, or plain value) and an optional `resetOptions`. When `values` changes by reference, the adapter calls `form.reset(values, resetOptions)` — the same model as the React adapter. Pass reactive sources (`ref`/`computed`) directly so Vue can track them; plain values are evaluated once on creation and re-evaluated when the component re-renders and `useForm` is called again.
+`useForm` also accepts `VueFormOptions`. Its `values` source is `MaybeRefOrGetter<TValues | undefined>` and `resetOptions` stays plain. The first defined value and each later value with a different `Object.is` identity call `form.reset(values, resetOptions)`. `undefined` pauses synchronization without resetting, and re-emitting the last defined object remains a no-op. Pass `ref`, `computed`, or a getter to track changes; a plain value is evaluated once. Reactive values require an active Vue effect scope; the adapter fails before creating a form when none exists. The watcher stops with that scope, and `useForm(existingForm)` does not install it.
 
 ```vue
 <script setup lang="ts">
@@ -309,6 +309,19 @@ function LoginForm() {
 
 The Solid adapter exposes `useRegister`, `useField`, and `useFormState` with the same semantics as Vue: text inputs update on `input`, checkbox/radio/multiple select update on `change`, and field-local schemas are disposed with the current Solid owner.
 
+For component-owned forms, `SolidFormOptions` accepts `values` as `Accessor<TValues | undefined>` and plain `resetOptions`:
+
+```tsx
+const [serverValues, setServerValues] = createSignal<User | undefined>();
+const { form } = useForm({
+  defaultValues: emptyUser,
+  values: serverValues,
+  resetOptions: { keepDirtyValues: true },
+});
+```
+
+The first defined accessor value and each later value with a different `Object.is` identity reset the form. `undefined` pauses without resetting, re-emitting the last defined object is a no-op, and `resetOptions` applies only to value-driven resets. Reactive values require an active Solid owner; the adapter fails before creating a form when none exists. Tracking is disposed with that owner. `useForm(existingForm)` does not install it.
+
 ## Svelte adapter
 
 Svelte bindings are exposed through the `./svelte` subpath. The adapter exposes register actions plus readable stores for both form-wide and field-local state.
@@ -350,6 +363,24 @@ Svelte bindings are exposed through the `./svelte` subpath. The adapter exposes 
 ```
 
 The Svelte action owns DOM synchronization directly. `useField` is a `Readable<SvelteFieldSnapshot>` consumed as `$email`; it emits current `value`, `errors`, `dirty`, and `touched` state and releases its core subscription when the last subscriber leaves.
+
+For component-owned forms, `SvelteFormOptions` accepts `values` as `Readable<TValues | undefined>` and plain `resetOptions`:
+
+```svelte
+<script lang="ts">
+  import { writable } from 'svelte/store';
+  import { useForm } from '@ilokesto/form/svelte';
+
+  const serverValues = writable<User | undefined>(undefined);
+  const { form } = useForm({
+    defaultValues: emptyUser,
+    values: serverValues,
+    resetOptions: { keepDirtyValues: true },
+  });
+</script>
+```
+
+The first defined emission and each later emission with a different `Object.is` identity reset the form. `undefined` pauses without resetting, re-emitting the last defined object is a no-op, and `resetOptions` applies only to value-driven resets. Call this overload during component initialization; its subscription ends on unmount. `useForm(existingForm)` does not subscribe.
 
 ## Core concepts
 

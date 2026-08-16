@@ -148,7 +148,7 @@ const { form, useRegister, handleSubmit } = useForm({
 });
 ```
 
-`useForm(options)`에 전달한 options는 해당 component lifetime 동안 form instance를 만들 때 사용된다. React adapter에서는 외부 `values`도 받을 수 있다. `values` reference가 바뀌면 adapter가 `form.reset(values, resetOptions)`를 대신 호출한다. `useQuery` 같은 async data로 값을 hydrate할 때 사용자 편집값을 덮어쓰고 싶지 않다면 `keepDirtyValues`를 사용한다.
+`defaultValues`와 다른 `CreateForm` options는 component-owned form을 한 번만 생성한다. `ReactFormOptions`는 현재 render의 `values`와 plain `resetOptions`도 받는다. 처음 정의된 값과 이후 `Object.is` identity가 달라진 값마다 `form.reset(values, resetOptions)`를 호출한다. `undefined`는 reset 없이 동기화를 중단하고, 마지막으로 정의되었던 같은 object를 다시 전달해도 no-op이다. `resetOptions`만 바꾸는 것도 no-op이며 새 `values` reference가 reset을 일으킬 때만 적용된다.
 
 ```tsx
 const { useRegister } = useForm({
@@ -160,6 +160,8 @@ const { useRegister } = useForm({
   },
 });
 ```
+
+Values effect는 component unmount 시 종료된다. `useForm(existingForm)` overload는 기존 동작을 유지하며 external-value synchronization을 설치하지 않는다.
 
 React adapter의 첫 버전 hook은 세 가지다. `useRegister`는 단일, 배열, rest-argument 등록을 모두 처리하도록 overload되어 있다.
 
@@ -187,7 +189,7 @@ Event model은 DOM event 중심이다. Custom component도 DOM-compatible `value
 
 Vue binding은 `./vue` subpath로 노출된다. React adapter와 같은 `useForm(form)` 형태를 쓰지만, Vue template의 `v-bind`에 바로 전달할 수 있도록 `onInput`, `onChange`, `onBlur`, `onFocus` handler를 가진 props를 반환한다.
 
-`useForm`은 `values` 필드(`ref`, `computed`, getter, 평면 값 모두 가능)와 optional `resetOptions`를 가진 `VueFormOptions` 객체도 받는다. `values` reference가 바뀌면 adapter가 `form.reset(values, resetOptions)`를 호출한다 — React adapter와 동일한 모델. 추적을 보장하려면 반응형 소스(`ref`/`computed`)를 직접 전달하라. 평면 값은 생성 시 1회 평가되며 컴포넌트가 다시 렌더링되어 `useForm`이 다시 호출될 때 다시 평가된다.
+`useForm`은 `VueFormOptions`도 받는다. `values` source는 `MaybeRefOrGetter<TValues | undefined>`이고 `resetOptions`는 plain이다. 처음 정의된 값과 이후 `Object.is` identity가 달라진 값마다 `form.reset(values, resetOptions)`를 호출한다. `undefined`는 reset 없이 동기화를 중단하고, 마지막으로 정의되었던 같은 object를 다시 emit해도 no-op이다. 변경을 추적하려면 `ref`, `computed`, getter를 전달하라. 평면 값은 한 번만 평가된다. Reactive values에는 active Vue effect scope가 필요하며, scope가 없으면 adapter는 form을 만들기 전에 실패한다. Watcher는 해당 scope와 함께 중지되며 `useForm(existingForm)`은 watcher를 설치하지 않는다.
 
 ```vue
 <script setup lang="ts">
@@ -307,6 +309,19 @@ function LoginForm() {
 
 Solid adapter는 Vue와 같은 의미의 `useRegister`, `useField`, `useFormState`를 제공한다. Text input은 `input` event에서, checkbox/radio/multiple select는 `change` event에서 갱신하고, field-local schema는 현재 Solid owner와 함께 dispose된다.
 
+Component-owned form에서는 `SolidFormOptions`가 `values`를 `Accessor<TValues | undefined>`로 받고 plain `resetOptions`를 받는다.
+
+```tsx
+const [serverValues, setServerValues] = createSignal<User | undefined>();
+const { form } = useForm({
+  defaultValues: emptyUser,
+  values: serverValues,
+  resetOptions: { keepDirtyValues: true },
+});
+```
+
+처음 정의된 accessor 값과 이후 `Object.is` identity가 달라진 값마다 form을 reset한다. `undefined`는 reset 없이 동기화를 중단하고, 마지막으로 정의되었던 같은 object를 다시 emit해도 no-op이며, `resetOptions`는 value-driven reset에만 적용된다. Reactive values에는 active Solid owner가 필요하며, owner가 없으면 adapter는 form을 만들기 전에 실패한다. Tracking은 해당 owner와 함께 dispose된다. `useForm(existingForm)`은 tracking을 설치하지 않는다.
+
 ## Svelte adapter
 
 Svelte binding은 `./svelte` subpath로 노출된다. Adapter는 register action과 함께 form-wide 및 field-local state를 위한 readable store를 제공한다.
@@ -348,6 +363,24 @@ Svelte binding은 `./svelte` subpath로 노출된다. Adapter는 register action
 ```
 
 Svelte action은 DOM synchronization을 직접 담당한다. `useField`는 `$email`로 소비하는 `Readable<SvelteFieldSnapshot>`이며 최신 `value`, `errors`, `dirty`, `touched`를 emit하고 마지막 subscriber가 해제되면 core subscription도 정리한다.
+
+Component-owned form에서는 `SvelteFormOptions`가 `values`를 `Readable<TValues | undefined>`로 받고 plain `resetOptions`를 받는다.
+
+```svelte
+<script lang="ts">
+  import { writable } from 'svelte/store';
+  import { useForm } from '@ilokesto/form/svelte';
+
+  const serverValues = writable<User | undefined>(undefined);
+  const { form } = useForm({
+    defaultValues: emptyUser,
+    values: serverValues,
+    resetOptions: { keepDirtyValues: true },
+  });
+</script>
+```
+
+처음 정의된 emission과 이후 `Object.is` identity가 달라진 emission마다 form을 reset한다. `undefined`는 reset 없이 동기화를 중단하고, 마지막으로 정의되었던 같은 object를 다시 emit해도 no-op이며, `resetOptions`는 value-driven reset에만 적용된다. 이 overload는 component initialization 중 호출해야 하며 subscription은 unmount 시 종료된다. `useForm(existingForm)`은 external values를 구독하지 않는다.
 
 ## Core concepts
 
