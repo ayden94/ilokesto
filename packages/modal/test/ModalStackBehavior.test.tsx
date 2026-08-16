@@ -96,4 +96,68 @@ describe('same-provider modal stack behavior', () => {
 
     expect(outerClose).toHaveBeenCalledTimes(1);
   });
+
+  it('transitions backdrop ownership after the closing top-layer entry unmounts', () => {
+    // Given
+    const outerClose = vi.fn();
+    const outerDismiss = vi.fn();
+    const innerClose = vi.fn();
+    const innerDismiss = vi.fn();
+    const renderStack = (showInner: boolean) => (
+      <>
+        <ModalAdapterTopLayer
+          id="outer-dialog"
+          isOpen
+          status="open"
+          close={outerClose}
+          remove={vi.fn()}
+          onDismiss={outerDismiss}
+          ariaLabel="Outer bounded dialog"
+          render={() => null}
+        />
+        {showInner && (
+          <ModalAdapterTopLayer
+            id="inner-dialog"
+            isOpen={false}
+            status="closing"
+            close={innerClose}
+            remove={vi.fn()}
+            onDismiss={innerDismiss}
+            ariaLabel="Inner closing dialog"
+            render={() => null}
+          />
+        )}
+      </>
+    );
+    const { rerender } = renderWithModalStack(renderStack(true));
+    const outerDialog = screen.getByRole('dialog', { name: 'Outer bounded dialog' });
+    const innerDialog = screen.getByRole('dialog', { name: 'Inner closing dialog' });
+    vi.spyOn(outerDialog, 'getBoundingClientRect').mockReturnValue(new DOMRect(100, 200, 200, 200));
+    vi.spyOn(innerDialog, 'getBoundingClientRect').mockReturnValue(new DOMRect(120, 220, 160, 160));
+
+    // When
+    fireEvent.click(outerDialog, { clientX: 99, clientY: 300 });
+    fireEvent.click(innerDialog, { clientX: 119, clientY: 300 });
+
+    // Then
+    expect(outerDismiss).not.toHaveBeenCalled();
+    expect(outerClose).not.toHaveBeenCalled();
+    expect(innerDismiss).not.toHaveBeenCalled();
+    expect(innerClose).not.toHaveBeenCalled();
+
+    // When
+    rerender(renderStack(false));
+    fireEvent.click(outerDialog, { clientX: 200, clientY: 300 });
+
+    // Then
+    expect(outerDismiss).not.toHaveBeenCalled();
+    expect(outerClose).not.toHaveBeenCalled();
+
+    // When
+    fireEvent.click(outerDialog, { clientX: 99, clientY: 300 });
+
+    // Then
+    expect(outerDismiss).toHaveBeenCalledTimes(1);
+    expect(outerClose).toHaveBeenCalledTimes(1);
+  });
 });

@@ -117,14 +117,15 @@ export function ModalAdapterTopLayer<TResult>({
     };
 
     const handleClick = (e: MouseEvent) => {
-      // The native dialog fills the viewport, but clicking its ::backdrop counts as clicking the dialog.
-      // We only close if they click exactly the dialog element (the bounds), which includes the backdrop.
-      // But wait: if the dialog is purely the content, clicking the content is ALSO clicking the dialog,
-      // UNLESS the content is wrapped in a child div. Wait, e.target === dialog works because
-      // if they click the content, e.target is the content element or its children.
       if (isTopModal && dismissible && e.target === dialog && status !== 'closing') {
-        onDismiss?.();
-        close();
+        const { left, right, top, bottom } = dialog.getBoundingClientRect();
+        const isBackdropClick = e.clientX < left || e.clientX > right ||
+          e.clientY < top || e.clientY > bottom;
+
+        if (isBackdropClick) {
+          onDismiss?.();
+          close();
+        }
       }
     };
 
