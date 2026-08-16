@@ -11,6 +11,7 @@ A React modal package built on top of `@ilokesto/overlay`, following Grunfeld's 
 - **Awaitable modal flows** — `display()` returns a Promise that resolves after exit animation
 - **Hook-based API** — `useModal()` with `display`, `close`, `closeAll`, `reject`, `remove`, `clear`
 - **Global facade** — `modal` and `globalModalStore` for module-level usage
+- **Provider-scoped stack policy** — independent topness, z-index, dismiss, and focus policy per provider
 - **Inline transport** — default fade/scale motion with full control
 - **Top-layer transport** — native `<dialog>` with `showModal()`
 - **ESC and backdrop dismiss** — light dismiss with `onDismiss` callback
@@ -143,6 +144,8 @@ If you need to distinguish batch-close from individual-close in `onModalClose`, 
 
 If you prefer a module-level API, mount a default `ModalProvider` once and then use the exported `modal` facade.
 
+Only one provider without a `store` is supported. Every default provider shares `globalModalStore`, so mounting more than one does not create independent facade stacks. For multiple simultaneous providers, pass a distinct overlay store to each `ModalProvider`; each provider then owns its own modal stack policy for inline and top-layer transports.
+
 ```tsx
 import { ModalProvider, modal } from '@ilokesto/modal';
 
@@ -255,7 +258,7 @@ That means awaited results resolve after the modal is actually removed, not at t
 
 ### `ModalProvider`
 
-Context provider. Wraps `OverlayProvider` from `@ilokesto/overlay`, registers the modal adapter, injects shared CSS. Props: `children`, `store?`.
+Context provider. Wraps `OverlayProvider` from `@ilokesto/overlay`, registers the modal adapter, injects shared CSS, and owns the internal stack runtime used by both transports. Props: `children`, `store?`.
 
 ### `useModal()`
 
@@ -313,14 +316,14 @@ src/
 - `ModalAdapterTopLayer.tsx` — native `<dialog>`: cancel/backdrop handling, positioning, scoped backdrop, animation
 
 **`src/components`** — provider:
-- `ModalProvider.tsx` — wraps `OverlayProvider`, registers adapter, injects CSS, defaults to global store
+- `ModalProvider.tsx` — wraps `OverlayProvider`, owns modal stack policy, registers adapter, injects CSS, defaults to global store
 
 **`src/facade`** — module-level API:
 - `modalFacade.ts` — `modal` facade and `globalModalStore`
 
 **`src/hooks`** — React hooks:
 - `useModal.ts` — command API (`display`, `close`, `closeAll`, `reject`, `remove`, `clear`)
-- `useIsTopModal.ts` — modal stack tracking for z-index and focus management
+- `useIsTopModal.ts` — provider-scoped modal stack tracking for z-index, dismiss, and focus management
 - `usePrefersReducedMotion.ts` — `prefers-reduced-motion` detection with legacy fallback
 
 **`src/shared`** — internal:
