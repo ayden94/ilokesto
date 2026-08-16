@@ -1,5 +1,6 @@
 <script lang="ts">
   import { CreateForm } from '@ilokesto/form';
+  import type { StandardSchemaV1 } from '@ilokesto/form';
   import { useForm } from '@ilokesto/form/svelte';
 
   type LoginValues = { email: string; password: string };
@@ -18,7 +19,7 @@
         return { value };
       },
     },
-  };
+  } satisfies StandardSchemaV1<unknown, string>;
 
   const passwordSchema = {
     '~standard': {
@@ -34,7 +35,7 @@
         return { value };
       },
     },
-  };
+  } satisfies StandardSchemaV1<unknown, string>;
 
   const form = new CreateForm<LoginValues>({
     defaultValues: { email: '', password: '' },
@@ -86,7 +87,7 @@
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
   * { box-sizing: border-box; }
-  body { margin: 0; }
+  :global(body) { margin: 0; }
   button, input { font: inherit; }
 
   .page-shell {
