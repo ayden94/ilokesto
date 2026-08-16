@@ -47,6 +47,8 @@ pnpm test
 
 The package emits ESM JavaScript and TypeScript declarations to `dist/`.
 
+> **ESM-only.** This package ships `"type": "module"` with ESM-only `exports`. CommonJS `require()` is not supported. Use a modern bundler (Vite, webpack 5+, esbuild, tsup) or Node.js ESM (`import`). If you need CJS compatibility, use dynamic `import()` or configure your bundler to transpile `@ilokesto/form`.
+
 ## Quick start
 
 ```ts
@@ -1057,6 +1059,8 @@ The reader receives a snapshot getter rather than owning the store directly, so 
 
 `FormStateWriter` performs all state mutations through `immer`.
 
+> **Bundle note:** `immer` adds ~5KB to consumer bundles. Since `FormState` uses a flat `Record<PathKey, FieldState>`, spread-based updates (`{ ...state, [key]: nextField }`) could replace immer with no behavioral change. Benchmark before migrating — immer provides structural sharing and readability benefits that may outweigh the size cost for array rebasing paths.
+
 `setValue()`:
 
 - Converts the tuple path to a `PathKey`.
@@ -1101,6 +1105,8 @@ Key methods:
 - `keyToPath(key)`: parses and validates a key back into tuple segments.
 
 The JSON encoding is what prevents path collisions.
+
+> **Performance note:** `pathToKey` uses `JSON.stringify` and `keyToPath` uses `JSON.parse`. For large forms (hundreds of fields) with frequent updates, a custom separator-based encoding (e.g. NUL-joined) could reduce hot-path overhead. Benchmark before migrating — the current approach is correct and readable, and real-world impact is typically negligible.
 
 ### `src/core/value/ValueHelper.ts`
 

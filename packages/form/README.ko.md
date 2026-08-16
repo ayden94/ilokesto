@@ -47,6 +47,8 @@ pnpm test
 
 이 package는 ESM JavaScript와 TypeScript declaration을 `dist/`로 emit한다.
 
+> **ESM-only.** 이 package는 `"type": "module"`과 ESM-only `exports`를 제공한다. CommonJS `require()`는 지원하지 않는다. Vite, webpack 5+, esbuild, tsup 같은 현대 번들러 또는 Node.js ESM(`import`)을 사용하라. CJS 호환이 필요하면 dynamic `import()` 또는 번들러에서 `@ilokesto/form`을 transpile하도록 설정하라.
+
 ## Quick start
 
 ```ts
@@ -1054,6 +1056,8 @@ Reader는 store를 직접 소유하지 않고 snapshot getter를 받기 때문�
 
 `FormStateWriter`는 모든 state mutation을 `immer`로 수행한다.
 
+> **번들 참고:** `immer`는 컨슈머 번들에 ~5KB를 추가한다. `FormState`가 flat `Record<PathKey, FieldState>` 구조이므로 spread 기반 업데이트(`{ ...state, [key]: nextField }`)로 immer를 대체해도 동작이 동일하다. 마이그레이션 전에 벤치마크하라 — immer는 구조 공유와 가독성 이점을 제공하며, array rebasing 경로에서는 크기 비용을 상회할 수 있다.
+
 `setValue()`:
 
 - Tuple path를 `PathKey`로 변환한다.
@@ -1098,6 +1102,8 @@ Key methods:
 - `keyToPath(key)`: key를 tuple segments로 parse하고 validate한다.
 
 JSON encoding이 path collision을 방지한다.
+
+> **성능 참고:** `pathToKey`는 `JSON.stringify`를, `keyToPath`는 `JSON.parse`를 사용한다. 큰 폼(수백 필드)에서 잦은 업데이트 시 NUL separator 기반 커스텀 인코딩으로 hot path 오버헤드를 줄일 수 있다. 마이그레이션 전에 벤치마크하라 — 현재 접근은 정확하고 읽기 쉬우며 실제 영향은 보통 미미하다.
 
 ### `src/core/value/ValueHelper.ts`
 
