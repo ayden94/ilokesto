@@ -30,7 +30,7 @@
 
 ## Installation
 
-현재 이 repository의 `package.json`은 package를 private으로 표시한다. workspace에서는 package manager 또는 workspace protocol을 통해 추가하면 된다. package가 publish되거나 link된 상태에서 import surface는 다음과 같다.
+이 패키지는 `@ilokesto/form` 이름으로 npm에 public access로 게시된다. workspace에서는 package manager 또는 workspace protocol을 통해 추가하면 된다. package가 publish되거나 link된 상태에서 import surface는 다음과 같다.
 
 ```ts
 import { CreateForm } from '@ilokesto/form';

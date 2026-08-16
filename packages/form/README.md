@@ -30,7 +30,7 @@ The package is designed around five ideas:
 
 ## Installation
 
-This repository currently marks the package as private in `package.json`. In a workspace, add it through your package manager or workspace protocol. When the package is published or linked, the import surface is:
+This package is published to npm under the `@ilokesto/form` name with public access. In a workspace, add it through your package manager or workspace protocol. When the package is published or linked, the import surface is:
 
 ```ts
 import { CreateForm } from '@ilokesto/form';
