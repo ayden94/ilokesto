@@ -46,6 +46,11 @@ try {
         typescript: '^6.0.2',
         vue: '^3.5.0',
       },
+      pnpm: {
+        overrides: {
+          '@ilokesto/store': `file:${storeTarball}`,
+        },
+      },
       private: true,
       type: 'module',
     }),
