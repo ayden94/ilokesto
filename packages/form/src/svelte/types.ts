@@ -3,8 +3,15 @@ import type { Readable } from 'svelte/store';
 import type { Form, FormError } from '../core/index';
 import type { FormStateSummary } from '../adapters/FormStateSummary';
 import type { RegisterOptions, SubmitHandler, SubmitInvalidHandler, SubmitValidHandler } from '../adapters/dom';
+import type { ReactiveFormOptions } from '../adapters/FormInput';
 
 export type { RegisterOptions } from '../adapters/dom';
+
+/** Svelte component가 외부 values readable과 함께 form을 만들 때 쓰는 옵션이다. */
+export type SvelteFormOptions<TValues> = ReactiveFormOptions<
+  TValues,
+  Readable<TValues | undefined>
+>;
 
 export type SvelteRegisterAction = Action<HTMLElement, RegisterOptions>;
 
