@@ -123,4 +123,5 @@ jobs:
         run: pnpm --filter @ilokesto/fetcher test:dist
 
       - name: Check changesets
+        if: github.event_name == 'pull_request'
         run: pnpm changeset:status
