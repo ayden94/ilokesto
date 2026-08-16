@@ -1,5 +1,5 @@
 import { CreateForm } from '@ilokesto/form';
-import type { Form } from '@ilokesto/form';
+import type { Form, StandardSchemaV1 } from '@ilokesto/form';
 import { useForm } from '@ilokesto/form/solid';
 import './styles.css';
 
@@ -22,7 +22,7 @@ const emailSchema = {
       return { value };
     },
   },
-};
+} satisfies StandardSchemaV1<unknown, string>;
 
 const passwordSchema = {
   '~standard': {
@@ -38,6 +38,11 @@ const passwordSchema = {
       return { value };
     },
   },
+} satisfies StandardSchemaV1<unknown, string>;
+
+const toInputValue = (value: unknown): string | number | string[] | undefined => {
+  if (typeof value === 'string' || typeof value === 'number') return value;
+  return Array.isArray(value) ? value.map(String) : undefined;
 };
 
 const form: Form<LoginValues> = new CreateForm({
@@ -47,8 +52,10 @@ const form: Form<LoginValues> = new CreateForm({
 
 export default function App() {
   const { useRegister, useFormState, handleSubmit } = useForm(form);
-  const email = useRegister({ name: 'email', schema: emailSchema });
-  const password = useRegister({ name: 'password', type: 'password', schema: passwordSchema });
+  const [email, password] = useRegister([
+    { name: 'email', schema: emailSchema },
+    { name: 'password', type: 'password', schema: passwordSchema },
+  ]);
   const state = useFormState();
 
   const onSubmit = handleSubmit(
@@ -69,24 +76,24 @@ export default function App() {
         <form class="form-grid" onSubmit={onSubmit}>
           <label>
             Email
-            <input {...email} placeholder="ada@example.com" />
+            <input {...email} value={toInputValue(email.value)} placeholder="ada@example.com" />
           </label>
 
           <label>
             Password
-            <input {...password} placeholder="At least 6 characters" />
+            <input {...password} value={toInputValue(password.value)} placeholder="At least 6 characters" />
           </label>
 
-          <button type="submit" disabled={!state().isDirty || !state().isValid}>
+          <button type="submit" disabled={!state.isDirty || !state.isValid}>
             Log in
           </button>
         </form>
 
         <pre>{JSON.stringify({
           values: form.getValues(),
-          isDirty: state().isDirty,
-          isValid: state().isValid,
-          submitCount: state().submitCount,
+          isDirty: state.isDirty,
+          isValid: state.isValid,
+          submitCount: state.submitCount,
         }, null, 2)}</pre>
       </section>
     </main>
