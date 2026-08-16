@@ -2,7 +2,8 @@
   "name": "@ilokesto/utilinent",
   "version": "1.1.4",
   "scripts": {
-    "build": "rm -rf dist && tsc"
+    "build": "rm -rf dist && tsc",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
@@ -38,13 +39,21 @@
     "access": "public"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.9.0",
-    "@types/react": "^18.3.12",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^7.7.1",
     "@typescript-eslint/parser": "^7.7.1",
     "@vitejs/plugin-react": "^4.3.3",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.1",
-    "typescript": "^5.4.5"
+    "jsdom": "^29.1.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "typescript": "^5.4.5",
+    "vite": "^7.3.6",
+    "vitest": "^4.1.10"
   }
 }
