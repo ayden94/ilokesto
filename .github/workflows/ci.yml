@@ -1,21 +1,76 @@
-name: CI
+name: Verify
 
 on:
-  push:
+  pull_request:
     branches:
       - main
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      expected_head_sha:
+        description: Exact changeset release PR head SHA
+        required: true
+        type: string
+      release_pr_number:
+        description: Changeset release PR number
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: verify-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
+    name: verify
+    if: >-
+      github.event_name == 'pull_request' ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/changeset-release/main'
+      )
     runs-on: ubuntu-latest
     steps:
+      - name: Validate release dispatch
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD_SHA: ${{ inputs.expected_head_sha }}
+          RELEASE_PR_NUMBER: ${{ inputs.release_pr_number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [[ "$EXPECTED_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$RELEASE_PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+          [[ "$GITHUB_REF" == "refs/heads/changeset-release/main" ]]
+          [[ "$GITHUB_SHA" == "$EXPECTED_HEAD_SHA" ]]
+
+          pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$RELEASE_PR_NUMBER")"
+          readarray -t fields < <(
+            jq -r '.state, .base.ref, .head.ref, .head.repo.full_name, .head.sha' <<<"$pr_json"
+          )
+
+          [[ "${fields[0]}" == "open" ]]
+          [[ "${fields[1]}" == "main" ]]
+          [[ "${fields[2]}" == "changeset-release/main" ]]
+          [[ "${fields[3]}" == "$GITHUB_REPOSITORY" ]]
+          [[ "${fields[4]}" == "$EXPECTED_HEAD_SHA" ]]
+
+          current_sha="$(
+            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/changeset-release/main" \
+              --jq '.object.sha'
+          )"
+          [[ "$current_sha" == "$EXPECTED_HEAD_SHA" ]]
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_head_sha || github.sha }}
+          persist-credentials: false
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -65,44 +120,3 @@ jobs:
 
       - name: Check changesets
         run: pnpm changeset:status
-
-  release:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: verify
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          registry-url: https://registry.npmjs.org
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm build
-
-      - name: Create release PR or publish packages
-        uses: changesets/action@v1
-        with:
-          version: pnpm version-packages
-          publish: pnpm release
-          commit: "ci: release"
-          title: "ci: release"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
