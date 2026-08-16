@@ -43,6 +43,65 @@ test('top-layer dialog opens and resolves in a real browser', async ({ page }) =
   await expect(page.getByText('Top-layer result: true')).toBeVisible();
 });
 
+test('top-layer descendant and padding clicks keep the dialog open', async ({ page }) => {
+  // Given
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open top-layer settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Settings dialog' });
+  await expect(dialog).toHaveAccessibleDescription('Configure your modal preferences.');
+  const dialogBox = await dialog.boundingBox();
+  if (dialogBox === null) {
+    throw new TypeError('Visible top-layer dialog has no bounding box.');
+  }
+  const contentBox = await page.getByRole('region', { name: 'Settings content' }).boundingBox();
+  if (contentBox === null) {
+    throw new TypeError('Visible top-layer content has no bounding box.');
+  }
+  const descendantBox = await page.getByRole('button', { name: 'Keep settings open' }).boundingBox();
+  if (descendantBox === null) {
+    throw new TypeError('Visible top-layer descendant has no bounding box.');
+  }
+  const paddingX = dialogBox.x + 16;
+  const paddingY = dialogBox.y + 16;
+  expect(paddingX).toBeGreaterThan(dialogBox.x);
+  expect(paddingX).toBeLessThan(dialogBox.x + dialogBox.width);
+  expect(paddingY).toBeGreaterThan(dialogBox.y);
+  expect(paddingY).toBeLessThan(dialogBox.y + dialogBox.height);
+  expect(paddingX).toBeLessThan(contentBox.x);
+  expect(paddingY).toBeLessThan(contentBox.y);
+
+  // When
+  await page.mouse.click(
+    descendantBox.x + descendantBox.width / 2,
+    descendantBox.y + descendantBox.height / 2
+  );
+  await page.mouse.click(paddingX, paddingY);
+
+  // Then
+  await expect(dialog).toBeVisible();
+  await expect(page.getByText('Top-layer dismiss count: 0')).toBeVisible();
+  await expect(page.getByText('Top-layer result: pending')).toBeVisible();
+});
+
+test('physical top-layer backdrop click dismisses exactly once', async ({ page }) => {
+  // Given
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open top-layer settings' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Settings dialog' });
+  const dialogBox = await dialog.boundingBox();
+  if (dialogBox === null) {
+    throw new TypeError('Visible top-layer dialog has no bounding box.');
+  }
+
+  // When
+  await page.mouse.click(dialogBox.x - 16, dialogBox.y + dialogBox.height / 2);
+
+  // Then
+  await expect(dialog).toBeHidden();
+  await expect(page.getByText('Top-layer dismiss count: 1')).toBeVisible();
+  await expect(page.getByText('Top-layer result: undefined')).toBeVisible();
+});
+
 test('reduced motion disables modal animation on first render', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');

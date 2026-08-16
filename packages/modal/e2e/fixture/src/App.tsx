@@ -39,15 +39,26 @@ function InlineConfirmButton() {
 function TopLayerButton() {
   const { display } = useModal();
   const [result, setResult] = useState('pending');
+  const [dismissCount, setDismissCount] = useState(0);
 
   const open = async () => {
     const saved = await display<boolean>({
       id: 'top-layer-settings',
       transport: 'top-layer',
-      ariaLabel: 'Settings dialog',
+      ariaLabelledBy: 'top-layer-settings-title',
+      ariaDescribedBy: 'top-layer-settings-description',
+      onDismiss: () => setDismissCount((count) => count + 1),
+      style: {
+        boxSizing: 'border-box',
+        width: 320,
+        height: 240,
+        padding: 48,
+      },
       render: (close) => (
-        <section>
-          <h2>Settings</h2>
+        <section aria-label="Settings content">
+          <h2 id="top-layer-settings-title">Settings dialog</h2>
+          <p id="top-layer-settings-description">Configure your modal preferences.</p>
+          <button type="button">Keep settings open</button>
           <button type="button" onClick={() => close(true)}>Save settings</button>
         </section>
       ),
@@ -60,6 +71,7 @@ function TopLayerButton() {
     <section aria-label="Top layer modal demo">
       <button type="button" onClick={open}>Open top-layer settings</button>
       <p>Top-layer result: {result}</p>
+      <p>Top-layer dismiss count: {dismissCount}</p>
     </section>
   );
 }
