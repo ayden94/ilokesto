@@ -30,6 +30,21 @@ function Phones({ form }) {
 
 오류 렌더링과 직접 setter가 필요하면 `useField`를 사용하세요. text, checkbox, radio, select, textarea, DOM 호환 커스텀 컨트롤에는 `useRegister`를 사용합니다. React에서처럼 배열 키와 튜플 인덱스 경로는 분리해서 관리하세요.
 
+## 외부 값 동기화
+
+`SolidFormOptions`는 `values`를 `Accessor<T | undefined>`로 받고 plain `resetOptions`를 받습니다. 처음 정의된 값과 이후 `Object.is` identity가 달라진 값마다 `form.reset(values, resetOptions)`를 호출합니다. `undefined`는 reset 없이 동기화를 중단하고, 마지막으로 정의되었던 같은 object를 다시 emit해도 no-op입니다. `resetOptions`는 value-driven reset에만 적용됩니다.
+
+```tsx
+const [serverValues, setServerValues] = createSignal<Profile | undefined>();
+const { form } = useForm({
+  defaultValues: emptyProfile,
+  values: serverValues,
+  resetOptions: { keepDirtyValues: true },
+});
+```
+
+이 overload에는 active Solid owner가 필요하며 owner가 없으면 form 생성 전에 실패합니다. Tracking computation은 해당 owner와 함께 dispose됩니다. `useForm(existingForm)`은 values tracking을 설치하지 않습니다.
+
 ## 주의할 점
 
 코어 폼은 안정적인 위치에서 만들고, 해당 프레임워크 피어 의존성을 설치하며, 프레임워크 컴포넌트에서는 이 어댑터 하위 경로에서만 가져오세요. 서버 액션이나 도메인 도우미처럼 렌더링이 필요 없는 코드는 루트 `@ilokesto/form` API에 남겨두는 편이 좋습니다.

@@ -30,6 +30,21 @@ function Phones({ form }) {
 
 Use `useField` for error rendering and direct setters. Use `useRegister` for text, checkbox, radio, select, textarea, and DOM-compatible custom controls. Keep array keys separate from tuple index paths, just as you would in React.
 
+## Syncing external values
+
+`SolidFormOptions` accepts `values` as `Accessor<T | undefined>` and accepts plain `resetOptions`. The first defined value and each later value with a different `Object.is` identity call `form.reset(values, resetOptions)`. `undefined` pauses synchronization without resetting, and re-emitting the last defined object remains a no-op. `resetOptions` applies only to value-driven resets.
+
+```tsx
+const [serverValues, setServerValues] = createSignal<Profile | undefined>();
+const { form } = useForm({
+  defaultValues: emptyProfile,
+  values: serverValues,
+  resetOptions: { keepDirtyValues: true },
+});
+```
+
+This overload requires an active Solid owner and fails before form creation when none exists. The tracking computation is disposed with that owner. `useForm(existingForm)` does not install values tracking.
+
 ## Cautions
 
 Create the core form in a stable place, install the matching peer dependency, and import only from this adapter subpath in framework components. Keep server actions and domain helpers on the root `@ilokesto/form` API when they do not need rendering.
