@@ -30,6 +30,20 @@ function ProfileForm({ form }) {
 
 text input은 `onChange`로 갱신됩니다. checkbox와 radio는 checked 상태를 사용합니다. select와 textarea 바인딩은 제네릭으로 좁힐 수 있습니다. 오류를 렌더링하거나 `setValue`를 호출해야 하면 `useField`를 쓰고, 평범한 입력에 속성만 필요하면 `useRegister`를 사용하세요.
 
+## 외부 값 동기화
+
+`ReactFormOptions`는 현재 render의 `values`와 plain `resetOptions`를 받습니다. 처음 정의된 값과 이후 `Object.is` identity가 달라진 값마다 `form.reset(values, resetOptions)`를 호출합니다. `undefined`는 reset 없이 동기화를 중단하고, 그 뒤 마지막으로 정의되었던 같은 object를 다시 전달해도 no-op입니다. `resetOptions`만 바꾸는 것도 no-op이며 새 `values` reference가 reset을 일으킬 때만 읽힙니다.
+
+```tsx
+const { form } = useForm({
+  defaultValues: emptyProfile,
+  values: query.data,
+  resetOptions: { keepDirtyValues: true },
+});
+```
+
+`defaultValues`는 component-owned form을 한 번만 생성합니다. values effect는 component unmount 시 종료됩니다. `useForm(existingForm)` overload는 기존 동작을 유지하며 external-value synchronization을 설치하지 않습니다.
+
 ## 주의할 점
 
 코어 폼은 안정적인 위치에서 만들고, 해당 프레임워크 피어 의존성을 설치하며, 프레임워크 컴포넌트에서는 이 어댑터 하위 경로에서만 가져오세요. 서버 액션이나 도메인 도우미처럼 렌더링이 필요 없는 코드는 루트 `@ilokesto/form` API에 남겨두는 편이 좋습니다.
