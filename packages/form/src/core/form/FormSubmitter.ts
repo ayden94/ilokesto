@@ -31,18 +31,24 @@ export class FormSubmitter<TValues> {
     this.store.beginSubmit();
 
     try {
-      const isValid = await this.validation.validateRegisteredFields('submit');
+      while (true) {
+        const outcome = await this.validation.validateRegisteredFieldsOutcome('submit');
 
-      if (!isValid) {
-        onInvalid?.(this.store.getState().fields);
-        this.store.completeSubmit(false);
-        return undefined;
+        switch (outcome.kind) {
+          case 'stale':
+            continue;
+          case 'invalid':
+            onInvalid?.(this.store.getState().fields);
+            this.store.completeSubmit(false);
+            return undefined;
+          case 'valid': {
+            const result = await onValid(this.store.getValues());
+
+            this.store.completeSubmit(true);
+            return result;
+          }
+        }
       }
-
-      const result = await onValid(this.store.getValues());
-
-      this.store.completeSubmit(true);
-      return result;
     } catch (error) {
       this.store.completeSubmit(false);
       throw error;
