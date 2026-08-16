@@ -39,6 +39,7 @@ try {
       dependencies: {
         '@ilokesto/form': `file:${formTarball}`,
         '@ilokesto/store': `file:${storeTarball}`,
+        '@types/react': '^19.2.15',
         immer: '11.1.8',
         react: '^19.0.0',
         'solid-js': '^1.9.0',
@@ -73,11 +74,41 @@ if (form.getValue('email') !== 'packed') throw new TypeError('Packed form runtim
   );
   writeFileSync(
     path.join(consumerDirectory, 'types.ts'),
-    `import type { VueFormOptions } from '@ilokesto/form/vue';
-import type { SvelteFieldSnapshot } from '@ilokesto/form/svelte';
+    `import type { ReactFormOptions } from '@ilokesto/form/react';
+import type { SolidFormOptions } from '@ilokesto/form/solid';
+import type { SvelteFieldSnapshot, SvelteFormOptions } from '@ilokesto/form/svelte';
+import type { VueFormOptions } from '@ilokesto/form/vue';
+import type { Accessor } from 'solid-js';
+import type { Readable } from 'svelte/store';
 
-const options: VueFormOptions<{ readonly email: string }> = {
+type Values = { readonly email: string };
+const externalValues: Values = { email: 'packed@example.com' };
+const reactOptions: ReactFormOptions<Values> = {
   defaultValues: { email: '' },
+  resetOptions: { keepDirtyValues: true },
+  values: externalValues,
+};
+const vueOptions: VueFormOptions<Values> = {
+  defaultValues: { email: '' },
+  resetOptions: { keepDirtyValues: true },
+  values: () => externalValues,
+};
+const solidValues: Accessor<Values | undefined> = () => externalValues;
+const solidOptions: SolidFormOptions<Values> = {
+  defaultValues: { email: '' },
+  resetOptions: { keepDirtyValues: true },
+  values: solidValues,
+};
+const svelteValues: Readable<Values | undefined> = {
+  subscribe(run) {
+    run(externalValues);
+    return () => undefined;
+  },
+};
+const svelteOptions: SvelteFormOptions<Values> = {
+  defaultValues: { email: '' },
+  resetOptions: { keepDirtyValues: true },
+  values: svelteValues,
 };
 const snapshot: SvelteFieldSnapshot = {
   dirty: false,
@@ -85,8 +116,11 @@ const snapshot: SvelteFieldSnapshot = {
   touched: false,
   value: '',
 };
-void options;
+void reactOptions;
+void solidOptions;
 void snapshot;
+void svelteOptions;
+void vueOptions;
 `,
   );
   writeFileSync(
