@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ilokesto/form": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.2.6",
     "typescript": "^6.0.2",
