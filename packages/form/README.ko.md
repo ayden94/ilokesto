@@ -627,6 +627,8 @@ Effects:
 
 `setValue()`는 `void`를 반환한다. Change validation은 async로 시작되며 method가 await하지 않는다.
 
+Async validation은 generation counter로 race condition을 방지한다. 이전 async validation이 resolve되기 전에 새 validation이 시작되면, stale 결과는 폐기되어 store를 덮어쓰지 않는다. 즉, async (서버측) schema로 빠르게 타이핑할 때 가장 최근 값 기준 결과가 항상 반영되며, Promise가 나중에 resolve되더라도 무시된다.
+
 ### `blur(path)`
 
 Field를 touched 처리하고 필요하면 validate한다.
@@ -1108,6 +1110,8 @@ JSON encoding이 path collision을 방지한다.
 - `validateRegisteredFields(trigger)`는 full schema를 실행하고 current fields와 schema error keys 전체를 update한다.
 
 Engine은 schema를 호출할 때 trigger value를 전달하지 않는다. Trigger는 engine이 언제 실행될지를 제어하지 schema API를 바꾸지 않는다.
+
+세 validation 진입점(`validateField`, `validateFields`, `validateRegisteredFields`) 모두 내부 generation counter를 사용해 async race condition을 방지한다. 각 호출은 await 전 counter를 증가시키고, 도중에 더 새로운 validation이 시작되면 결과를 폐기한다.
 
 ### `src/core/validation/StandardSchemaValidator.ts`
 

@@ -629,6 +629,8 @@ Effects:
 
 `setValue()` returns `void`; change validation is started asynchronously and is not awaited by the method.
 
+Async validation uses a generation counter to prevent race conditions. If a new validation starts before a previous async validation resolves, the stale result is discarded and does not overwrite the store. This means rapid typing with async (server-side) schemas will always reflect the most recent values, not whichever Promise happens to resolve last.
+
 ### `blur(path)`
 
 Marks the field as touched and optionally validates it.
@@ -1111,6 +1113,8 @@ This lets normalized `fields` become a nested object again.
 - `validateRegisteredFields(trigger)` runs the full schema and updates all current fields plus all schema error keys.
 
 The engine deliberately ignores the trigger value when calling the schema. The trigger controls when the engine runs, not the schema API.
+
+All three validation entry points (`validateField`, `validateFields`, `validateRegisteredFields`) use an internal generation counter to guard against async race conditions. Each call increments the counter before awaiting, and discards results if a newer validation has started in the meantime.
 
 ### `src/core/validation/StandardSchemaValidator.ts`
 
