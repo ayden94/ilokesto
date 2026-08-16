@@ -67,25 +67,49 @@ jobs:
           set -euo pipefail
           [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
 
-          pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
-          readarray -t fields < <(
-            jq -r '.state, .base.ref, .head.ref, .head.repo.full_name, .head.sha' <<<"$pr_json"
-          )
+          validate_sha() {
+            [[ "$1" =~ ^[0-9a-f]{40}$ ]]
+          }
 
-          [[ "${fields[0]}" == "open" ]]
-          [[ "${fields[1]}" == "main" ]]
-          [[ "${fields[2]}" == "changeset-release/main" ]]
-          [[ "${fields[3]}" == "$GITHUB_REPOSITORY" ]]
-          [[ "${fields[4]}" =~ ^[0-9a-f]{40}$ ]]
+          attempts=10
+          last_pr_sha=''
+          last_branch_sha=''
 
-          branch_sha="$(
-            gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/changeset-release/main" \
-              --jq '.object.sha'
-          )"
-          [[ "$branch_sha" == "${fields[4]}" ]]
+          for attempt in $(seq 1 "$attempts"); do
+            pr_json="$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")"
+            readarray -t fields < <(
+              jq -r '.state, .base.ref, .head.ref, .head.repo.full_name, .head.sha' <<<"$pr_json"
+            )
 
-          printf 'number=%s\nhead_sha=%s\n' \
-            "$PR_NUMBER" "${fields[4]}" >> "$GITHUB_OUTPUT"
+            [[ "${fields[0]}" == "open" ]]
+            [[ "${fields[1]}" == "main" ]]
+            [[ "${fields[2]}" == "changeset-release/main" ]]
+            [[ "${fields[3]}" == "$GITHUB_REPOSITORY" ]]
+            validate_sha "${fields[4]}"
+
+            branch_sha="$(
+              gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/changeset-release/main" \
+                --jq '.object.sha'
+            )"
+            validate_sha "$branch_sha"
+
+            last_pr_sha="${fields[4]}"
+            last_branch_sha="$branch_sha"
+
+            if [[ "$branch_sha" == "${fields[4]}" ]]; then
+              printf 'number=%s\nhead_sha=%s\n' \
+                "$PR_NUMBER" "${fields[4]}" >> "$GITHUB_OUTPUT"
+              break
+            fi
+
+            if [[ "$attempt" -eq "$attempts" ]]; then
+              printf 'error: release PR head did not converge after %s attempts; pr_sha=%s branch_sha=%s\n' \
+                "$attempts" "$last_pr_sha" "$last_branch_sha" >&2
+              exit 1
+            fi
+
+            sleep 2
+          done
 
       - name: Dispatch release-head verification
         if: steps.release_pr.outputs.head_sha != ''
