@@ -19,7 +19,7 @@ const renderProps = {
 return <Adapter {...renderProps} {...item.props} />;
 ```
 
-You usually do not mount `OverlayHost` yourself because `OverlayProvider` includes it. Read this page when you build a custom provider shell or need to understand why an item with an unknown type renders nothing. Missing adapters are intentionally ignored at render time rather than crashing the whole app.
+You usually do not mount `OverlayHost` yourself because `OverlayProvider` includes it. Read this page when you build a custom provider shell or need to understand why an item with an unknown type renders nothing. A missing adapter renders `null`. In development, the host emits one error diagnostic per mounted item identity with the item's `id` and `type`; production stays silent. The host does not resolve, reject, or remove the item automatically, so it remains in the store and a `display()` promise remains pending until application code explicitly removes or clears it.
 
 ## Practical note
 

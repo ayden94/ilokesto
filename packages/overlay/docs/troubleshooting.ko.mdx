@@ -11,7 +11,7 @@ description: "provider, 어댑터, lifecycle, 비동기 결과에서 자주 생�
 
 ## `display()` 후 아무것도 렌더링되지 않음
 
-`display` 또는 `open`에 넘긴 `type`을 확인하세요. `OverlayHost`는 `adapters[item.type]`을 찾습니다. 그 key에 맞는 어댑터가 없으면 item은 아무것도 렌더링하지 않습니다. `OverlayProvider`가 기대한 adapter map을 받고 있는지도 확인하세요.
+`display` 또는 `open`에 넘긴 `type`을 확인하세요. `OverlayHost`는 `adapters[item.type]`을 찾습니다. 그 key에 맞는 어댑터가 없으면 item은 아무것도 렌더링하지 않고, 개발 환경에서는 마운트된 해당 item의 `id`와 `type`을 포함한 오류 진단을 한 번 출력합니다. production에서는 아무 진단도 출력하지 않습니다. host는 어댑터가 없는 item을 자동으로 resolve, reject, remove하지 않으므로 item은 store에 남고 `display()` promise도 pending 상태를 유지합니다. `OverlayProvider`가 기대한 adapter map을 받고 있는지도 확인하세요.
 
 ## promise가 끝나지 않음
 
