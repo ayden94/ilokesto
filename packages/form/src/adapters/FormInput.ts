@@ -1,13 +1,11 @@
 import { CreateForm, type CreateFormOptions, type Form, type ResetOptions } from '../core/index';
 
-export type ReactiveFormOptions<TValues> = CreateFormOptions<TValues> & {
-  /** 외부 서버/query/props 값이 바뀔 때 adapter가 reset을 트리거하기 위한 값이다. */
-  values?: TValues;
-  /** adapter가 values 변경으로 reset을 호출할 때 적용할 보존 옵션이다. */
-  resetOptions?: ResetOptions;
+export type ReactiveFormOptions<TValues, TSource> = CreateFormOptions<TValues> & {
+  readonly values?: TSource;
+  readonly resetOptions?: ResetOptions;
 };
 
-export type FormInput<TValues> = Form<TValues> | ReactiveFormOptions<TValues>;
+export type FormInput<TValues, TOptions extends CreateFormOptions<TValues>> = Form<TValues> | TOptions;
 
 export function isFormInstance<TValues>(
   input: Form<TValues> | CreateFormOptions<TValues>,
@@ -15,11 +13,22 @@ export function isFormInstance<TValues>(
   return 'subscribe' in input && 'submit' in input;
 }
 
-export function createFormFromOptions<TValues>(options: ReactiveFormOptions<TValues>): Form<TValues> {
-  const { values, resetOptions, ...createOptions } = options;
+export function createFormFromOptions<TValues>(options: CreateFormOptions<TValues>): Form<TValues> {
+  const { defaultValues, schema, schemaOptions, validateOn } = options;
+  return new CreateForm({ defaultValues, schema, schemaOptions, validateOn });
+}
 
-  void values;
-  void resetOptions;
+export function createExternalValuesSynchronizer<TValues>(
+  form: Form<TValues>,
+): (values: TValues | undefined, resetOptions: ResetOptions | undefined) => void {
+  let previousDefinedValues: TValues | undefined;
 
-  return new CreateForm(createOptions);
+  return (values, resetOptions) => {
+    if (values === undefined || Object.is(previousDefinedValues, values)) {
+      return;
+    }
+
+    previousDefinedValues = values;
+    form.reset(values, resetOptions);
+  };
 }
