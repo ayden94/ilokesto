@@ -113,6 +113,8 @@ export type FieldState<TValue = unknown> = {
   dirty: boolean;
   /** 사용자가 field를 한 번 이상 변경했는지 여부다. */
   modified: boolean;
+  /** 현재 field가 focus 중인지 여부다. focus() 호출로 true가 되고 blur() 호출로 false가 된다. */
+  isFocused: boolean;
 };
 
 /** public field path input이 가리키는 value 타입을 form values 타입에서 계산한다. */
@@ -235,7 +237,7 @@ export type Form<TValues> = {
   setValue(path: FieldPathInput, value: unknown, options?: SetValueOptions): void;
   /** field를 touched 처리하고 필요하면 validation을 실행한다. */
   blur(path: FieldPathInput): Promise<boolean>;
-  /** 현재 최소 상태 shape을 변경하지 않고 focus intent만 명령으로 노출한다. */
+  /** field의 isFocused를 true로 바꾼다. */
   focus(path: FieldPathInput): void;
   /** 한 field의 errors를 교체한다. */
   setErrors(path: FieldPathInput, errors: readonly FormError[]): void;

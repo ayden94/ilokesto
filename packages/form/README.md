@@ -244,7 +244,7 @@ The Vue adapter exposes the same three concepts:
 | `useRegister(options)` | Returns one input-oriented `v-bind` binding object. It includes `type` and defaults to `text`; text inputs update on `input`; checkbox/radio update on `change`. Use a generic for select/textarea binding types. |
 | `useRegister(options[])` / `useRegister(optionA, optionB)` | Returns multiple binding objects for map-friendly rendering. |
 | `useField(options)` | Returns `{ props, value, setValue, errors, dirty, touched }` with getter-backed reactive reads. |
-| `useFormState()` | Returns form-wide aggregate getters such as `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, and `submitCount`. |
+| `useFormState()` | Returns form-wide aggregate getters such as `errors`, `dirtyFields`, `touchedFields`, `focusedField`, `isDirty`, `isValid`, and `submitCount`. |
 
 Field-local schemas work the same way as React and are cleaned up with the current Vue effect scope.
 
@@ -401,6 +401,7 @@ type FieldState<TValue = unknown> = {
   touched: boolean;
   dirty: boolean;
   modified: boolean;
+  isFocused: boolean;
 };
 ```
 
@@ -409,6 +410,7 @@ The flags mean:
 - `touched`: the field was blurred at least once.
 - `dirty`: the current value is not `Object.is`-equal to the initial value at the same path.
 - `modified`: the field was changed by a user-sourced write, `source: 'user'`.
+- `isFocused`: the field currently has focus. Set to `true` by `focus()` and cleared by `blur()` (always, regardless of `validateOn`).
 - `errors`: validation or manually assigned field errors.
 
 ### `FormState`
@@ -444,9 +446,9 @@ The core stores leaf field states and array container keys separately:
     items: [{ title: 'A' }, { title: 'B' }],
   },
   fields: {
-    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false },
-    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false },
-    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false },
+    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
   },
   submitCount: 0,
   arrayKeys: {
@@ -639,7 +641,9 @@ If `validateOn` does not contain `'blur'`, it returns `true` after touching the 
 
 ### `focus(path)`
 
-Currently a no-op. It exists so framework adapters can expose a stable command surface for focus events even though the minimal core state does not store a focused field.
+Sets `isFocused: true` on the field at `path`. Other fields are not touched — DOM naturally fires a `blur` event on the previously focused element, which clears `isFocused` via `blur()`. Array rebasing preserves `isFocused` across `move`/`swap`/`insert`/`remove`.
+
+The core is DOM-independent, so calling `focus()` on multiple fields can leave more than one field with `isFocused: true`. In DOM adapters this is naturally bounded to one by the browser; in direct core usage it is the caller's responsibility to `blur()` the previous field. The `useFormState().focusedField` aggregate returns the **first** focused field found in `Object.entries` order, not the most recently focused one — to enumerate all focused fields, iterate `state.fields` directly.
 
 ### `setErrors(path, errors)`
 
@@ -971,7 +975,7 @@ This keeps the public API stable while implementation responsibilities stay sepa
 2. Marks the field as touched.
 3. Runs blur validation only when configured.
 
-`focus()` is currently a no-op because the minimal core state does not track focus. The method exists for adapter-level consistency.
+`focus()` sets `isFocused: true` on the field. The matching `blur()` command clears `isFocused` (always, regardless of `validateOn`) and marks the field as `touched`. The `isFocused` flag is preserved across array rebasing.
 
 `setErrors()`, `clearErrors()`, and `trigger()` normalize paths to keys and delegate to the store or validation engine.
 

@@ -242,7 +242,7 @@ Vue adapter도 같은 세 가지 개념을 노출한다.
 | `useRegister(options)` | 하나의 input 중심 `v-bind` binding object를 반환한다. `type`이 포함되고 기본값은 `text`다. Text input은 `input` event에서, checkbox/radio는 `change` event에서 값을 갱신한다. select/textarea 타입은 generic으로 좁힌다. |
 | `useRegister(options[])` / `useRegister(optionA, optionB)` | map-friendly rendering을 위해 여러 binding object를 반환한다. |
 | `useField(options)` | getter 기반 reactive read를 가진 `{ props, value, setValue, errors, dirty, touched }`를 반환한다. |
-| `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate getter를 반환한다. |
+| `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `focusedField`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate getter를 반환한다. |
 
 Field-local schema는 React와 같은 방식으로 동작하고 현재 Vue effect scope가 정리될 때 함께 cleanup된다.
 
@@ -399,6 +399,7 @@ type FieldState<TValue = unknown> = {
   touched: boolean;
   dirty: boolean;
   modified: boolean;
+  isFocused: boolean;
 };
 ```
 
@@ -407,6 +408,7 @@ Flag의 의미:
 - `touched`: field가 한 번 이상 blur되었다.
 - `dirty`: 현재 value가 같은 path의 initial value와 `Object.is` 기준으로 다르다.
 - `modified`: `source: 'user'` write로 field가 변경되었다.
+- `isFocused`: field가 현재 focus 중이다. `focus()`가 `true`로, `blur()`가 (`validateOn`과 무관하게 항상) `false`로 설정한다.
 - `errors`: validation 또는 manual assignment로 붙은 field errors.
 
 ### `FormState`
@@ -442,9 +444,9 @@ Core는 leaf field states와 array container keys를 따로 저장한다.
     items: [{ title: 'A' }, { title: 'B' }],
   },
   fields: {
-    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false },
-    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false },
-    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false },
+    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
   },
   submitCount: 0,
   arrayKeys: {
@@ -637,7 +639,9 @@ const valid = await form.blur('email');
 
 ### `focus(path)`
 
-현재는 no-op이다. Minimal core state가 focused field를 저장하지 않더라도 framework adapter가 stable command surface를 제공할 수 있도록 존재한다.
+`path`에 해당하는 field의 `isFocused`를 `true`로 바꾼다. 다른 field는 건드리지 않는다 — DOM이 이전에 focus 되어 있던 element에 자연스럽게 `blur` 이벤트를 발생시키므로, `blur()`를 통해 `isFocused`가 clearing된다. Array rebasing 시 `isFocused`는 `move`/`swap`/`insert`/`remove`에 대해 보존된다.
+
+core는 DOM과 독립적이므로 여러 field에 `focus()`를 호출하면 둘 이상이 동시에 `isFocused: true`가 될 수 있다. DOM 어댑터에서는 브라우저가 자연스럽게 한 번에 하나로 제한하지만, core를 직접 사용할 때는 이전 field를 `blur()` 하는 것은 호출자의 책임이다. `useFormState().focusedField` aggregate는 **`Object.entries` 순서상 첫 번째**로 발견된 focused field를 반환하며, "가장 최근에 focus 된 field"가 아니다. 모든 focused field를 알려면 `state.fields`를 직접 순회하라.
 
 ### `setErrors(path, errors)`
 
@@ -968,7 +972,7 @@ Constructor는 하나의 `FormStateStore`를 만들고 모든 collaborator에 �
 2. Field를 touched 처리한다.
 3. 설정된 경우에만 blur validation을 실행한다.
 
-`focus()`는 현재 no-op이다. Minimal core state가 focus를 추적하지 않기 때문이다. Adapter-level consistency를 위해 method는 유지한다.
+`focus()`는 field의 `isFocused`를 `true`로 바꾼다. 대응되는 `blur()` command가 `isFocused`를 clearing하고 (`validateOn` 설정과 무관하게 항상), field를 `touched`로 표시한다. `isFocused` flag는 array rebasing 시 보존된다.
 
 `setErrors()`, `clearErrors()`, `trigger()`는 path를 key로 normalize하고 store 또는 validation engine에 위임한다.
 

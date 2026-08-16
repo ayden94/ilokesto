@@ -70,6 +70,7 @@ export type SolidFormStateReturn<TValues> = {
   readonly errors: Record<string, FormError[]>;
   readonly dirtyFields: Record<string, true>;
   readonly touchedFields: Record<string, true>;
+  readonly focusedField: string | null;
   readonly isDirty: boolean;
   readonly isValid: boolean;
   readonly isSubmitting: boolean;

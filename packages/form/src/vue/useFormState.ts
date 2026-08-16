@@ -21,6 +21,9 @@ export function useFormStateWithForm<TValues>(form: Form<TValues>): VueFormState
     get touchedFields() {
       return getSummary().touchedFields;
     },
+    get focusedField() {
+      return getSummary().focusedField;
+    },
     get isDirty() {
       return getSummary().isDirty;
     },

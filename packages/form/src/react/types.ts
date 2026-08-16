@@ -89,6 +89,7 @@ export type UseFormStateReturn<TValues> = {
   errors: Record<string, FormError[]>;
   dirtyFields: Record<string, true>;
   touchedFields: Record<string, true>;
+  focusedField: string | null;
   isDirty: boolean;
   isValid: boolean;
   isSubmitting: boolean;

@@ -78,7 +78,7 @@ export class CreateForm<TValues> implements Form<TValues> {
     return this.fields.blur(path);
   }
 
-  /** 현재 core 상태에는 focused 필드가 없으므로, 어댑터 이벤트 합성을 위한 no-op 명령으로 유지한다. */
+  /** field의 isFocused를 true로 바꾼다. focus 이벤트에서 호출된다. */
   public focus(path: FieldPathInput): void {
     this.fields.focus(path);
   }
