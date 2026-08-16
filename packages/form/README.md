@@ -311,7 +311,7 @@ The Solid adapter exposes `useRegister`, `useField`, and `useFormState` with the
 
 ## Svelte adapter
 
-Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use hook-style rendering, so the adapter exposes a `register` action and a Svelte readable form-state store.
+Svelte bindings are exposed through the `./svelte` subpath. The adapter exposes register actions plus readable stores for both form-wide and field-local state.
 
 ```svelte
 <script lang="ts">
@@ -327,12 +327,17 @@ Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use 
     validateOn: ['blur', 'submit'],
   });
 
-  const { register, useFormState } = useForm(form);
+  const { register, useField, useFormState } = useForm(form);
+  const email = useField({ name: 'email', schema: emailSchema });
+  const emailProps = email.props;
   const state = useFormState();
 </script>
 
 <form>
-  <input use:register={{ name: 'email', schema: emailSchema }} />
+  <input use:emailProps />
+  {#each $email.errors as error}
+    <p>{error.message}</p>
+  {/each}
   <input type="checkbox" use:register={{ name: 'remember', type: 'checkbox' }} />
 
   <select use:register={{ name: 'role' }}>
@@ -344,7 +349,7 @@ Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use 
 </form>
 ```
 
-The Svelte action owns DOM synchronization directly: it sets the DOM `name`, keeps `value`/`checked` in sync from form state, writes user changes back to the core form, and cleans up field-local schemas when the action is destroyed.
+The Svelte action owns DOM synchronization directly. `useField` is a `Readable<SvelteFieldSnapshot>` consumed as `$email`; it emits current `value`, `errors`, `dirty`, and `touched` state and releases its core subscription when the last subscriber leaves.
 
 ## Core concepts
 
@@ -646,7 +651,7 @@ Effects:
 
 `setValue()` returns `void`; change validation is started asynchronously and is not awaited by the method.
 
-Async validation uses a generation counter to prevent race conditions. If a new validation starts before a previous async validation resolves, the stale result is discarded and does not overwrite the store. This means rapid typing with async (server-side) schemas will always reflect the most recent values, not whichever Promise happens to resolve last.
+Async validation is target-aware. New validation supersedes only overlapping fields, while independent field validations may complete concurrently. Full-form submit validation also verifies the value snapshot it validated; stale submit attempts retry until they obtain an authoritative result and never call `onValid` by default.
 
 ### `blur(path)`
 
@@ -1135,7 +1140,7 @@ This lets normalized `fields` become a nested object again.
 
 The engine deliberately ignores the trigger value when calling the schema. The trigger controls when the engine runs, not the schema API.
 
-All three validation entry points (`validateField`, `validateFields`, `validateRegisteredFields`) use an internal generation counter to guard against async race conditions. Each call increments the counter before awaiting, and discards results if a newer validation has started in the meantime.
+`ValidationSequencer` tracks full-form and per-field revisions. Overlapping work becomes stale, independent field work remains valid, and every result is checked against its captured field-value and array-shape snapshot before errors or submit callbacks are applied.
 
 ### `src/core/validation/StandardSchemaValidator.ts`
 

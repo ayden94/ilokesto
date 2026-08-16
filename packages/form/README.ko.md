@@ -309,7 +309,7 @@ Solid adapter는 Vue와 같은 의미의 `useRegister`, `useField`, `useFormStat
 
 ## Svelte adapter
 
-Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rendering을 쓰지 않으므로 adapter는 `register` action과 Svelte readable form-state store를 제공한다.
+Svelte binding은 `./svelte` subpath로 노출된다. Adapter는 register action과 함께 form-wide 및 field-local state를 위한 readable store를 제공한다.
 
 ```svelte
 <script lang="ts">
@@ -325,12 +325,17 @@ Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rende
     validateOn: ['blur', 'submit'],
   });
 
-  const { register, useFormState } = useForm(form);
+  const { register, useField, useFormState } = useForm(form);
+  const email = useField({ name: 'email', schema: emailSchema });
+  const emailProps = email.props;
   const state = useFormState();
 </script>
 
 <form>
-  <input use:register={{ name: 'email', schema: emailSchema }} />
+  <input use:emailProps />
+  {#each $email.errors as error}
+    <p>{error.message}</p>
+  {/each}
   <input type="checkbox" use:register={{ name: 'remember', type: 'checkbox' }} />
 
   <select use:register={{ name: 'role' }}>
@@ -342,7 +347,7 @@ Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rende
 </form>
 ```
 
-Svelte action은 DOM synchronization을 직접 담당한다. DOM `name`을 설정하고, form state에서 `value`/`checked`를 sync하고, user change를 core form에 쓰며, action이 destroy될 때 field-local schema를 cleanup한다.
+Svelte action은 DOM synchronization을 직접 담당한다. `useField`는 `$email`로 소비하는 `Readable<SvelteFieldSnapshot>`이며 최신 `value`, `errors`, `dirty`, `touched`를 emit하고 마지막 subscriber가 해제되면 core subscription도 정리한다.
 
 ## Core concepts
 
@@ -644,7 +649,7 @@ Effects:
 
 `setValue()`는 `void`를 반환한다. Change validation은 async로 시작되며 method가 await하지 않는다.
 
-Async validation은 generation counter로 race condition을 방지한다. 이전 async validation이 resolve되기 전에 새 validation이 시작되면, stale 결과는 폐기되어 store를 덮어쓰지 않는다. 즉, async (서버측) schema로 빠르게 타이핑할 때 가장 최근 값 기준 결과가 항상 반영되며, Promise가 나중에 resolve되더라도 무시된다.
+Async validation은 target-aware하게 동작한다. 새 validation은 겹치는 field만 supersede하며 서로 독립적인 field validation은 동시에 완료될 수 있다. Full-form submit validation은 자신이 검증한 value snapshot도 확인한다. stale submit은 authoritative result를 얻을 때까지 재검증하며 기본값으로 `onValid`를 호출하지 않는다.
 
 ### `blur(path)`
 
@@ -1132,7 +1137,7 @@ JSON encoding이 path collision을 방지한다.
 
 Engine은 schema를 호출할 때 trigger value를 전달하지 않는다. Trigger는 engine이 언제 실행될지를 제어하지 schema API를 바꾸지 않는다.
 
-세 validation 진입점(`validateField`, `validateFields`, `validateRegisteredFields`) 모두 내부 generation counter를 사용해 async race condition을 방지한다. 각 호출은 await 전 counter를 증가시키고, 도중에 더 새로운 validation이 시작되면 결과를 폐기한다.
+`ValidationSequencer`는 full-form revision과 field별 revision을 추적한다. 겹치는 작업만 stale 처리하고 독립 field 작업은 유지하며, error나 submit callback을 적용하기 전에 captured field-value 및 array-shape snapshot이 최신인지 확인한다.
 
 ### `src/core/validation/StandardSchemaValidator.ts`
 
