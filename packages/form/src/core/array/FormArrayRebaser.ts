@@ -83,6 +83,7 @@ export class FormArrayRebaser {
         touched: previousField.touched,
         dirty: previousField.dirty,
         modified: previousField.modified,
+        isFocused: previousField.isFocused,
       };
     });
 

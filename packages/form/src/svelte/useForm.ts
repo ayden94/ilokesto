@@ -3,6 +3,7 @@ import { createFormFromOptions, isFormInstance, type FormInput } from '../adapte
 import type { CreateFormOptions, Form } from '../core/index';
 import type { SvelteForm } from './types';
 import { createRegisterAction } from './RegisterAction';
+import { useFieldWithForm } from './useField';
 import { useFormStateWithForm } from './useFormState';
 
 /** Svelte action surface를 core Form 인스턴스에 바인딩한다. */
@@ -13,6 +14,9 @@ export function useForm<TValues>(input: FormInput<TValues>): SvelteForm<TValues>
   return {
     form,
     register: createRegisterAction(form),
+    useField(options) {
+      return useFieldWithForm(form, options);
+    },
     useFormState() {
       return useFormStateWithForm(form);
     },

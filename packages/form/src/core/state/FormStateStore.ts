@@ -86,6 +86,16 @@ export class FormStateStore<TValues> {
     this.writer.touchField(fieldKey);
   }
 
+  /** field의 isFocused를 true로 바꾼다. focus 이벤트에서 호출된다. */
+  public focusField(fieldKey: PathKey): void {
+    this.writer.focusField(fieldKey);
+  }
+
+  /** field의 isFocused를 false로 바꾼다. blur 이벤트에서 호출된다. */
+  public unfocusField(fieldKey: PathKey): void {
+    this.writer.unfocusField(fieldKey);
+  }
+
   /** field의 errors를 새 배열로 교체한다. validation 결과와 외부 setErrors가 공통으로 사용한다. */
   public setErrorsByKey(fieldKey: PathKey, errors: readonly FormError[]): void {
     this.writer.setErrorsByKey(fieldKey, errors);

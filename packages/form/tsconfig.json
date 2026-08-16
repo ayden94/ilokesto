@@ -3,7 +3,9 @@
     "declaration": true,
     "declarationDir": "dist",
     "emitDeclarationOnly": false,
+    "sourceMap": true,
     "jsx": "react-jsx",
+    "ignoreDeprecations": "6.0",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "dist",
@@ -13,7 +15,7 @@
     "allowJs": true,
     "checkJs": true,
     "esModuleInterop": true,
-    "removeComments": true,
+    "removeComments": false,
     "types": ["node"]
   },
   "include": ["src"]

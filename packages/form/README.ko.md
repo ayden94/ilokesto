@@ -30,7 +30,7 @@
 
 ## Installation
 
-현재 이 repository의 `package.json`은 package를 private으로 표시한다. workspace에서는 package manager 또는 workspace protocol을 통해 추가하면 된다. package가 publish되거나 link된 상태에서 import surface는 다음과 같다.
+이 패키지는 `@ilokesto/form` 이름으로 npm에 public access로 게시된다. workspace에서는 package manager 또는 workspace protocol을 통해 추가하면 된다. package가 publish되거나 link된 상태에서 import surface는 다음과 같다.
 
 ```ts
 import { CreateForm } from '@ilokesto/form';
@@ -46,6 +46,8 @@ pnpm test
 ```
 
 이 package는 ESM JavaScript와 TypeScript declaration을 `dist/`로 emit한다.
+
+> **ESM-only.** 이 package는 `"type": "module"`과 ESM-only `exports`를 제공한다. CommonJS `require()`는 지원하지 않는다. Vite, webpack 5+, esbuild, tsup 같은 현대 번들러 또는 Node.js ESM(`import`)을 사용하라. CJS 호환이 필요하면 dynamic `import()` 또는 번들러에서 `@ilokesto/form`을 transpile하도록 설정하라.
 
 ## Quick start
 
@@ -185,6 +187,21 @@ Event model은 DOM event 중심이다. Custom component도 DOM-compatible `value
 
 Vue binding은 `./vue` subpath로 노출된다. React adapter와 같은 `useForm(form)` 형태를 쓰지만, Vue template의 `v-bind`에 바로 전달할 수 있도록 `onInput`, `onChange`, `onBlur`, `onFocus` handler를 가진 props를 반환한다.
 
+`useForm`은 `values` 필드(`ref`, `computed`, getter, 평면 값 모두 가능)와 optional `resetOptions`를 가진 `VueFormOptions` 객체도 받는다. `values` reference가 바뀌면 adapter가 `form.reset(values, resetOptions)`를 호출한다 — React adapter와 동일한 모델. 추적을 보장하려면 반응형 소스(`ref`/`computed`)를 직접 전달하라. 평면 값은 생성 시 1회 평가되며 컴포넌트가 다시 렌더링되어 `useForm`이 다시 호출될 때 다시 평가된다.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useForm } from '@ilokesto/form/vue';
+
+const serverValues = ref({ email: 'initial@example.com' });
+const { form, useRegister } = useForm({
+  defaultValues: { email: '' },
+  values: serverValues,
+});
+</script>
+```
+
 ```vue
 <script setup lang="ts">
 import { CreateForm } from '@ilokesto/form';
@@ -242,7 +259,7 @@ Vue adapter도 같은 세 가지 개념을 노출한다.
 | `useRegister(options)` | 하나의 input 중심 `v-bind` binding object를 반환한다. `type`이 포함되고 기본값은 `text`다. Text input은 `input` event에서, checkbox/radio는 `change` event에서 값을 갱신한다. select/textarea 타입은 generic으로 좁힌다. |
 | `useRegister(options[])` / `useRegister(optionA, optionB)` | map-friendly rendering을 위해 여러 binding object를 반환한다. |
 | `useField(options)` | getter 기반 reactive read를 가진 `{ props, value, setValue, errors, dirty, touched }`를 반환한다. |
-| `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate getter를 반환한다. |
+| `useFormState()` | `errors`, `dirtyFields`, `touchedFields`, `focusedField`, `isDirty`, `isValid`, `submitCount` 같은 form 전체 aggregate getter를 반환한다. |
 
 Field-local schema는 React와 같은 방식으로 동작하고 현재 Vue effect scope가 정리될 때 함께 cleanup된다.
 
@@ -292,7 +309,7 @@ Solid adapter는 Vue와 같은 의미의 `useRegister`, `useField`, `useFormStat
 
 ## Svelte adapter
 
-Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rendering을 쓰지 않으므로 adapter는 `register` action과 Svelte readable form-state store를 제공한다.
+Svelte binding은 `./svelte` subpath로 노출된다. Adapter는 register action과 함께 form-wide 및 field-local state를 위한 readable store를 제공한다.
 
 ```svelte
 <script lang="ts">
@@ -308,12 +325,17 @@ Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rende
     validateOn: ['blur', 'submit'],
   });
 
-  const { register, useFormState } = useForm(form);
+  const { register, useField, useFormState } = useForm(form);
+  const email = useField({ name: 'email', schema: emailSchema });
+  const emailProps = email.props;
   const state = useFormState();
 </script>
 
 <form>
-  <input use:register={{ name: 'email', schema: emailSchema }} />
+  <input use:emailProps />
+  {#each $email.errors as error}
+    <p>{error.message}</p>
+  {/each}
   <input type="checkbox" use:register={{ name: 'remember', type: 'checkbox' }} />
 
   <select use:register={{ name: 'role' }}>
@@ -325,7 +347,7 @@ Svelte binding은 `./svelte` subpath로 노출된다. Svelte는 hook-style rende
 </form>
 ```
 
-Svelte action은 DOM synchronization을 직접 담당한다. DOM `name`을 설정하고, form state에서 `value`/`checked`를 sync하고, user change를 core form에 쓰며, action이 destroy될 때 field-local schema를 cleanup한다.
+Svelte action은 DOM synchronization을 직접 담당한다. `useField`는 `$email`로 소비하는 `Readable<SvelteFieldSnapshot>`이며 최신 `value`, `errors`, `dirty`, `touched`를 emit하고 마지막 subscriber가 해제되면 core subscription도 정리한다.
 
 ## Core concepts
 
@@ -399,6 +421,7 @@ type FieldState<TValue = unknown> = {
   touched: boolean;
   dirty: boolean;
   modified: boolean;
+  isFocused: boolean;
 };
 ```
 
@@ -407,6 +430,7 @@ Flag의 의미:
 - `touched`: field가 한 번 이상 blur되었다.
 - `dirty`: 현재 value가 같은 path의 initial value와 `Object.is` 기준으로 다르다.
 - `modified`: `source: 'user'` write로 field가 변경되었다.
+- `isFocused`: field가 현재 focus 중이다. `focus()`가 `true`로, `blur()`가 (`validateOn`과 무관하게 항상) `false`로 설정한다.
 - `errors`: validation 또는 manual assignment로 붙은 field errors.
 
 ### `FormState`
@@ -442,9 +466,9 @@ Core는 leaf field states와 array container keys를 따로 저장한다.
     items: [{ title: 'A' }, { title: 'B' }],
   },
   fields: {
-    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false },
-    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false },
-    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false },
+    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
   },
   submitCount: 0,
   arrayKeys: {
@@ -625,6 +649,8 @@ Effects:
 
 `setValue()`는 `void`를 반환한다. Change validation은 async로 시작되며 method가 await하지 않는다.
 
+Async validation은 target-aware하게 동작한다. 새 validation은 겹치는 field만 supersede하며 서로 독립적인 field validation은 동시에 완료될 수 있다. Full-form submit validation은 자신이 검증한 value snapshot도 확인한다. stale submit은 authoritative result를 얻을 때까지 재검증하며 기본값으로 `onValid`를 호출하지 않는다.
+
 ### `blur(path)`
 
 Field를 touched 처리하고 필요하면 validate한다.
@@ -637,7 +663,9 @@ const valid = await form.blur('email');
 
 ### `focus(path)`
 
-현재는 no-op이다. Minimal core state가 focused field를 저장하지 않더라도 framework adapter가 stable command surface를 제공할 수 있도록 존재한다.
+`path`에 해당하는 field의 `isFocused`를 `true`로 바꾼다. 다른 field는 건드리지 않는다 — DOM이 이전에 focus 되어 있던 element에 자연스럽게 `blur` 이벤트를 발생시키므로, `blur()`를 통해 `isFocused`가 clearing된다. Array rebasing 시 `isFocused`는 `move`/`swap`/`insert`/`remove`에 대해 보존된다.
+
+core는 DOM과 독립적이므로 여러 field에 `focus()`를 호출하면 둘 이상이 동시에 `isFocused: true`가 될 수 있다. DOM 어댑터에서는 브라우저가 자연스럽게 한 번에 하나로 제한하지만, core를 직접 사용할 때는 이전 field를 `blur()` 하는 것은 호출자의 책임이다. `useFormState().focusedField` aggregate는 **`Object.entries` 순서상 첫 번째**로 발견된 focused field를 반환하며, "가장 최근에 focus 된 field"가 아니다. 모든 focused field를 알려면 `state.fields`를 직접 순회하라.
 
 ### `setErrors(path, errors)`
 
@@ -968,7 +996,7 @@ Constructor는 하나의 `FormStateStore`를 만들고 모든 collaborator에 �
 2. Field를 touched 처리한다.
 3. 설정된 경우에만 blur validation을 실행한다.
 
-`focus()`는 현재 no-op이다. Minimal core state가 focus를 추적하지 않기 때문이다. Adapter-level consistency를 위해 method는 유지한다.
+`focus()`는 field의 `isFocused`를 `true`로 바꾼다. 대응되는 `blur()` command가 `isFocused`를 clearing하고 (`validateOn` 설정과 무관하게 항상), field를 `touched`로 표시한다. `isFocused` flag는 array rebasing 시 보존된다.
 
 `setErrors()`, `clearErrors()`, `trigger()`는 path를 key로 normalize하고 store 또는 validation engine에 위임한다.
 
@@ -1033,6 +1061,8 @@ Reader는 store를 직접 소유하지 않고 snapshot getter를 받기 때문�
 
 `FormStateWriter`는 모든 state mutation을 `immer`로 수행한다.
 
+> **번들 참고:** `immer`는 컨슈머 번들에 ~5KB를 추가한다. `FormState`가 flat `Record<PathKey, FieldState>` 구조이므로 spread 기반 업데이트(`{ ...state, [key]: nextField }`)로 immer를 대체해도 동작이 동일하다. 마이그레이션 전에 벤치마크하라 — immer는 구조 공유와 가독성 이점을 제공하며, array rebasing 경로에서는 크기 비용을 상회할 수 있다.
+
 `setValue()`:
 
 - Tuple path를 `PathKey`로 변환한다.
@@ -1078,6 +1108,8 @@ Key methods:
 
 JSON encoding이 path collision을 방지한다.
 
+> **성능 참고:** `pathToKey`는 `JSON.stringify`를, `keyToPath`는 `JSON.parse`를 사용한다. 큰 폼(수백 필드)에서 잦은 업데이트 시 NUL separator 기반 커스텀 인코딩으로 hot path 오버헤드를 줄일 수 있다. 마이그레이션 전에 벤치마크하라 — 현재 접근은 정확하고 읽기 쉬우며 실제 영향은 보통 미미하다.
+
 ### `src/core/value/ValueHelper.ts`
 
 `ValueHelper`는 immutable nested value operations를 제공한다.
@@ -1104,6 +1136,8 @@ JSON encoding이 path collision을 방지한다.
 - `validateRegisteredFields(trigger)`는 full schema를 실행하고 current fields와 schema error keys 전체를 update한다.
 
 Engine은 schema를 호출할 때 trigger value를 전달하지 않는다. Trigger는 engine이 언제 실행될지를 제어하지 schema API를 바꾸지 않는다.
+
+`ValidationSequencer`는 full-form revision과 field별 revision을 추적한다. 겹치는 작업만 stale 처리하고 독립 field 작업은 유지하며, error나 submit callback을 적용하기 전에 captured field-value 및 array-shape snapshot이 최신인지 확인한다.
 
 ### `src/core/validation/StandardSchemaValidator.ts`
 

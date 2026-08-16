@@ -14,6 +14,7 @@ export class FieldStateFactory {
     touched: false,
     dirty: false,
     modified: false,
+    isFocused: false,
   };
 
   /** 특정 value를 가진 새 FieldState를 만든다. 초기 상태이므로 errors/touched/dirty/modified는 모두 비어 있거나 false다. */

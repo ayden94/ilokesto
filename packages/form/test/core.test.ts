@@ -219,3 +219,155 @@ test('keepDirtyValues preserves array dirty fields only at surviving indexes', (
   expect(form.getFieldState(['items', 1, 'name']).dirty).toBe(true);
   expect(form.getFieldState(['items', 2, 'name']).dirty).toBe(false);
 });
+
+test('field starts with isFocused false and focus() flips it to true', () => {
+  const form = new CreateForm({ defaultValues: { email: '', name: '' } });
+
+  expect(form.getFieldState('email').isFocused).toBe(false);
+
+  form.focus('email');
+
+  expect(form.getFieldState('email').isFocused).toBe(true);
+});
+
+test('focus on one field does not change another field isFocused', () => {
+  const form = new CreateForm({ defaultValues: { email: '', name: '' } });
+
+  form.focus('email');
+  form.focus('name');
+
+  expect(form.getFieldState('email').isFocused).toBe(true);
+  expect(form.getFieldState('name').isFocused).toBe(true);
+});
+
+test('blur clears isFocused regardless of blur validation being enabled', async () => {
+  const form = new CreateForm({
+    defaultValues: { email: '' },
+    validateOn: ['blur'],
+    schema: standardSchema(() => ({ value: { email: '' } })),
+  });
+
+  form.focus('email');
+  expect(form.getFieldState('email').isFocused).toBe(true);
+
+  await form.blur('email');
+
+  expect(form.getFieldState('email').isFocused).toBe(false);
+  expect(form.getFieldState('email').touched).toBe(true);
+});
+
+test('blur clears isFocused even when blur validation is disabled', async () => {
+  const form = new CreateForm({ defaultValues: { email: '' } });
+
+  form.focus('email');
+  expect(form.getFieldState('email').isFocused).toBe(true);
+
+  await form.blur('email');
+
+  expect(form.getFieldState('email').isFocused).toBe(false);
+  expect(form.getFieldState('email').touched).toBe(true);
+});
+
+test('reset clears isFocused back to false', () => {
+  const form = new CreateForm({ defaultValues: { email: '' } });
+
+  form.focus('email');
+  expect(form.getFieldState('email').isFocused).toBe(true);
+
+  form.reset();
+
+  expect(form.getFieldState('email').isFocused).toBe(false);
+});
+
+test('array move preserves isFocused on the moved child', () => {
+  const form = new CreateForm({ defaultValues: {
+    items: [{ name: 'a' }, { name: 'b' }, { name: 'c' }],
+  } });
+  const array = form.array('items');
+
+  form.focus(['items', 1, 'name']);
+  expect(form.getFieldState(['items', 1, 'name']).isFocused).toBe(true);
+
+  array.move(1, 0);
+
+  expect(form.getFieldState(['items', 0, 'name']).isFocused).toBe(true);
+  expect(form.getFieldState(['items', 1, 'name']).isFocused).toBe(false);
+});
+
+test('async validation race: stale slower validation does not overwrite newer results', async () => {
+  let resolveValidation: ((result: { value: unknown } | { issues: readonly [{ message: string; path: readonly string[] }] }) => void) | undefined;
+  let schemaCallCount = 0;
+
+  const schema = standardSchema(() => {
+    schemaCallCount += 1;
+    return new Promise(r => { resolveValidation = r as typeof resolveValidation; });
+  });
+
+  const form = new CreateForm({
+    defaultValues: { email: '' },
+    validateOn: ['change'],
+    schema,
+  });
+
+  form.setValue('email', 'first', { source: 'user' });
+  const firstPromise = form.trigger('email');
+
+  form.setValue('email', 'second', { source: 'user' });
+  const secondPromise = form.trigger('email');
+
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  expect(schemaCallCount).toBe(1);
+  expect(resolveValidation).toBeDefined();
+
+  resolveValidation!({ value: {} });
+  await secondPromise;
+
+  expect(form.getFieldState('email').errors).toEqual([]);
+
+  await firstPromise;
+
+  expect(form.getFieldState('email').errors).toEqual([]);
+});
+
+test('async validation race: latest validation result is applied when it resolves last', async () => {
+  let resolveValidation: ((result: { value: unknown } | { issues: readonly [{ message: string; path: readonly string[] }] }) => void) | undefined;
+  let schemaCallCount = 0;
+
+  const schema = standardSchema(() => {
+    schemaCallCount += 1;
+    return new Promise(r => { resolveValidation = r as typeof resolveValidation; });
+  });
+
+  const form = new CreateForm({
+    defaultValues: { email: '' },
+    validateOn: ['change'],
+    schema,
+  });
+
+  form.setValue('email', 'first', { source: 'user' });
+  const firstPromise = form.trigger('email');
+
+  form.setValue('email', 'second', { source: 'user' });
+  const secondPromise = form.trigger('email');
+
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+
+  expect(schemaCallCount).toBe(1);
+  expect(resolveValidation).toBeDefined();
+
+  resolveValidation!({ issues: [{ message: 'Second is invalid', path: ['email'] }] });
+  await secondPromise;
+
+  expect(form.getFieldState('email').errors.map(error => error.message)).toEqual(['Second is invalid']);
+
+  await firstPromise;
+
+  expect(form.getFieldState('email').errors.map(error => error.message)).toEqual(['Second is invalid']);
+});

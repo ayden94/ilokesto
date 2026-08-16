@@ -41,11 +41,13 @@ export class FormFieldCommands<TValues> {
   /**
    * blur 이벤트를 처리한다.
    *
-   * 먼저 touched를 true로 바꾸고, validateOn에 blur가 있을 때만 schema validation을 실행한다.
-   * blur validation이 꺼져 있으면 성공으로 간주해 true를 반환한다.
+   * 먼저 isFocused를 false로 바꾸고 touched를 true로 설정한다.
+   * validateOn에 blur가 있을 때만 schema validation을 실행한다.
+   * blur validation이 꺼져 있어도 isFocused 해제와 touched 표시는 항상 수행한다.
    */
   public async blur(path: FieldPathInput): Promise<boolean> {
     const fieldKey = FormPath.pathInputToKey(path);
+    this.store.unfocusField(fieldKey);
     this.store.touchField(fieldKey);
 
     if (!this.validation.shouldValidateOn('blur')) {
@@ -56,13 +58,14 @@ export class FormFieldCommands<TValues> {
   }
 
   /**
-   * focus 이벤트 진입점이다.
+   * focus 이벤트를 처리한다.
    *
-   * 지금의 FormState에는 focused 필드가 없으므로 상태를 바꾸지 않는다.
-   * 다만 framework adapter가 onFocus를 일관된 form 명령으로 합성할 수 있게 메서드는 유지한다.
+   * 해당 field의 isFocused를 true로 바꾼다. 다른 field의 isFocused는 건드리지 않는다.
+   * DOM은 focus가 다른 element로 옮겨질 때 이전 element에 blur 이벤트를 자연스럽게 발생시키므로,
+   * 이 메서드가 다른 field를 명시적으로 unfocus 할 필요는 없다.
    */
-  public focus(_path: FieldPathInput): void {
-    // 현재 최소 상태에는 focused가 없으므로 focus는 framework event 합성을 위한 no-op command로 둔다.
+  public focus(path: FieldPathInput): void {
+    this.store.focusField(FormPath.pathInputToKey(path));
   }
 
   /** 특정 필드의 errors 배열을 외부에서 전달받은 값으로 교체한다. */

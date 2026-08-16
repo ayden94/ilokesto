@@ -30,7 +30,7 @@ The package is designed around five ideas:
 
 ## Installation
 
-This repository currently marks the package as private in `package.json`. In a workspace, add it through your package manager or workspace protocol. When the package is published or linked, the import surface is:
+This package is published to npm under the `@ilokesto/form` name with public access. In a workspace, add it through your package manager or workspace protocol. When the package is published or linked, the import surface is:
 
 ```ts
 import { CreateForm } from '@ilokesto/form';
@@ -46,6 +46,8 @@ pnpm test
 ```
 
 The package emits ESM JavaScript and TypeScript declarations to `dist/`.
+
+> **ESM-only.** This package ships `"type": "module"` with ESM-only `exports`. CommonJS `require()` is not supported. Use a modern bundler (Vite, webpack 5+, esbuild, tsup) or Node.js ESM (`import`). If you need CJS compatibility, use dynamic `import()` or configure your bundler to transpile `@ilokesto/form`.
 
 ## Quick start
 
@@ -187,6 +189,21 @@ The event model is DOM-event centered. Custom components can use `useRegister` w
 
 Vue bindings are exposed through the `./vue` subpath. They use the same `useForm(form)` shape as the React adapter, but return Vue-friendly `v-bind` props with `onInput`, `onChange`, `onBlur`, and `onFocus` handlers.
 
+`useForm` also accepts a `VueFormOptions` object with a `values` field (a `ref`, `computed`, getter, or plain value) and an optional `resetOptions`. When `values` changes by reference, the adapter calls `form.reset(values, resetOptions)` — the same model as the React adapter. Pass reactive sources (`ref`/`computed`) directly so Vue can track them; plain values are evaluated once on creation and re-evaluated when the component re-renders and `useForm` is called again.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useForm } from '@ilokesto/form/vue';
+
+const serverValues = ref({ email: 'initial@example.com' });
+const { form, useRegister } = useForm({
+  defaultValues: { email: '' },
+  values: serverValues,
+});
+</script>
+```
+
 ```vue
 <script setup lang="ts">
 import { CreateForm } from '@ilokesto/form';
@@ -244,7 +261,7 @@ The Vue adapter exposes the same three concepts:
 | `useRegister(options)` | Returns one input-oriented `v-bind` binding object. It includes `type` and defaults to `text`; text inputs update on `input`; checkbox/radio update on `change`. Use a generic for select/textarea binding types. |
 | `useRegister(options[])` / `useRegister(optionA, optionB)` | Returns multiple binding objects for map-friendly rendering. |
 | `useField(options)` | Returns `{ props, value, setValue, errors, dirty, touched }` with getter-backed reactive reads. |
-| `useFormState()` | Returns form-wide aggregate getters such as `errors`, `dirtyFields`, `touchedFields`, `isDirty`, `isValid`, and `submitCount`. |
+| `useFormState()` | Returns form-wide aggregate getters such as `errors`, `dirtyFields`, `touchedFields`, `focusedField`, `isDirty`, `isValid`, and `submitCount`. |
 
 Field-local schemas work the same way as React and are cleaned up with the current Vue effect scope.
 
@@ -294,7 +311,7 @@ The Solid adapter exposes `useRegister`, `useField`, and `useFormState` with the
 
 ## Svelte adapter
 
-Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use hook-style rendering, so the adapter exposes a `register` action and a Svelte readable form-state store.
+Svelte bindings are exposed through the `./svelte` subpath. The adapter exposes register actions plus readable stores for both form-wide and field-local state.
 
 ```svelte
 <script lang="ts">
@@ -310,12 +327,17 @@ Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use 
     validateOn: ['blur', 'submit'],
   });
 
-  const { register, useFormState } = useForm(form);
+  const { register, useField, useFormState } = useForm(form);
+  const email = useField({ name: 'email', schema: emailSchema });
+  const emailProps = email.props;
   const state = useFormState();
 </script>
 
 <form>
-  <input use:register={{ name: 'email', schema: emailSchema }} />
+  <input use:emailProps />
+  {#each $email.errors as error}
+    <p>{error.message}</p>
+  {/each}
   <input type="checkbox" use:register={{ name: 'remember', type: 'checkbox' }} />
 
   <select use:register={{ name: 'role' }}>
@@ -327,7 +349,7 @@ Svelte bindings are exposed through the `./svelte` subpath. Svelte does not use 
 </form>
 ```
 
-The Svelte action owns DOM synchronization directly: it sets the DOM `name`, keeps `value`/`checked` in sync from form state, writes user changes back to the core form, and cleans up field-local schemas when the action is destroyed.
+The Svelte action owns DOM synchronization directly. `useField` is a `Readable<SvelteFieldSnapshot>` consumed as `$email`; it emits current `value`, `errors`, `dirty`, and `touched` state and releases its core subscription when the last subscriber leaves.
 
 ## Core concepts
 
@@ -401,6 +423,7 @@ type FieldState<TValue = unknown> = {
   touched: boolean;
   dirty: boolean;
   modified: boolean;
+  isFocused: boolean;
 };
 ```
 
@@ -409,6 +432,7 @@ The flags mean:
 - `touched`: the field was blurred at least once.
 - `dirty`: the current value is not `Object.is`-equal to the initial value at the same path.
 - `modified`: the field was changed by a user-sourced write, `source: 'user'`.
+- `isFocused`: the field currently has focus. Set to `true` by `focus()` and cleared by `blur()` (always, regardless of `validateOn`).
 - `errors`: validation or manually assigned field errors.
 
 ### `FormState`
@@ -444,9 +468,9 @@ The core stores leaf field states and array container keys separately:
     items: [{ title: 'A' }, { title: 'B' }],
   },
   fields: {
-    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false },
-    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false },
-    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false },
+    '["user","name"]': { value: 'Ada', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",0,"title"]': { value: 'A', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
+    '["items",1,"title"]': { value: 'B', errors: [], touched: false, dirty: false, modified: false, isFocused: false },
   },
   submitCount: 0,
   arrayKeys: {
@@ -627,6 +651,8 @@ Effects:
 
 `setValue()` returns `void`; change validation is started asynchronously and is not awaited by the method.
 
+Async validation is target-aware. New validation supersedes only overlapping fields, while independent field validations may complete concurrently. Full-form submit validation also verifies the value snapshot it validated; stale submit attempts retry until they obtain an authoritative result and never call `onValid` by default.
+
 ### `blur(path)`
 
 Marks the field as touched and optionally validates it.
@@ -639,7 +665,9 @@ If `validateOn` does not contain `'blur'`, it returns `true` after touching the 
 
 ### `focus(path)`
 
-Currently a no-op. It exists so framework adapters can expose a stable command surface for focus events even though the minimal core state does not store a focused field.
+Sets `isFocused: true` on the field at `path`. Other fields are not touched — DOM naturally fires a `blur` event on the previously focused element, which clears `isFocused` via `blur()`. Array rebasing preserves `isFocused` across `move`/`swap`/`insert`/`remove`.
+
+The core is DOM-independent, so calling `focus()` on multiple fields can leave more than one field with `isFocused: true`. In DOM adapters this is naturally bounded to one by the browser; in direct core usage it is the caller's responsibility to `blur()` the previous field. The `useFormState().focusedField` aggregate returns the **first** focused field found in `Object.entries` order, not the most recently focused one — to enumerate all focused fields, iterate `state.fields` directly.
 
 ### `setErrors(path, errors)`
 
@@ -971,7 +999,7 @@ This keeps the public API stable while implementation responsibilities stay sepa
 2. Marks the field as touched.
 3. Runs blur validation only when configured.
 
-`focus()` is currently a no-op because the minimal core state does not track focus. The method exists for adapter-level consistency.
+`focus()` sets `isFocused: true` on the field. The matching `blur()` command clears `isFocused` (always, regardless of `validateOn`) and marks the field as `touched`. The `isFocused` flag is preserved across array rebasing.
 
 `setErrors()`, `clearErrors()`, and `trigger()` normalize paths to keys and delegate to the store or validation engine.
 
@@ -1036,6 +1064,8 @@ The reader receives a snapshot getter rather than owning the store directly, so 
 
 `FormStateWriter` performs all state mutations through `immer`.
 
+> **Bundle note:** `immer` adds ~5KB to consumer bundles. Since `FormState` uses a flat `Record<PathKey, FieldState>`, spread-based updates (`{ ...state, [key]: nextField }`) could replace immer with no behavioral change. Benchmark before migrating — immer provides structural sharing and readability benefits that may outweigh the size cost for array rebasing paths.
+
 `setValue()`:
 
 - Converts the tuple path to a `PathKey`.
@@ -1081,6 +1111,8 @@ Key methods:
 
 The JSON encoding is what prevents path collisions.
 
+> **Performance note:** `pathToKey` uses `JSON.stringify` and `keyToPath` uses `JSON.parse`. For large forms (hundreds of fields) with frequent updates, a custom separator-based encoding (e.g. NUL-joined) could reduce hot-path overhead. Benchmark before migrating — the current approach is correct and readable, and real-world impact is typically negligible.
+
 ### `src/core/value/ValueHelper.ts`
 
 `ValueHelper` provides immutable nested value operations.
@@ -1107,6 +1139,8 @@ This lets normalized `fields` become a nested object again.
 - `validateRegisteredFields(trigger)` runs the full schema and updates all current fields plus all schema error keys.
 
 The engine deliberately ignores the trigger value when calling the schema. The trigger controls when the engine runs, not the schema API.
+
+`ValidationSequencer` tracks full-form and per-field revisions. Overlapping work becomes stale, independent field work remains valid, and every result is checked against its captured field-value and array-shape snapshot before errors or submit callbacks are applied.
 
 ### `src/core/validation/StandardSchemaValidator.ts`
 

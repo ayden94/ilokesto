@@ -1,6 +1,17 @@
 import { StandardSchemaValidator, type StandardSchemaValidationResult } from './StandardSchemaValidator';
+import { ValidationSequencer, type ValidationToken } from './ValidationSequencer';
 import type { FormStateStore } from '../state/index';
 import type { CreateFormOptions, FieldSchemaOptions, FormError, PathKey, ValidationTrigger } from '../types';
+
+export type ValidationOutcome =
+  | { readonly kind: 'invalid' }
+  | { readonly kind: 'stale' }
+  | { readonly kind: 'valid' };
+
+type ValueSnapshot = {
+  readonly arrayKeys: ReadonlyMap<PathKey, readonly string[]>;
+  readonly fieldValues: ReadonlyMap<PathKey, unknown>;
+};
 
 /**
  * Standard Schema validation 실행을 담당하는 엔진이다.
@@ -24,6 +35,7 @@ export class ValidationEngine<TValues> {
   private readonly validateOn: readonly ValidationTrigger[];
   /** field schema cleanup이 최신 등록만 제거하도록 구분하는 증가 id다. */
   private nextFieldSchemaId = 0;
+  private readonly sequencer = new ValidationSequencer();
 
   /**
    * validation engine을 만든다.
@@ -61,10 +73,12 @@ export class ValidationEngine<TValues> {
       id,
       validator: new StandardSchemaValidator(options.schema, options.schemaOptions),
     });
+    this.sequencer.invalidateFields([fieldKey]);
 
     return () => {
       if (this.fieldSchemas.get(fieldKey)?.id === id) {
         this.fieldSchemas.delete(fieldKey);
+        this.sequencer.invalidateFields([fieldKey]);
       }
     };
   }
@@ -77,16 +91,7 @@ export class ValidationEngine<TValues> {
    * @returns 해당 field에 errors가 하나도 없으면 true.
    */
   public async validateField(fieldKey: PathKey, _trigger: ValidationTrigger): Promise<boolean> {
-    const fieldSchemaErrors = await this.validateFieldSchema(fieldKey);
-
-    if (fieldSchemaErrors) {
-      this.applyErrors([fieldKey], { [fieldKey]: fieldSchemaErrors });
-      return fieldSchemaErrors.length === 0;
-    }
-
-    const schemaResult = await this.validateSchema();
-    this.applyErrors([fieldKey], schemaResult.errorsByKey);
-    return (schemaResult.errorsByKey[fieldKey] ?? []).length === 0;
+    return this.validateFields([fieldKey], _trigger);
   }
 
   /**
@@ -103,11 +108,23 @@ export class ValidationEngine<TValues> {
       return this.validateRegisteredFields('manual');
     }
 
+    const token = this.sequencer.startFields(targetFieldKeys);
+    const snapshot = this.captureValueSnapshot();
     const localErrorsByKey = await this.validateFieldSchemas(targetFieldKeys);
+
+    if (this.isStale(token, snapshot)) {
+      return false;
+    }
+
     const formSchemaFieldKeys = targetFieldKeys.filter(fieldKey => !this.fieldSchemas.has(fieldKey));
     const schemaResult = formSchemaFieldKeys.length > 0
       ? await this.validateSchema()
       : ValidationEngine.createValidSchemaResult();
+
+    if (this.isStale(token, snapshot)) {
+      return false;
+    }
+
     const errorsByKey = this.mergeErrorsByKey(schemaResult.errorsByKey, localErrorsByKey);
 
     this.applyErrors([...formSchemaFieldKeys, ...Object.keys(localErrorsByKey)], errorsByKey);
@@ -122,14 +139,35 @@ export class ValidationEngine<TValues> {
    * @returns schema validation이 성공하면 true.
    */
   public async validateRegisteredFields(_trigger: ValidationTrigger): Promise<boolean> {
+    const outcome = await this.validateRegisteredFieldsOutcome(_trigger);
+    return outcome.kind === 'valid';
+  }
+
+  public async validateRegisteredFieldsOutcome(
+    _trigger: ValidationTrigger,
+  ): Promise<ValidationOutcome> {
+    const token = this.sequencer.startFull();
+    const snapshot = this.captureValueSnapshot();
     const schemaResult = await this.validateSchema();
+
+    if (this.isStale(token, snapshot)) {
+      return { kind: 'stale' };
+    }
+
     const localErrorsByKey = await this.validateRegisteredFieldSchemas();
+
+    if (this.isStale(token, snapshot)) {
+      return { kind: 'stale' };
+    }
+
     const errorsByKey = this.mergeErrorsByKey(schemaResult.errorsByKey, localErrorsByKey);
     const keysToWrite = this.getValidationWriteKeys(errorsByKey);
 
     this.applyErrors(keysToWrite, errorsByKey);
 
-    return keysToWrite.every(fieldKey => (errorsByKey[fieldKey] ?? []).length === 0);
+    return keysToWrite.every(fieldKey => (errorsByKey[fieldKey] ?? []).length === 0)
+      ? { kind: 'valid' }
+      : { kind: 'invalid' };
   }
 
   /**
@@ -143,6 +181,32 @@ export class ValidationEngine<TValues> {
     }
 
     return this.schema.validate(this.store.getValues());
+  }
+
+  private captureValueSnapshot(): ValueSnapshot {
+    const state = this.store.getState();
+    return {
+      arrayKeys: new Map(Object.entries(state.arrayKeys)),
+      fieldValues: new Map(
+        Object.entries(state.fields).map(([fieldKey, field]) => [fieldKey, field.value]),
+      ),
+    };
+  }
+
+  private isStale(token: ValidationToken, snapshot: ValueSnapshot): boolean {
+    if (this.sequencer.isStale(token)) return true;
+
+    const state = this.store.getState();
+    if (snapshot.fieldValues.size !== Object.keys(state.fields).length) return true;
+    if (snapshot.arrayKeys.size !== Object.keys(state.arrayKeys).length) return true;
+
+    for (const [fieldKey, value] of snapshot.fieldValues) {
+      if (!Object.is(state.fields[fieldKey]?.value, value)) return true;
+    }
+    for (const [fieldKey, keys] of snapshot.arrayKeys) {
+      if (!Object.is(state.arrayKeys[fieldKey], keys)) return true;
+    }
+    return false;
   }
 
   /**

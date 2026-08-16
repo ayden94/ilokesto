@@ -21,6 +21,9 @@ export function useFormStateWithForm<TValues>(form: Form<TValues>): SolidFormSta
     get touchedFields() {
       return getSummary().touchedFields;
     },
+    get focusedField() {
+      return getSummary().focusedField;
+    },
     get isDirty() {
       return getSummary().isDirty;
     },

@@ -29,6 +29,25 @@ const state = useFormState();
 
 반환된 상태는 getter 기반으로 읽히므로 템플릿에서 최신 값을 볼 수 있습니다. field-local 스키마는 현재 Vue effect scope와 함께 정리됩니다. 커스텀 컴포넌트에서는 DOM과 호환되는 value, checked, 이벤트 동작을 통과시키세요.
 
+## 외부 값 동기화
+
+`useForm`에 `values` 옵션(`ref`, `computed`, getter, 평면 값 모두 가능)과 optional `resetOptions`를 전달하면, `values` reference가 바뀔 때 adapter가 `form.reset(values, resetOptions)`를 호출합니다 — React adapter와 동일한 모델입니다.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useForm } from '@ilokesto/form/vue';
+
+const serverValues = ref({ email: 'initial@example.com' });
+const { form, useRegister } = useForm({
+  defaultValues: { email: '' },
+  values: serverValues,
+});
+</script>
+```
+
+변화 추적을 보장하려면 반응형 소스(`ref`/`computed`)를 직접 전달하세요. 평면 값은 생성 시 1회 평가되며 컴포넌트가 다시 렌더링되어 `useForm`이 다시 호출될 때 다시 평가됩니다.
+
 ## 주의할 점
 
 코어 폼은 안정적인 위치에서 만들고, 해당 프레임워크 피어 의존성을 설치하며, 프레임워크 컴포넌트에서는 이 어댑터 하위 경로에서만 가져오세요. 서버 액션이나 도메인 도우미처럼 렌더링이 필요 없는 코드는 루트 `@ilokesto/form` API에 남겨두는 편이 좋습니다.

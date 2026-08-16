@@ -162,3 +162,120 @@ test('Svelte field-local schema overrides form-level schema while action is aliv
   await form.trigger('email');
   expect(form.getFieldState('email').errors.map(error => error.message)).toEqual(['Form-level error']);
 });
+
+test('Svelte useField returns a readable field snapshot with props and setValue', () => {
+  const form = new CreateForm({ defaultValues: { email: '' } });
+  const { useField } = useForm(form);
+  const field = useField({ name: 'email' });
+
+  expect(get(field)).toEqual({
+    dirty: false,
+    errors: [],
+    touched: false,
+    value: '',
+  });
+
+  field.setValue('ada@example.com');
+  expect(get(field).value).toBe('ada@example.com');
+  expect(form.getValue('email')).toBe('ada@example.com');
+  expect(get(field).dirty).toBe(true);
+
+  form.setErrors('email', [{ message: 'Required' }]);
+  expect(get(field).errors.map(error => error.message)).toEqual(['Required']);
+
+  void form.blur('email');
+  expect(get(field).touched).toBe(true);
+});
+
+test('Svelte useField releases its core subscription when the readable subscriber leaves', () => {
+  const form = new CreateForm({ defaultValues: { email: '' } });
+  const field = useForm(form).useField({ name: 'email' });
+  let notifications = 0;
+  const unsubscribe = field.subscribe(() => {
+    notifications += 1;
+  });
+
+  form.setValue('email', 'subscribed');
+  expect(notifications).toBe(2);
+
+  unsubscribe();
+  form.setValue('email', 'unsubscribed');
+  expect(notifications).toBe(2);
+});
+
+test('Svelte useField props action binds input and syncs value', () => {
+  const form = new CreateForm({ defaultValues: { email: '' } });
+  const { useField } = useForm(form);
+  const field = useField({ name: 'email' });
+  const input = document.createElement('input');
+  const action = field.props(input, { name: 'email' });
+
+  expect(input.name).toBe('email');
+
+  input.value = 'grace@example.com';
+  input.dispatchEvent(new InputEvent('input', { bubbles: true }));
+
+  expect(get(field).value).toBe('grace@example.com');
+  expect(form.getValue('email')).toBe('grace@example.com');
+
+  action?.destroy?.();
+});
+
+test('Svelte useField with field-local schema overrides form-level schema while action is alive', async () => {
+  const form = new CreateForm({
+    defaultValues: { email: '' },
+    validateOn: ['blur', 'submit'],
+    schema: standardSchema(() => ({
+      issues: [{ message: 'Form-level error', path: ['email'] }],
+    })),
+  });
+  const emailSchema = standardSchema((value: string) => {
+    if (value.includes('@')) {
+      return { value };
+    }
+
+    return { issues: [{ message: 'Field-level error' }] };
+  });
+  const { useField } = useForm(form);
+  const field = useField({ name: 'email', schema: emailSchema });
+  const input = document.createElement('input');
+  const action = field.props(input, { name: 'email', schema: emailSchema });
+
+  await form.blur('email');
+  expect(get(field).errors.map(error => error.message)).toEqual(['Field-level error']);
+
+  action?.destroy?.();
+  await form.trigger('email');
+  expect(form.getFieldState('email').errors.map(error => error.message)).toEqual(['Form-level error']);
+});
+
+test('Svelte useField schema cleanup restores form-level schema after action destroy', async () => {
+  const form = new CreateForm({
+    defaultValues: { email: '' },
+    validateOn: ['blur', 'submit'],
+    schema: standardSchema(() => ({
+      issues: [{ message: 'Form-level error', path: ['email'] }],
+    })),
+  });
+  const emailSchema = standardSchema((value: string) => {
+    if (value.includes('@')) {
+      return { value };
+    }
+
+    return { issues: [{ message: 'Field-level error' }] };
+  });
+  const { useField } = useForm(form);
+  const field = useField({ name: 'email', schema: emailSchema });
+
+  expect(get(field).errors).toEqual([]);
+
+  const input = document.createElement('input');
+  const action = field.props(input, { name: 'email', schema: emailSchema });
+
+  await form.blur('email');
+  expect(get(field).errors.map(error => error.message)).toEqual(['Field-level error']);
+
+  action?.destroy?.();
+  await form.trigger('email');
+  expect(get(field).errors.map(error => error.message)).toEqual(['Form-level error']);
+});

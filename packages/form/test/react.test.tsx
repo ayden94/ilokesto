@@ -492,3 +492,63 @@ test('field-local schema overrides form-level schema for a registered field', as
 
   await waitFor(() => expect(screen.getByLabelText('errors').textContent).toBe(''));
 });
+
+test('useRegister DOM focus/blur events drive isFocused state', async () => {
+  const form = new CreateForm({ defaultValues: { email: '', name: '' } });
+
+  function Example() {
+    const { useRegister } = useForm(form);
+    const email = useRegister({ name: 'email' });
+    const name = useRegister({ name: 'name' });
+
+    return (
+      <>
+        <input aria-label="email" {...email} />
+        <input aria-label="name" {...name} />
+      </>
+    );
+  }
+
+  render(<Example />);
+
+  expect(form.getFieldState('email').isFocused).toBe(false);
+
+  fireEvent.focus(screen.getByLabelText('email'));
+  await waitFor(() => expect(form.getFieldState('email').isFocused).toBe(true));
+
+  fireEvent.focus(screen.getByLabelText('name'));
+  await waitFor(() => expect(form.getFieldState('name').isFocused).toBe(true));
+
+  fireEvent.blur(screen.getByLabelText('name'));
+  await waitFor(() => {
+    expect(form.getFieldState('name').isFocused).toBe(false);
+    expect(form.getFieldState('name').touched).toBe(true);
+  });
+});
+
+test('useFormState exposes focusedField aggregate', async () => {
+  const form = new CreateForm({ defaultValues: { email: '' } });
+
+  function Example() {
+    const { useRegister, useFormState } = useForm(form);
+    const email = useRegister({ name: 'email' });
+    const state = useFormState();
+
+    return (
+      <>
+        <input aria-label="email" {...email} />
+        <output aria-label="focused">{state.focusedField === null ? 'none' : state.focusedField}</output>
+      </>
+    );
+  }
+
+  render(<Example />);
+
+  await waitFor(() => expect(screen.getByLabelText('focused').textContent).toBe('none'));
+
+  fireEvent.focus(screen.getByLabelText('email'));
+  await waitFor(() => expect(screen.getByLabelText('focused').textContent).toBe('["email"]'));
+
+  fireEvent.blur(screen.getByLabelText('email'));
+  await waitFor(() => expect(screen.getByLabelText('focused').textContent).toBe('none'));
+});

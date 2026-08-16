@@ -1,4 +1,4 @@
-import { effectScope } from 'vue';
+import { computed, effectScope, nextTick, ref } from 'vue';
 import { expect, test } from 'vitest';
 
 import { CreateForm } from '../src/index';
@@ -201,4 +201,101 @@ test('Vue field-local schema overrides form-level schema', async () => {
   scope.stop();
   await form.trigger('email');
   expect(form.getFieldState('email').errors.map(error => error.message)).toEqual(['Form-level error']);
+});
+
+test('Vue useForm syncs form values when ref values change', async () => {
+  const values = ref({ email: 'init@example.com', name: 'Ada' });
+  const scope = effectScope();
+
+  let form: ReturnType<typeof useForm<{ email: string; name: string }>>['form'] | undefined;
+
+  scope.run(() => {
+    const result = useForm<{ email: string; name: string }>({
+      defaultValues: { email: '', name: '' },
+      values,
+    });
+    form = result.form;
+  });
+
+  expect(form!.getValues()).toEqual({ email: 'init@example.com', name: 'Ada' });
+
+  values.value = { email: 'server@example.com', name: 'Grace' };
+  await nextTick();
+
+  expect(form!.getValues()).toEqual({ email: 'server@example.com', name: 'Grace' });
+  scope.stop();
+});
+
+test('Vue useForm syncs form values when plain getter reads reactive source', async () => {
+  const source = ref({ email: 'init@example.com' });
+  const valuesGetter = () => source.value;
+  const scope = effectScope();
+
+  let form: ReturnType<typeof useForm<{ email: string }>>['form'] | undefined;
+
+  scope.run(() => {
+    const result = useForm<{ email: string }>({
+      defaultValues: { email: '' },
+      values: valuesGetter,
+    });
+    form = result.form;
+  });
+
+  expect(form!.getValues()).toEqual({ email: 'init@example.com' });
+
+  source.value = { email: 'server@example.com' };
+  await nextTick();
+
+  expect(form!.getValues()).toEqual({ email: 'server@example.com' });
+  scope.stop();
+});
+
+test('Vue useForm applies resetOptions when values change', async () => {
+  const values = ref<{ email: string }>({ email: 'init@example.com' });
+  const scope = effectScope();
+
+  let form: ReturnType<typeof useForm<{ email: string }>>['form'] | undefined;
+
+  scope.run(() => {
+    const result = useForm<{ email: string }>({
+      defaultValues: { email: '' },
+      values,
+      resetOptions: { keepTouched: true },
+    });
+    form = result.form;
+
+    form!.blur('email');
+    expect(form!.getFieldState('email').touched).toBe(true);
+  });
+
+  values.value = { email: 'server@example.com' };
+  await nextTick();
+
+  expect(form!.getValues()).toEqual({ email: 'server@example.com' });
+  expect(form!.getFieldState('email').touched).toBe(true);
+  scope.stop();
+});
+
+test('Vue useForm accepts computed ref as values', async () => {
+  const source = ref('a@example.com');
+  const values = computed(() => ({ email: source.value }));
+  const scope = effectScope();
+
+  let form: ReturnType<typeof useForm<{ email: string }>>['form'] | undefined;
+
+  scope.run(() => {
+    const result = useForm<{ email: string }>({
+      defaultValues: { email: '' },
+      values,
+    });
+    form = result.form;
+  });
+
+  expect(form!.getValues()).toEqual({ email: 'a@example.com' });
+
+  source.value = 'b@example.com';
+  await nextTick();
+
+  expect(form!.getValues()).toEqual({ email: 'b@example.com' });
+  scope.stop();
 });

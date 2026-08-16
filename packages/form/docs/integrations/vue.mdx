@@ -29,6 +29,25 @@ const state = useFormState();
 
 The returned state uses getter-backed reads so templates see fresh values. Field-local schemas are cleaned up with the current Vue effect scope. For custom components, pass through DOM-compatible value, checked, and event behavior.
 
+## Syncing external values
+
+Pass a `values` option (a `ref`, `computed`, getter, or plain value) and optional `resetOptions` to `useForm`. When `values` changes by reference, the adapter calls `form.reset(values, resetOptions)` — the same model as the React adapter.
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useForm } from '@ilokesto/form/vue';
+
+const serverValues = ref({ email: 'initial@example.com' });
+const { form, useRegister } = useForm({
+  defaultValues: { email: '' },
+  values: serverValues,
+});
+</script>
+```
+
+Pass reactive sources (`ref`/`computed`) directly so Vue can track changes. Plain values are evaluated once on creation and re-evaluated when the component re-renders and `useForm` is called again.
+
 ## Cautions
 
 Create the core form in a stable place, install the matching peer dependency, and import only from this adapter subpath in framework components. Keep server actions and domain helpers on the root `@ilokesto/form` API when they do not need rendering.
