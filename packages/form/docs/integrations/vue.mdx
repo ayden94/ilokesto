@@ -31,7 +31,7 @@ The returned state uses getter-backed reads so templates see fresh values. Field
 
 ## Syncing external values
 
-Pass a `values` option (a `ref`, `computed`, getter, or plain value) and optional `resetOptions` to `useForm`. When `values` changes by reference, the adapter calls `form.reset(values, resetOptions)` — the same model as the React adapter.
+`VueFormOptions` accepts `values` as `MaybeRefOrGetter<T | undefined>` and accepts plain `resetOptions`. The first defined value and each later value with a different `Object.is` identity call `form.reset(values, resetOptions)`. `undefined` pauses synchronization without resetting, and re-emitting the last defined object remains a no-op. `resetOptions` is used only by a value-driven reset.
 
 ```vue
 <script setup lang="ts">
@@ -42,11 +42,12 @@ const serverValues = ref({ email: 'initial@example.com' });
 const { form, useRegister } = useForm({
   defaultValues: { email: '' },
   values: serverValues,
+  resetOptions: { keepDirtyValues: true },
 });
 </script>
 ```
 
-Pass reactive sources (`ref`/`computed`) directly so Vue can track changes. Plain values are evaluated once on creation and re-evaluated when the component re-renders and `useForm` is called again.
+Pass reactive sources (`ref`/`computed`/getter) directly so Vue can track changes. A plain value is evaluated once. This overload requires an active Vue effect scope and fails before form creation when none exists. The watcher stops with that scope, and `useForm(existingForm)` does not install a values watcher.
 
 ## Cautions
 
