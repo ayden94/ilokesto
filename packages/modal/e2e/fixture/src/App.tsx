@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { createOverlayStore } from '@ilokesto/overlay';
 import { ModalProvider, useModal } from '../../../src';
+
+const firstProviderStore = createOverlayStore();
+const secondProviderStore = createOverlayStore();
 
 function InlineConfirmButton() {
   const { display } = useModal();
@@ -107,17 +111,81 @@ function StackedButton() {
   );
 }
 
+interface ProviderControlsProps {
+  readonly name: 'First' | 'Second';
+}
+
+function ProviderControls({ name }: ProviderControlsProps) {
+  const { display } = useModal();
+
+  const openInline = () => {
+    void display({
+      id: `${name.toLowerCase()}-provider-inline`,
+      ariaLabel: `${name} provider inline modal`,
+      render: (close) => (
+        <section>
+          <h2>{name} provider inline</h2>
+          <button type="button">{name} start</button>
+          <button type="button" onClick={() => close()}>{name} close inline</button>
+          <button type="button">{name} end</button>
+        </section>
+      ),
+    });
+  };
+
+  const openTopLayer = () => {
+    void display({
+      id: `${name.toLowerCase()}-provider-top-layer`,
+      transport: 'top-layer',
+      ariaLabel: `${name} provider top-layer modal`,
+      render: (close) => (
+        <section>
+          <h2>{name} provider top layer</h2>
+          <button type="button" onClick={() => close()}>{name} close top layer</button>
+        </section>
+      ),
+    });
+  };
+
+  return (
+    <section aria-label={`${name} provider controls`}>
+      <button type="button" onClick={openInline}>Open {name.toLowerCase()} provider inline</button>
+      <button type="button" onClick={openTopLayer}>Open {name.toLowerCase()} provider top layer</button>
+    </section>
+  );
+}
+
+function ProviderIsolationDemo() {
+  return (
+    <section aria-label="Provider isolation demo">
+      <ModalProvider store={firstProviderStore}>
+        <ProviderControls name="First" />
+      </ModalProvider>
+      <ModalProvider store={secondProviderStore}>
+        <ProviderControls name="Second" />
+      </ModalProvider>
+    </section>
+  );
+}
+
 function DemoApp() {
   return (
-    <ModalProvider>
-      <main>
+    <main>
+      <ModalProvider>
         <h1>Modal E2E Fixture</h1>
         <InlineConfirmButton />
         <TopLayerButton />
         <StackedButton />
-      </main>
-    </ModalProvider>
+      </ModalProvider>
+      <ProviderIsolationDemo />
+    </main>
   );
 }
 
-createRoot(document.getElementById('root')!).render(<DemoApp />);
+const rootElement = document.getElementById('root');
+
+if (rootElement === null) {
+  throw new TypeError('Modal E2E fixture root is missing.');
+}
+
+createRoot(rootElement).render(<DemoApp />);

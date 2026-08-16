@@ -55,3 +55,89 @@ test('reduced motion disables modal animation on first render', async ({ page })
 
   expect(animationDuration).toBe('0s');
 });
+
+test('inline backdrop and z-index stay local to each provider', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open first provider inline' }).click();
+  await page.getByRole('button', { name: 'Open second provider inline' }).dispatchEvent('click');
+
+  const firstDialog = page.getByRole('dialog', { name: 'First provider inline modal' });
+  const secondDialog = page.getByRole('dialog', { name: 'Second provider inline modal' });
+  const firstWrapper = page.locator('.ilokesto-modal-inline-wrapper').filter({ has: firstDialog });
+  const secondWrapper = page.locator('.ilokesto-modal-inline-wrapper').filter({ has: secondDialog });
+
+  await expect(firstWrapper).toHaveCSS('z-index', '10000');
+  await expect(secondWrapper).toHaveCSS('z-index', '10000');
+
+  await firstWrapper.getByRole('button', { name: 'Dismiss modal' }).dispatchEvent('click');
+
+  await expect(firstDialog).toBeHidden();
+  await expect(secondDialog).toBeVisible();
+});
+
+test('Escape dismisses the top inline modal in each provider', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open first provider inline' }).click();
+  await page.getByRole('button', { name: 'Open second provider inline' }).dispatchEvent('click');
+
+  const firstDialog = page.getByRole('dialog', { name: 'First provider inline modal' });
+  const secondDialog = page.getByRole('dialog', { name: 'Second provider inline modal' });
+
+  await page.keyboard.press('Escape');
+
+  await expect(firstDialog).toBeHidden();
+  await expect(secondDialog).toBeHidden();
+});
+
+test('focus wrapping remains inside the selected provider modal', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open first provider inline' }).click();
+  await page.getByRole('button', { name: 'Open second provider inline' }).dispatchEvent('click');
+
+  await page.getByRole('button', { name: 'First end' }).focus();
+  await page.keyboard.press('Tab');
+
+  await expect(page.getByRole('button', { name: 'First start' })).toBeFocused();
+});
+
+test('top-layer cancel only dismisses the provider that owns the dialog', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open first provider top layer' }).click();
+  await page.getByRole('button', { name: 'Open second provider top layer' }).dispatchEvent('click');
+
+  const firstDialog = page.getByRole('dialog', { name: 'First provider top-layer modal' });
+  const secondDialog = page.getByRole('dialog', { name: 'Second provider top-layer modal' });
+
+  await firstDialog.dispatchEvent('cancel');
+
+  await expect(firstDialog).toBeHidden();
+  await expect(secondDialog).toBeVisible();
+});
+
+test('physical Escape dismisses first-provider inline and second-provider top-layer modals', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open first provider inline' }).click();
+  await page.getByRole('button', { name: 'Open second provider top layer' }).dispatchEvent('click');
+
+  const inlineDialog = page.getByRole('dialog', { name: 'First provider inline modal' });
+  const topLayerDialog = page.getByRole('dialog', { name: 'Second provider top-layer modal' });
+
+  await page.keyboard.press('Escape');
+
+  await expect(inlineDialog).toBeHidden();
+  await expect(topLayerDialog).toBeHidden();
+});
+
+test('physical Escape dismisses first-provider top-layer and second-provider inline modals', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Open first provider top layer' }).click();
+  await page.getByRole('button', { name: 'Open second provider inline' }).dispatchEvent('click');
+
+  const topLayerDialog = page.getByRole('dialog', { name: 'First provider top-layer modal' });
+  const inlineDialog = page.getByRole('dialog', { name: 'Second provider inline modal' });
+
+  await page.keyboard.press('Escape');
+
+  await expect(topLayerDialog).toBeHidden();
+  await expect(inlineDialog).toBeHidden();
+});
