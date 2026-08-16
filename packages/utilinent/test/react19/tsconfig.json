@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "allowJs": false,
+    "baseUrl": "../..",
+    "checkJs": false,
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "paths": {
+      "@ilokesto/utilinent": ["dist/index.d.ts"],
+      "react": ["node_modules/@types/react19"],
+      "react/*": ["node_modules/@types/react19/*"]
+    },
+    "types": ["@types/react19"]
+  },
+  "include": ["./Mount.test-d.ts"]
+}

@@ -82,7 +82,7 @@ Each component should describe one rendering responsibility:
 - `For`: list or empty state.
 - `Repeat`: fixed count or fallback.
 - `Switch` + `Match`: first matching branch.
-- `Mount`: resolve a node-producing function, including promises.
+- `Mount`: resolve a node factory that may return a Promise; direct Promise-like children are unsupported across React type versions.
 - `Observer`: render when an element intersects the viewport.
 - `Slacker`: load data lazily when visible.
 - `Slot`: merge props into a child component.

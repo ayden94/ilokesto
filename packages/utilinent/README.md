@@ -91,6 +91,22 @@ export default UserListAfter;
 
 &nbsp;
 
+## Mount async contract
+
+`Mount` accepts direct non-Promise React nodes. Asynchronous work must be passed as a factory, so the contract remains the same with React 18 and React 19 types.
+
+```tsx
+import { Mount } from '@ilokesto/utilinent';
+
+<Mount fallback={<p>Loading preview...</p>} onError={reportError}>
+  {() => loadPreview().then((preview) => <Preview data={preview} />)}
+</Mount>
+```
+
+Direct `Promise` and `PromiseLike` children are intentionally rejected. A factory may return either a node synchronously or a `Promise` of a node.
+
+&nbsp;
+
 ## Custom proxy components
 
 If you want to build your own `Show`-style component (for example, `Clickable`),

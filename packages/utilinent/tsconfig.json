@@ -12,6 +12,7 @@
     "allowJs": true,
     "checkJs": true,
     "esModuleInterop": true,
+    "types": ["react"]
   },
   "include": ["src", "src/index.ts"]
 }
