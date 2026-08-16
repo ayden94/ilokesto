@@ -19,17 +19,17 @@ export type VueFormOptions<TValues> = CreateFormOptions<TValues> & {
 };
 
 type VueBindingHandlers<TElement extends HTMLElement> = {
-  onInput: (event: Event & { currentTarget: TElement }) => void;
-  onChange: (event: Event & { currentTarget: TElement }) => void;
-  onBlur: (event: FocusEvent & { currentTarget: TElement }) => void;
-  onFocus: (event: FocusEvent & { currentTarget: TElement }) => void;
+  onInput: (event: Event) => void;
+  onChange: (event: Event) => void;
+  onBlur: (event: FocusEvent) => void;
+  onFocus: (event: FocusEvent) => void;
 };
 
 /** `<input v-bind="useRegister(...)" />`에 바로 전달할 수 있는 기본 binding props다. */
 export type VueInputRegisterProps = VueBindingHandlers<HTMLInputElement> & {
   readonly name: string;
   readonly type: string;
-  readonly value?: DomValue;
+  readonly value?: string | number | string[];
   readonly checked?: boolean;
 };
 

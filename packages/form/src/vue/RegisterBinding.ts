@@ -19,10 +19,10 @@ export function createRegisterProps<TValues, TElement extends VueRegisterElement
     get checked() {
       return binding.checked;
     },
-    onInput: (event: Event & { currentTarget: HTMLElement }) => {
+    onInput: (event: Event) => {
       binding.input(event.currentTarget as FieldEventTarget);
     },
-    onChange: (event: Event & { currentTarget: HTMLElement }) => {
+    onChange: (event: Event) => {
       binding.change(event.currentTarget as FieldEventTarget);
     },
     onBlur: () => {

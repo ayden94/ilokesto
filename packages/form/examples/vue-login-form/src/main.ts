@@ -1,4 +1,5 @@
 import { CreateForm } from '@ilokesto/form';
+import type { StandardSchemaV1 } from '@ilokesto/form';
 import { createApp } from 'vue';
 import App from './App.vue';
 
@@ -21,7 +22,7 @@ const emailSchema = {
       return { value };
     },
   },
-};
+} satisfies StandardSchemaV1<unknown, string>;
 
 const passwordSchema = {
   '~standard': {
@@ -37,7 +38,7 @@ const passwordSchema = {
       return { value };
     },
   },
-};
+} satisfies StandardSchemaV1<unknown, string>;
 
 const form = new CreateForm<LoginValues>({
   defaultValues: { email: '', password: '' },
