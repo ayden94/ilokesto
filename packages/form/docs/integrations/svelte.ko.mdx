@@ -26,6 +26,26 @@ description: "@ilokesto/form/svelte의 register 액션과 읽기 가능한 폼 �
 
 액션은 DOM 리스너를 붙이고 요소가 사라질 때 정리합니다. `useFormState()`는 errors, dirty fields, touched fields, validity, submitting state, submitCount 같은 전체 상태 요약을 담은 Svelte readable store를 반환합니다.
 
+## 외부 값 동기화
+
+`SvelteFormOptions`는 `values`를 `Readable<T | undefined>`로 받고 plain `resetOptions`를 받습니다. 처음 정의된 emission과 이후 `Object.is` identity가 달라진 emission마다 `form.reset(values, resetOptions)`를 호출합니다. `undefined`는 reset 없이 동기화를 중단하고, 마지막으로 정의되었던 같은 object를 다시 emit해도 no-op입니다. `resetOptions`는 value-driven reset에만 적용됩니다.
+
+```svelte
+<script lang="ts">
+  import { writable } from 'svelte/store';
+  import { useForm } from '@ilokesto/form/svelte';
+
+  const serverValues = writable<Profile | undefined>(undefined);
+  const { form } = useForm({
+    defaultValues: emptyProfile,
+    values: serverValues,
+    resetOptions: { keepDirtyValues: true },
+  });
+</script>
+```
+
+이 options overload는 component initialization 중 호출해야 합니다. Readable subscription은 component unmount 시 해제됩니다. `useForm(existingForm)`은 external values를 구독하지 않습니다.
+
 ## 주의할 점
 
 코어 폼은 안정적인 위치에서 만들고, 해당 프레임워크 피어 의존성을 설치하며, 프레임워크 컴포넌트에서는 이 어댑터 하위 경로에서만 가져오세요. 서버 액션이나 도메인 도우미처럼 렌더링이 필요 없는 코드는 루트 `@ilokesto/form` API에 남겨두는 편이 좋습니다.

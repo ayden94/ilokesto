@@ -26,6 +26,26 @@ Install `svelte` as the peer and import from `@ilokesto/form/svelte`. Svelte is 
 
 The action attaches DOM listeners and cleans them up when the element is destroyed. `useFormState()` returns a Svelte readable store containing aggregate state such as errors, dirty fields, touched fields, validity, submitting state, and submitCount.
 
+## Syncing external values
+
+`SvelteFormOptions` accepts `values` as `Readable<T | undefined>` and accepts plain `resetOptions`. The first defined emission and each later emission with a different `Object.is` identity call `form.reset(values, resetOptions)`. `undefined` pauses synchronization without resetting, and re-emitting the last defined object remains a no-op. `resetOptions` applies only to value-driven resets.
+
+```svelte
+<script lang="ts">
+  import { writable } from 'svelte/store';
+  import { useForm } from '@ilokesto/form/svelte';
+
+  const serverValues = writable<Profile | undefined>(undefined);
+  const { form } = useForm({
+    defaultValues: emptyProfile,
+    values: serverValues,
+    resetOptions: { keepDirtyValues: true },
+  });
+</script>
+```
+
+Call this options overload during component initialization. Its readable subscription is released on component unmount. `useForm(existingForm)` does not subscribe to external values.
+
 ## Cautions
 
 Create the core form in a stable place, install the matching peer dependency, and import only from this adapter subpath in framework components. Keep server actions and domain helpers on the root `@ilokesto/form` API when they do not need rendering.
