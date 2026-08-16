@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "tsup",
+    "test:pack": "pnpm run build && node scripts/verify-package.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
