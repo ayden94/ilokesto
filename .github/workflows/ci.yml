@@ -107,6 +107,9 @@ jobs:
       - name: Test packages
         run: pnpm test
 
+      - name: Verify form distribution
+        run: pnpm --filter @ilokesto/form test:pack
+
       - name: Typecheck state tests
         run: pnpm --filter @ilokesto/state test:typecheck
 
