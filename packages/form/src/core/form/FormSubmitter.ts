@@ -10,6 +10,9 @@ import type { FieldState, PathKey } from '../types';
  * 이 흐름을 CreateForm에서 분리해 최상위 controller를 얇게 유지한다.
  */
 export class FormSubmitter<TValues> {
+  private submissionQueue: Promise<void> = Promise.resolve();
+  private pendingSubmissionCount = 0;
+
   /** 같은 store와 validation engine을 공유해야 submitCount와 schema 결과가 같은 snapshot 위에서 동작한다. */
   public constructor(
     private readonly store: FormStateStore<TValues>,
@@ -24,11 +27,27 @@ export class FormSubmitter<TValues> {
    * 3. 실패하면 onInvalid에 현재 fields를 넘기고 undefined를 반환한다.
    * 4. 성공하면 최신 values를 복원해 onValid에 전달한다.
    */
-  public async submit<TResult>(
+  public submit<TResult>(
     onValid: (values: TValues) => TResult | Promise<TResult>,
     onInvalid?: (fields: Readonly<Record<PathKey, FieldState>>) => void,
   ): Promise<TResult | undefined> {
+    this.pendingSubmissionCount += 1;
     this.store.beginSubmit();
+
+    const submission = this.submissionQueue.then(() => this.executeSubmission(onValid, onInvalid));
+    this.submissionQueue = submission.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    return submission;
+  }
+
+  private async executeSubmission<TResult>(
+    onValid: (values: TValues) => TResult | Promise<TResult>,
+    onInvalid?: (fields: Readonly<Record<PathKey, FieldState>>) => void,
+  ): Promise<TResult | undefined> {
+    let successful = false;
 
     try {
       while (true) {
@@ -39,19 +58,20 @@ export class FormSubmitter<TValues> {
             continue;
           case 'invalid':
             onInvalid?.(this.store.getState().fields);
-            this.store.completeSubmit(false);
             return undefined;
           case 'valid': {
             const result = await onValid(this.store.getValues());
 
-            this.store.completeSubmit(true);
+            successful = true;
             return result;
           }
         }
       }
-    } catch (error) {
-      this.store.completeSubmit(false);
-      throw error;
+    } finally {
+      this.pendingSubmissionCount -= 1;
+      if (this.pendingSubmissionCount === 0) {
+        this.store.completeSubmit(successful);
+      }
     }
   }
 }

@@ -66,3 +66,60 @@ test('Given values change without automatic validation, when pending submit vali
   expect(await submission).toBe('submitted');
   expect(submittedValues).toEqual({ email: 'latest', name: '' });
 });
+
+test('Given concurrent submits with deferred callbacks, when each callback completes, then both submissions settle in sequence', async () => {
+  const validations: Deferred<ValidationResult>[] = [];
+  const form = createControlledForm(validations);
+  const callbackOrder: string[] = [];
+  let resolveFirstCallback: (() => void) | undefined;
+  let resolveSecondCallback: (() => void) | undefined;
+
+  const firstSubmission = form.submit(async () => {
+    callbackOrder.push('first');
+    await new Promise<void>((resolve) => {
+      resolveFirstCallback = resolve;
+    });
+    return 'first result';
+  });
+  const secondSubmission = form.submit(async () => {
+    callbackOrder.push('second');
+    await new Promise<void>((resolve) => {
+      resolveSecondCallback = resolve;
+    });
+    return 'second result';
+  });
+
+  await waitForValidations(validations, 1);
+  expect(form.getState().submitCount).toBe(2);
+  expect(form.getState().isSubmitting).toBe(true);
+
+  getValidation(validations, 0).resolve({ value: { email: '', name: '' } });
+  for (let turn = 0; turn < 10 && resolveFirstCallback === undefined; turn += 1) {
+    await Promise.resolve();
+  }
+
+  expect(callbackOrder).toEqual(['first']);
+  expect(resolveFirstCallback).toBeDefined();
+  expect(validations).toHaveLength(1);
+  expect(form.getState().isSubmitting).toBe(true);
+
+  resolveFirstCallback?.();
+  await waitForValidations(validations, 2);
+  getValidation(validations, 1).resolve({ value: { email: '', name: '' } });
+  for (let turn = 0; turn < 10 && resolveSecondCallback === undefined; turn += 1) {
+    await Promise.resolve();
+  }
+
+  expect(callbackOrder).toEqual(['first', 'second']);
+  expect(resolveSecondCallback).toBeDefined();
+  expect(form.getState().isSubmitting).toBe(true);
+
+  resolveSecondCallback?.();
+  expect(await Promise.all([firstSubmission, secondSubmission])).toEqual([
+    'first result',
+    'second result',
+  ]);
+  expect(form.getState().isSubmitting).toBe(false);
+  expect(form.getState().isSubmitted).toBe(true);
+  expect(form.getState().isSubmitSuccessful).toBe(true);
+});
