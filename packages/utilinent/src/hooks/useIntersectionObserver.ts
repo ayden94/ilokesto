@@ -31,7 +31,6 @@ export function useIntersectionObserver({
   const [entry, setEntry] = useState<IntersectionObserverEntry | undefined>();
 
   const onChangeRef = useRef(onChange);
-  const isFirstCallbackRef = useRef(true);
   const isFrozen = useRef(false);
   const prevIsIntersectingRef = useRef(initialIsIntersecting);
 
@@ -81,12 +80,6 @@ export function useIntersectionObserver({
       setIsIntersecting(isCurrentlyIntersecting);
       setEntry(intersectionEntry);
 
-      // Skip the first callback (initial observation)
-      if (isFirstCallbackRef.current) {
-        isFirstCallbackRef.current = false;
-        return;
-      }
-
       // Call onChange callback
       if (!wasIntersecting && isCurrentlyIntersecting) {
         onChangeRef.current?.(isCurrentlyIntersecting, intersectionEntry);
@@ -112,7 +105,6 @@ export function useIntersectionObserver({
     if (!element) {
       setIsIntersecting(initialIsIntersecting);
       setEntry(undefined);
-      isFirstCallbackRef.current = true;
       prevIsIntersectingRef.current = initialIsIntersecting;
 
       if (!freezeOnceVisible) {
