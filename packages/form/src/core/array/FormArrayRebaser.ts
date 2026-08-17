@@ -27,7 +27,7 @@ export class FormArrayRebaser {
    * 2. nextValues를 기준으로 FormState를 새로 초기화한다.
    * 3. 기존 fields를 순회하며 배열 밖 field는 그대로 보존한다.
    * 4. 배열 child field는 mapPreviousIndex로 새 index를 찾아 메타데이터를 옮긴다.
-   * 5. arrayKeys와 submitCount를 새 state에 다시 반영한다.
+   * 5. 살아남은 arrayKeys를 보존하고 변경된 배열의 key와 submitCount를 새 state에 다시 반영한다.
    *
    * @param store - 현재 FormState를 읽을 store.
    * @param fieldPath - 변경된 배열 field path.
@@ -43,13 +43,15 @@ export class FormArrayRebaser {
     nextKeys: readonly string[],
     mapPreviousIndex: IndexMapper,
   ): FormState<TValues> {
+    const previousState = store.getState();
     const fieldPaths = store.getKnownFieldPaths();
     const nextValues = ValueHelper.setValueAtPath(store.getValues(), fieldPath, [...nextArray]);
     const initializedState = FormStateInitializer.initialize(nextValues);
     const arrayKey = FormPath.pathToKey(fieldPath);
     const rebasedFields = { ...initializedState.fields };
+    const rebasedArrayKeys = { ...initializedState.arrayKeys };
 
-    Object.entries(store.getState().fields).forEach(([fieldKey, previousField]) => {
+    Object.entries(previousState.fields).forEach(([fieldKey, previousField]) => {
       const currentFieldPath = fieldPaths[fieldKey];
 
       if (!currentFieldPath) {
@@ -87,17 +89,48 @@ export class FormArrayRebaser {
       };
     });
 
+    Object.entries(previousState.arrayKeys).forEach(([previousArrayKey, previousKeys]) => {
+      if (previousArrayKey === arrayKey) {
+        return;
+      }
+
+      const previousArrayPath = FormPath.keyToPath(previousArrayKey);
+      let nextArrayPath = previousArrayPath;
+
+      if (FormArrayPath.isArrayChildPath(previousArrayPath, fieldPath)) {
+        const previousIndex = previousArrayPath[fieldPath.length];
+
+        if (typeof previousIndex !== 'number') {
+          return;
+        }
+
+        const nextIndex = mapPreviousIndex(previousIndex);
+
+        if (nextIndex === undefined) {
+          return;
+        }
+
+        nextArrayPath = FormArrayPath.replaceArrayIndex(previousArrayPath, fieldPath, nextIndex);
+      }
+
+      const nextArrayKey = FormPath.pathToKey(nextArrayPath);
+      const initializedKeys = initializedState.arrayKeys[nextArrayKey];
+
+      if (initializedKeys?.length === previousKeys.length) {
+        rebasedArrayKeys[nextArrayKey] = [...previousKeys];
+      }
+    });
+
+    rebasedArrayKeys[arrayKey] = [...nextKeys];
+
     return {
       ...initializedState,
       fields: rebasedFields,
-      arrayKeys: {
-        ...initializedState.arrayKeys,
-        [arrayKey]: [...nextKeys],
-      },
-      submitCount: store.getState().submitCount,
-      isSubmitting: store.getState().isSubmitting,
-      isSubmitted: store.getState().isSubmitted,
-      isSubmitSuccessful: store.getState().isSubmitSuccessful,
+      arrayKeys: rebasedArrayKeys,
+      submitCount: previousState.submitCount,
+      isSubmitting: previousState.isSubmitting,
+      isSubmitted: previousState.isSubmitted,
+      isSubmitSuccessful: previousState.isSubmitSuccessful,
     };
   }
 }
