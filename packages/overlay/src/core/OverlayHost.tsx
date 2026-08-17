@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { useOverlayItems } from "./useOverlayItems";
 import type { OverlayAdapterHooks, OverlayRenderProps } from "../contracts/adapter";
 import type { OverlayId, OverlayItem } from "../contracts/overlay";
-import type { OverlayPlugin } from "../contracts/plugin";
 import type { OverlayContextGetter } from "./useOverlay";
 
 interface OverlayHostProps {
@@ -100,7 +99,7 @@ function OverlayItemRenderer({
     useLifecycle,
   };
 
-  return <Adapter {...renderProps} {...item.props} />;
+  return <Adapter {...item.props} {...renderProps} />;
 }
 
 export function OverlayHost({ useOverlayContext }: OverlayHostProps) {
