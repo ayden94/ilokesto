@@ -2,9 +2,9 @@ import { Options, ResponsePromise, Input, KyInstance } from 'ky';
 export { ForceRetryError, HTTPError, Hooks, Input, KyInstance, KyRequest, KyResponse, Options, ResponsePromise, TimeoutError, isForceRetryError, isHTTPError, isKyError, isTimeoutError } from 'ky';
 
 type OpenApiHttpMethod = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options';
-type PathsLike = object;
-type ShortcutMethod = 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head';
-type CallableMethod = ShortcutMethod | 'options';
+type PathsLike = Record<string, Partial<Record<OpenApiHttpMethod, unknown>>>;
+type ShortcutMethod = 'get' | 'post' | 'put' | 'patch' | 'delete';
+type CallableMethod = ShortcutMethod | 'head';
 type PathKey<Paths extends PathsLike> = Extract<keyof Paths, string>;
 type Simplify<T> = {
     [K in keyof T]: T[K];
@@ -148,7 +148,7 @@ type WideShortcutRequest = DistributiveSimplify<{
         };
     };
 }>>;
-type OpenApiOptions<Paths extends PathsLike, Path extends PathKey<Paths>, Method extends string> = Simplify<DirectCallRequestOptions<Path, Method> & MaybeProperty<'path', PathParametersFor<Path, OperationFor<Paths, Path, Method>>, PathParametersRequired<Path, OperationFor<Paths, Path, Method>>, HasMeaningfulKeys<PathParametersFor<Path, OperationFor<Paths, Path, Method>>>> & MaybeProperty<'searchParams', QueryParameters<OperationFor<Paths, Path, Method>>, QueryParametersRequired<OperationFor<Paths, Path, Method>>, HasMeaningfulKeys<QueryParameters<OperationFor<Paths, Path, Method>>>> & MaybeProperty<'headers', HeaderParameters<OperationFor<Paths, Path, Method>>, HeaderParametersRequired<OperationFor<Paths, Path, Method>>, HasMeaningfulKeys<HeaderParameters<OperationFor<Paths, Path, Method>>>> & MaybeProperty<'cookie', CookieParameters<OperationFor<Paths, Path, Method>>, CookieParametersRequired<OperationFor<Paths, Path, Method>>, HasMeaningfulKeys<CookieParameters<OperationFor<Paths, Path, Method>>>> & MaybeProperty<'json', JsonRequestBody<OperationFor<Paths, Path, Method>>, JsonRequestBodyRequired<OperationFor<Paths, Path, Method>>, [
+type OpenApiOptions<Paths extends PathsLike, Path extends PathKey<Paths>, Method extends string> = Simplify<DirectCallRequestOptions<Path, Method> & MaybeProperty<'path', PathParametersFor<Path, OperationFor<Paths, Path, Method>>, PathParametersRequired<Path, OperationFor<Paths, Path, Method>>, HasMeaningfulKeys<PathParametersFor<Path, OperationFor<Paths, Path, Method>>>> & MaybeProperty<'searchParams', QueryParameters<OperationFor<Paths, Path, Method>>, QueryParametersRequired<OperationFor<Paths, Path, Method>>, HasMeaningfulKeys<QueryParameters<OperationFor<Paths, Path, Method>>>> & MaybeProperty<'json', JsonRequestBody<OperationFor<Paths, Path, Method>>, JsonRequestBodyRequired<OperationFor<Paths, Path, Method>>, [
     JsonRequestBody<OperationFor<Paths, Path, Method>>
 ] extends [never] ? false : true>>;
 type PathKeysWithMethod<Paths extends PathsLike, Method extends string> = {
@@ -161,17 +161,11 @@ type TypedShortcutArguments<Paths extends PathsLike, Path extends PathKey<Paths>
     options?: ShortcutRequestOptions<Path, Method>
 ];
 type UntypedShortcutPath<Paths extends PathsLike, Method extends string, Url extends string> = Url extends PathKeysWithMethod<Paths, Method> ? never : Url;
-type UntypedCallablePath<Paths extends PathsLike, Url extends string> = Url extends PathKey<Paths> ? never : Url;
 type WideShortcutMethodArguments<Paths extends PathsLike, Method extends string, Url extends string> = [
     url: UntypedShortcutPath<Paths, Method, Url>,
     request: WideShortcutRequest,
     options?: ShortcutRequestOptions<Url, Method>
 ];
-type TypedHeadMethod<Paths extends PathsLike> = {
-    <Path extends PathKeysWithMethod<Paths, 'head'>>(...args: TypedShortcutArguments<Paths, Path, 'head'>): ResponsePromise<InferJson<Paths, Path, 'head'>>;
-    <Url extends string>(url: UntypedShortcutPath<Paths, 'head', Url>, options?: Options): ResponsePromise;
-    (url: NonStringInput, options?: Options): ResponsePromise;
-};
 type TypedGetArguments<Paths extends PathsLike, Path extends PathKey<Paths>> = HasRequiredKeys<OpenApiOptions<Paths, Path, 'get'>> extends true ? [url: Path, options: OpenApiOptions<Paths, Path, 'get'>] : [url: Path, options?: OpenApiOptions<Paths, Path, 'get'>];
 type DirectCallOptions<Paths extends PathsLike, Path extends PathKey<Paths>, Method extends MethodKeysForPath<Paths, Path>> = Simplify<OpenApiOptions<Paths, Path, Method> & {
     method: Method | Uppercase<Method>;
@@ -179,25 +173,23 @@ type DirectCallOptions<Paths extends PathsLike, Path extends PathKey<Paths>, Met
 type DirectCallArguments<Paths extends PathsLike, Path extends PathKey<Paths>, Method extends MethodKeysForPath<Paths, Path>> = HasRequiredKeys<DirectCallOptions<Paths, Path, Method>> extends true ? [url: Path, options: DirectCallOptions<Paths, Path, Method>] : [url: Path, options?: DirectCallOptions<Paths, Path, Method>];
 type TypedShortcutMethod<Paths extends PathsLike, Method extends ShortcutMethod> = {
     <Path extends PathKeysWithMethod<Paths, Method>>(...args: TypedShortcutArguments<Paths, Path, Method>): ResponsePromise<InferJson<Paths, Path, Method>>;
-    <const Url extends string, Json = unknown>(...args: WideShortcutMethodArguments<Paths, Method, Url>): ResponsePromise<Json>;
+    <Url extends string, Json = unknown>(...args: WideShortcutMethodArguments<Paths, Method, Url>): ResponsePromise<Json>;
     <Json = unknown>(url: NonStringInput, options?: Options): ResponsePromise<Json>;
 };
 type SafeTypedShortcutMethod<Paths extends PathsLike, Method extends ShortcutMethod> = {
     <Path extends PathKeysWithMethod<Paths, Method>>(...args: TypedShortcutArguments<Paths, Path, Method>): Promise<SafeResult<InferJson<Paths, Path, Method>>>;
-    <const Url extends string, Json = unknown>(...args: WideShortcutMethodArguments<Paths, Method, Url>): Promise<SafeResult<Json>>;
+    <Url extends string, Json = unknown>(...args: WideShortcutMethodArguments<Paths, Method, Url>): Promise<SafeResult<Json>>;
     <Json = unknown>(url: NonStringInput, options?: Options): Promise<SafeResult<Json>>;
 };
 type TypedCallable<Paths extends PathsLike> = {
     <Path extends PathKeysWithMethod<Paths, 'get'>>(...args: TypedGetArguments<Paths, Path>): ResponsePromise<InferJson<Paths, Path, 'get'>>;
     <Path extends PathKey<Paths>, Method extends MethodKeysForPath<Paths, Path>>(...args: DirectCallArguments<Paths, Path, Method>): ResponsePromise<InferJson<Paths, Path, Method>>;
-    <Url extends string, Json = unknown>(url: UntypedCallablePath<Paths, Url>, options?: Options): ResponsePromise<Json>;
-    <Json = unknown>(url: NonStringInput, options?: Options): ResponsePromise<Json>;
+    <Json = unknown>(url: Input, options?: Options): ResponsePromise<Json>;
 };
 type SafeTypedCallable<Paths extends PathsLike> = {
     <Path extends PathKeysWithMethod<Paths, 'get'>>(...args: TypedGetArguments<Paths, Path>): Promise<SafeResult<InferJson<Paths, Path, 'get'>>>;
     <Path extends PathKey<Paths>, Method extends MethodKeysForPath<Paths, Path>>(...args: DirectCallArguments<Paths, Path, Method>): Promise<SafeResult<InferJson<Paths, Path, Method>>>;
-    <Url extends string, Json = unknown>(url: UntypedCallablePath<Paths, Url>, options?: Options): Promise<SafeResult<Json>>;
-    <Json = unknown>(url: NonStringInput, options?: Options): Promise<SafeResult<Json>>;
+    <Json = unknown>(url: Input, options?: Options): Promise<SafeResult<Json>>;
 };
 type FetcherSafe<Paths extends PathsLike> = SafeTypedCallable<Paths> & {
     get: SafeTypedShortcutMethod<Paths, 'get'>;
@@ -206,14 +198,14 @@ type FetcherSafe<Paths extends PathsLike> = SafeTypedCallable<Paths> & {
     patch: SafeTypedShortcutMethod<Paths, 'patch'>;
     delete: SafeTypedShortcutMethod<Paths, 'delete'>;
 };
-type Fetcher<Paths extends PathsLike> = TypedCallable<Paths> & Pick<KyInstance, 'retry' | 'stop'> & {
+type Fetcher<Paths extends PathsLike> = TypedCallable<Paths> & Omit<KyInstance, 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'create' | 'extend'> & {
     safe: FetcherSafe<Paths>;
     get: TypedShortcutMethod<Paths, 'get'>;
     post: TypedShortcutMethod<Paths, 'post'>;
     put: TypedShortcutMethod<Paths, 'put'>;
     patch: TypedShortcutMethod<Paths, 'patch'>;
     delete: TypedShortcutMethod<Paths, 'delete'>;
-    head: TypedHeadMethod<Paths>;
+    head: KyInstance['head'];
     create(defaultOptions?: Options): Fetcher<Paths>;
     extend(defaultOptions: Parameters<KyInstance['extend']>[0]): Fetcher<Paths>;
 };
