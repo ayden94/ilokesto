@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from "react";
 import { useOverlayItems } from "./useOverlayItems";
 import type { OverlayAdapterHooks, OverlayRenderProps } from "../contracts/adapter";
 import type { OverlayId, OverlayItem } from "../contracts/overlay";
-import type { OverlayPlugin } from "../contracts/plugin";
 import type { OverlayContextGetter } from "./useOverlay";
 
 interface OverlayHostProps {
@@ -37,20 +36,23 @@ function OverlayItemRenderer({
     hooksRef.current = hooks;
   };
 
-  function runPhase(
-    phase: "onOpen" | "onClosing" | "onUnmount",
-    id: OverlayId,
-    item: OverlayItem
-  ): void {
-    const adapterHook = hooksRef.current?.[phase];
-    if (adapterHook) {
-      adapterHook(id, item);
-      return;
-    }
-    for (const plugin of plugins) {
-      plugin[phase]?.(id, item);
-    }
-  }
+  const runPhase = useCallback(
+    (
+      phase: "onOpen" | "onClosing" | "onUnmount",
+      id: OverlayId,
+      item: OverlayItem
+    ): void => {
+      const adapterHook = hooksRef.current?.[phase];
+      if (adapterHook) {
+        adapterHook(id, item);
+        return;
+      }
+      for (const plugin of plugins) {
+        plugin[phase]?.(id, item);
+      }
+    },
+    [plugins]
+  );
 
   useEffect(() => {
     if (prevStatusRef.current === "mounted" && item.status === "open") {
@@ -62,13 +64,20 @@ function OverlayItemRenderer({
       runPhase("onClosing", item.id, item);
     }
     prevStatusRef.current = item.status;
-  }, [item.status, item.id]);
+  }, [item, runPhase]);
 
   useEffect(() => {
     return () => {
+      const itemRemainsInStore = store
+        .getSnapshot()
+        .some((storedItem) => storedItem.id === item.id);
+      if (itemRemainsInStore) {
+        return;
+      }
+
       runPhase("onUnmount", item.id, item);
     };
-  }, [item.id]);
+  }, [item, runPhase, store]);
 
   useEffect(() => {
     if (
