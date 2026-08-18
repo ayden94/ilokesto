@@ -109,7 +109,7 @@ function OverlayItemRenderer({
     useLifecycle,
   };
 
-  return <Adapter {...renderProps} {...item.props} />;
+  return <Adapter {...item.props} {...renderProps} />;
 }
 
 export function OverlayHost({ useOverlayContext }: OverlayHostProps) {
