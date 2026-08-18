@@ -5,7 +5,7 @@ description: "Import the core and framework adapters from the correct package su
 
 # Entrypoints
 
-`@ilokesto/form` has one framework-neutral root entrypoint and four adapter entrypoints. Import `CreateForm`, `CreateFormOptions`, `FieldPathInput`, `FieldState`, `FormState`, `FormError`, and `StandardSchemaV1` from the root. Import framework helpers from `@ilokesto/form/react`, `@ilokesto/form/vue`, `@ilokesto/form/solid`, or `@ilokesto/form/svelte`.
+`@ilokesto/form` has one framework-neutral root entrypoint and four adapter entrypoints. Import `CreateForm`, `CreateFormOptions`, `FieldPathInput`, `Form`, `FormError`, `ResetOptions`, and `StandardSchemaV1` from the root. `FieldState` and `FormState` are runtime shapes returned by `getFieldState()` and `getState()`; they are not importable from the root. Import framework helpers from `@ilokesto/form/react`, `@ilokesto/form/vue`, `@ilokesto/form/solid`, or `@ilokesto/form/svelte`.
 
 ```ts lineNumbers
 import { CreateForm, type FormError } from '@ilokesto/form';

@@ -5,14 +5,12 @@ description: "Public types exported by the core and adapters."
 
 # Types
 
-The most important core types are `CreateFormOptions`, `FieldPathInput`, `FieldState`, `FormState`, `FormError`, `StandardSchemaV1`, `ValidationTrigger`, `FieldSchemaOptions`, `SetValueOptions`, `Form`, and `FormArray`. Adapter packages also export their `RegisterOptions` alias and framework-specific return types.
+The root entrypoint exports `CreateFormOptions`, `FieldPathInput`, `Form`, `FormError`, `ResetOptions`, and `StandardSchemaV1` (plus the `CreateForm` class). `getFieldState(path)` returns a `FieldState` and `getState()` returns a `FormState`; those runtime shapes are documented on the field-state and normalized-store pages rather than imported from the root. Adapter packages also export their `RegisterOptions` alias and framework-specific return types.
 
 ```ts lineNumbers
 import type {
   CreateFormOptions,
   FieldPathInput,
-  FieldState,
-  FormState,
   FormError,
   StandardSchemaV1,
 } from '@ilokesto/form';

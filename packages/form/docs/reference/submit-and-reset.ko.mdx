@@ -19,7 +19,7 @@ await form.submit(
 );
 ```
 
-`reset()`은 원래 `initialValues`로 되돌립니다. `reset(nextValues)`는 기준값을 교체하고 새 값 주변의 필드 메타데이터를 정리합니다. 서버 흐름에서는 `submit`, `setErrors`, `clearErrors`를 함께 사용하세요. 클라이언트 검증을 통과한 값을 제출하고, 서버 오류를 필드에 매핑한 뒤, 사용자가 수정하거나 다시 시도할 때 그 오류를 지웁니다.
+`reset()`은 원래 `defaultValues`로 되돌립니다. `reset(nextValues)`는 기준값을 교체하고 새 값 주변의 필드 메타데이터를 정리합니다. 서버 흐름에서는 `submit`, `setErrors`, `clearErrors`를 함께 사용하세요. 클라이언트 검증을 통과한 값을 제출하고, 서버 오류를 필드에 매핑한 뒤, 사용자가 수정하거나 다시 시도할 때 그 오류를 지웁니다.
 
 ## 실무 사용 팁
 

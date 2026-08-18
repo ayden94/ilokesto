@@ -5,14 +5,12 @@ description: "코어와 어댑터가 내보내는 공개 타입입니다."
 
 # 타입
 
-중요한 코어 타입은 `CreateFormOptions`, `FieldPathInput`, `FieldState`, `FormState`, `FormError`, `StandardSchemaV1`, `ValidationTrigger`, `FieldSchemaOptions`, `SetValueOptions`, `Form`, `FormArray`입니다. 어댑터 패키지도 `RegisterOptions` 별칭과 프레임워크별 반환 타입을 내보냅니다.
+루트 진입점은 `CreateFormOptions`, `FieldPathInput`, `Form`, `FormError`, `ResetOptions`, `StandardSchemaV1`(`CreateForm` 클래스 포함)을 내보냅니다. `getFieldState(path)`는 `FieldState`를 반환하고 `getState()`는 `FormState`를 반환합니다. 이 런타임 모양은 루트에서 가져오는 것이 아니라 field-state와 normalized-store 문서에서 설명합니다. 어댑터 패키지도 `RegisterOptions` 별칭과 프레임워크별 반환 타입을 내보냅니다.
 
 ```ts lineNumbers
 import type {
   CreateFormOptions,
   FieldPathInput,
-  FieldState,
-  FormState,
   FormError,
   StandardSchemaV1,
 } from '@ilokesto/form';

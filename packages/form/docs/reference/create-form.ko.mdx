@@ -5,11 +5,11 @@ description: "렌더러 없이 폼 컨트롤러를 만들고 상태를 구독하
 
 # CreateForm
 
-`CreateForm<TValues>`는 모든 어댑터 뒤에 있는 코어 클래스입니다. 생성자에는 `CreateFormOptions`를 전달합니다. 옵션에는 `initialValues`, 선택적인 폼 전체 `schema`, 선택적인 `schemaOptions`, 선택적인 `validateOn`이 있습니다. 인스턴스는 `Form<TValues>`를 구현하므로 어댑터와 테스트가 하나의 안정된 계약에 의존할 수 있습니다.
+`CreateForm<TValues>`는 모든 어댑터 뒤에 있는 코어 클래스입니다. 생성자에는 `CreateFormOptions`를 전달합니다. 옵션에는 `defaultValues`, 선택적인 폼 전체 `schema`, 선택적인 `schemaOptions`, 선택적인 `validateOn`이 있습니다. 인스턴스는 `Form<TValues>`를 구현하므로 어댑터와 테스트가 하나의 안정된 계약에 의존할 수 있습니다.
 
 ```ts lineNumbers
 const form = new CreateForm({
-  initialValues: { email: '', profile: { name: '' } },
+  defaultValues: { email: '', profile: { name: '' } },
   schema: profileSchema,
   schemaOptions: { libraryOptions: { abortEarly: false } },
   validateOn: ['change', 'blur', 'submit'],

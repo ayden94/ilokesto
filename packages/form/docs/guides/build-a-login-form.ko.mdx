@@ -9,7 +9,7 @@ description: "필드 바인딩, 검증, 제출, 초기화를 갖춘 실무형 �
 
 ```tsx lineNumbers
 const form = new CreateForm({
-  initialValues: { email: '', password: '', remember: false },
+  defaultValues: { email: '', password: '', remember: false },
   schema: loginSchema,
   validateOn: ['blur', 'submit'],
 });

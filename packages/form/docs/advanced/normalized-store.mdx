@@ -5,7 +5,7 @@ description: "How normalized field records explain getState, getValues, and adap
 
 # Normalized store
 
-Internally visible state is shaped as `FormState<TValues>`: `initialValues`, `fields`, `submitCount`, and `arrayKeys`. The `fields` record is keyed by normalized path keys and stores one `FieldState` per leaf. This is why `getFieldState(path)` can be cheap and why adapters can summarize errors, dirty fields, and touched fields from one snapshot.
+Internally visible state is shaped as `FormState<TValues>`: `defaultValues`, `fields`, `submitCount`, and `arrayKeys`. The `fields` record is keyed by normalized path keys and stores one `FieldState` per leaf. This is why `getFieldState(path)` can be cheap and why adapters can summarize errors, dirty fields, and touched fields from one snapshot.
 
 ```ts lineNumbers
 const snapshot = form.getState();
