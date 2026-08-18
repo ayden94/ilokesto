@@ -65,11 +65,30 @@ export function installControlledIntersectionObserver() {
   globalThis.IntersectionObserver = ControlledIntersectionObserver;
 }
 
-export async function enterViewport() {
+function getActiveObserver() {
   const observer = [...observers].reverse().find((candidate) => candidate.active);
   if (!observer) {
     throw new Error("Expected an active IntersectionObserver");
   }
+
+  return observer;
+}
+
+export function hasActiveIntersectionObserver() {
+  return observers.some((observer) => observer.active);
+}
+
+export async function emitIntersection(isIntersecting: boolean) {
+  const observer = getActiveObserver();
+
+  await act(async () => {
+    observer.emit(isIntersecting);
+    await Promise.resolve();
+  });
+}
+
+export async function enterViewport() {
+  const observer = getActiveObserver();
 
   await act(async () => {
     observer.emit(false);
