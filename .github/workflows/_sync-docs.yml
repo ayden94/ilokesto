@@ -8,11 +8,12 @@ on:
         type: string
     secrets:
       DOCS_SYNC_TOKEN:
-        required: true
+        required: false
 
 jobs:
   sync-docs:
     runs-on: ubuntu-latest
+    if: ${{ secrets.DOCS_SYNC_TOKEN != '' }}
     steps:
       - name: Checkout source repository
         uses: actions/checkout@v4
