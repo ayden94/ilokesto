@@ -166,12 +166,12 @@ function TopLayerContainer({
       ref={ref}
       className={className}
       style={{
+        inset: "auto",
         ...style,
         border: "none",
         background: "transparent",
         margin: 0,
         overflow: "visible",
-        inset: "unset",
       }}
       {...({ popover: "manual" } as React.HTMLAttributes<HTMLDivElement>)}
     >
