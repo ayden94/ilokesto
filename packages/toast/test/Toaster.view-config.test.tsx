@@ -1,3 +1,4 @@
+import "@testing-library/jest-dom/vitest";
 import { act, cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Toaster } from "../src/components/Toaster";
@@ -22,6 +23,92 @@ afterEach(() => {
 });
 
 describe("Toaster view configuration", () => {
+  it("renders a facade-created toast at the Toaster bottom-left position", async () => {
+    // Given
+    render(<Toaster toasterId={TOASTER_ID} position="bottom-left" />);
+
+    await waitFor(() => {
+      expect(getRuntime(TOASTER_ID)).toBeDefined();
+    });
+
+    const region = screen.getByRole("region", { name: "Notifications" });
+
+    // When
+    act(() => {
+      toast("Bottom-left toast", { toasterId: TOASTER_ID });
+    });
+
+    // Then
+    expect(await within(region).findByText("Bottom-left toast")).toBeVisible();
+    expect(getRuntime(TOASTER_ID)?.getRawSnapshot()[0]?.position).toBe("bottom-left");
+  });
+
+  it("renders a facade-created toast at the Toaster bottom-center position", async () => {
+    // Given
+    render(<Toaster toasterId={TOASTER_ID} position="bottom-center" />);
+
+    await waitFor(() => {
+      expect(getRuntime(TOASTER_ID)).toBeDefined();
+    });
+
+    const region = screen.getByRole("region", { name: "Notifications" });
+
+    // When
+    act(() => {
+      toast("Bottom-center toast", { toasterId: TOASTER_ID });
+    });
+
+    // Then
+    expect(await within(region).findByText("Bottom-center toast")).toBeVisible();
+    expect(getRuntime(TOASTER_ID)?.getRawSnapshot()[0]?.position).toBe("bottom-center");
+  });
+
+  it("keeps an explicit per-toast position ahead of the Toaster position", async () => {
+    // Given
+    render(<Toaster toasterId={TOASTER_ID} position="bottom-left" />);
+
+    await waitFor(() => {
+      expect(getRuntime(TOASTER_ID)).toBeDefined();
+    });
+
+    // When
+    act(() => {
+      toast("Explicit toast", {
+        toasterId: TOASTER_ID,
+        position: "top-center",
+      });
+    });
+
+    // Then
+    expect(getRuntime(TOASTER_ID)?.getRawSnapshot()[0]?.position).toBe("top-center");
+  });
+
+  it("keeps toastOptions.position ahead of the Toaster position", async () => {
+    // Given
+    render(
+      <Toaster
+        toasterId={TOASTER_ID}
+        position="bottom-left"
+        toastOptions={{ position: "bottom-center" }}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(getRuntime(TOASTER_ID)).toBeDefined();
+    });
+
+    const region = screen.getByRole("region", { name: "Notifications" });
+
+    // When
+    act(() => {
+      toast("Toast options position", { toasterId: TOASTER_ID });
+    });
+
+    // Then
+    expect(await within(region).findByText("Toast options position")).toBeVisible();
+    expect(getRuntime(TOASTER_ID)?.getRawSnapshot()[0]?.position).toBe("bottom-center");
+  });
+
   it("clears removed defaults after rerender while preserving the existing accessible toast row", async () => {
     // Given
     const view = render(

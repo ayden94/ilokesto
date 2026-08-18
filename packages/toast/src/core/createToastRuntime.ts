@@ -192,7 +192,7 @@ export function createToastRuntime(toasterId: ToasterId): ToastRuntimeApi {
       createdAt: now,
       toasterId,
       duration: mergedOptions.duration ?? DEFAULT_DURATION[type],
-      position: mergedOptions.position ?? current?.position ?? DEFAULT_POSITION,
+      position: mergedOptions.position ?? current?.position ?? view.position,
       height: current?.height ?? null,
       pauseDuration: 0,
       pausedAt,
