@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useModalStackInfo } from '../hooks/useIsTopModal';
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
+import { getCloseAnimationDurationMs, getCloseFallbackDelayMs } from '../shared/animationDuration';
 import type { ModalAdapterProps, ModalPosition } from '../shared/types';
 
 const focusableSelector = [
@@ -86,6 +87,21 @@ export function ModalAdapterInline<TResult>({
         remove();
       }
     }
+  }, [status, prefersReducedMotion, remove]);
+
+  // Closing fallback: guarantee removal even when a consumer style suppresses
+  // the exit animation so no animationend ever fires.
+  useEffect(() => {
+    if (status !== 'closing' || prefersReducedMotion) {
+      return;
+    }
+    const delay = getCloseFallbackDelayMs(getCloseAnimationDurationMs(containerRef.current));
+    const timer = window.setTimeout(() => {
+      remove();
+    }, delay);
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, [status, prefersReducedMotion, remove]);
 
   useEffect(() => {
