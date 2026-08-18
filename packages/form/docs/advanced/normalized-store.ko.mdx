@@ -5,7 +5,7 @@ description: "정규화된 필드 기록이 getState, getValues, 어댑터 구�
 
 # 정규화 저장소
 
-관찰 가능한 내부 상태는 `FormState<TValues>` 모양입니다. 여기에는 `initialValues`, `fields`, `submitCount`, `arrayKeys`가 있습니다. `fields` 기록은 정규화된 경로 키로 저장되며 말단 값마다 하나의 `FieldState`를 가집니다. 그래서 `getFieldState(path)`가 가볍게 동작하고, 어댑터가 하나의 스냅샷에서 errors, dirty fields, touched fields를 요약할 수 있습니다.
+관찰 가능한 내부 상태는 `FormState<TValues>` 모양입니다. 여기에는 `defaultValues`, `fields`, `submitCount`, `arrayKeys`가 있습니다. `fields` 기록은 정규화된 경로 키로 저장되며 말단 값마다 하나의 `FieldState`를 가집니다. 그래서 `getFieldState(path)`가 가볍게 동작하고, 어댑터가 하나의 스냅샷에서 errors, dirty fields, touched fields를 요약할 수 있습니다.
 
 ```ts lineNumbers
 const snapshot = form.getState();

@@ -9,7 +9,7 @@ Start by keeping the form instance outside the component so it is not recreated 
 
 ```tsx lineNumbers
 const form = new CreateForm({
-  initialValues: { email: '', password: '', remember: false },
+  defaultValues: { email: '', password: '', remember: false },
   schema: loginSchema,
   validateOn: ['blur', 'submit'],
 });

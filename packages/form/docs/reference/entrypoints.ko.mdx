@@ -5,7 +5,7 @@ description: "코어와 프레임워크 어댑터를 올바른 패키지 하위 
 
 # 진입점
 
-`@ilokesto/form`에는 프레임워크와 분리된 루트 진입점 하나와 네 개의 어댑터 진입점이 있습니다. `CreateForm`, `CreateFormOptions`, `FieldPathInput`, `FieldState`, `FormState`, `FormError`, `StandardSchemaV1`은 루트에서 가져옵니다. 프레임워크 도우미는 `@ilokesto/form/react`, `@ilokesto/form/vue`, `@ilokesto/form/solid`, `@ilokesto/form/svelte`에서 가져옵니다.
+`@ilokesto/form`에는 프레임워크와 분리된 루트 진입점 하나와 네 개의 어댑터 진입점이 있습니다. `CreateForm`, `CreateFormOptions`, `FieldPathInput`, `Form`, `FormError`, `ResetOptions`, `StandardSchemaV1`은 루트에서 가져옵니다. `FieldState`와 `FormState`는 `getFieldState()`와 `getState()`가 반환하는 런타임 모양이며 루트에서 가져올 수 없습니다. 프레임워크 도우미는 `@ilokesto/form/react`, `@ilokesto/form/vue`, `@ilokesto/form/solid`, `@ilokesto/form/svelte`에서 가져옵니다.
 
 ```ts lineNumbers
 import { CreateForm, type FormError } from '@ilokesto/form';

@@ -9,7 +9,7 @@ A practical validation flow usually combines three layers. First, a form-level S
 
 ```ts lineNumbers
 const form = new CreateForm({
-  initialValues,
+  defaultValues,
   schema: profileSchema,
   validateOn: ['blur', 'submit'],
 });

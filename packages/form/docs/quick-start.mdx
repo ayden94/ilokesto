@@ -27,7 +27,7 @@ type LoginValues = {
 };
 
 export const loginForm = new CreateForm<LoginValues>({
-  initialValues: {
+  defaultValues: {
     email: '',
     password: '',
     remember: false,
@@ -36,7 +36,7 @@ export const loginForm = new CreateForm<LoginValues>({
 });
 ```
 
-`initialValues` establishes the reset baseline and the first `FieldState` values. `validateOn` tells the core when automatic validation should run. You can still call `trigger()` manually at any time.
+`defaultValues` establishes the reset baseline and the first `FieldState` values. `validateOn` tells the core when automatic validation should run. You can still call `trigger()` manually at any time.
 
 ## 3. Bind fields in React
 
