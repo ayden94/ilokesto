@@ -1,8 +1,17 @@
 import { Children, cloneElement, forwardRef, isValidElement } from 'react';
-import { composeRefs } from './composeRefs';
+import { composeRefs } from '../../utils/composeRefs';
 import { mergeProps } from './mergeProps';
 import { isSlottable } from './Slottable';
 
+/**
+ * Merges its props onto a single child element — Radix-style `asChild` pattern.
+ *
+ * Event handlers are chained, `className` strings are concatenated, and `style`
+ * objects are shallow-merged. Refs are composed via {@link composeRefs}.
+ *
+ * When a {@link Slottable} child is present, the slottable descendant receives
+ * the merged props while siblings render alongside it.
+ */
 export const Slot = forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement>>((props, ref) => {
   const { children, ...slotProps } = props;
   const childrenArray = Children.toArray(children);

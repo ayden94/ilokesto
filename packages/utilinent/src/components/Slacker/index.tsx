@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useIsomorphicLayoutEffect } from "../../hooks/useIsomorphicLayoutEffect";
 import { Observer } from "../Observer";
 import type { SlackerProps } from "./types";
 
@@ -9,8 +10,26 @@ type LoadState<T> =
   | { readonly status: "success"; readonly data: T };
 
 const IDLE_STATE = { status: "idle" } as const;
-const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
+/**
+ * Lazy-loads data via a `loader` function when the component enters the viewport.
+ *
+ * Manages loading, error, and success states with optional retry.
+ * Shows `loadingFallback` while loading, `errorFallback` on error, and
+ * invokes `children` with the resolved data on success.
+ *
+ * @example
+ * ```tsx
+ * <Slacker
+ *   loader={() => fetchUser(id).then(r => r.json())}
+ *   loadingFallback={<Spinner />}
+ *   errorFallback={({ retry }) => <button onClick={retry}>Retry</button>}
+ *   maxRetries={2}
+ * >
+ *   {(user) => <Profile user={user} />}
+ * </Slacker>
+ * ```
+ */
 export function Slacker<T = any>({
   children,
   errorFallback,

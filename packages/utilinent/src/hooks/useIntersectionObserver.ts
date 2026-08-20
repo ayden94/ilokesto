@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+/**
+ * Options for {@link useIntersectionObserver}.
+ */
 interface UseIntersectionObserverOptions {
   threshold?: number | number[];
   root?: Element | null;
@@ -12,12 +15,29 @@ interface UseIntersectionObserverOptions {
   ) => void;
 }
 
+/**
+ * Return value of {@link useIntersectionObserver}.
+ */
 interface UseIntersectionObserverResult {
   ref: (node: HTMLElement | null) => void;
   isIntersecting: boolean;
   entry: IntersectionObserverEntry | undefined;
 }
 
+/**
+ * Tracks whether an element is intersecting the viewport via `IntersectionObserver`.
+ *
+ * Returns a `ref` callback to attach to the target element and the current
+ * `isIntersecting` state. When `freezeOnceVisible` is `true`, observation stops
+ * after the first intersection. Falls back to `initialIsIntersecting` when
+ * `IntersectionObserver` is unavailable.
+ *
+ * @example
+ * ```tsx
+ * const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.5 });
+ * return <div ref={ref}>{isIntersecting ? 'Visible' : 'Hidden'}</div>;
+ * ```
+ */
 export function useIntersectionObserver({
   threshold = 0,
   root = null,
