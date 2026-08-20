@@ -1,0 +1,24 @@
+---
+title: "Measure"
+description: "컨테이너를 측정하여 크기를 render prop으로 전달합니다."
+---
+
+# Measure
+
+`Measure`는 `ResizeObserver`로 컨테이너를 관찰하고 현재 `{ width, height }`를 render prop으로 전달합니다. `ref`는 underlying `div`로 전달됩니다.
+
+```tsx lineNumbers
+import { Measure } from '@ilokesto/utilinent';
+
+<Measure>{({ width, height }) => <span>{width}×{height}</span>}</Measure>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `children` | `ReactNode | ({ width, height }) => ReactNode` | content, 선택적으로 크기를 받습니다. |
+| `box` | `ResizeObserverBoxOptions` | Observer box model입니다. 기본값은 `content-box`입니다. |
+| `initialSize` | `DOMRectReadOnly` | 첫 observation 이전의 initial size입니다. |
+
+표준 `div` props와 `ref`가 관찰되는 element로 전달됩니다.

@@ -1,0 +1,24 @@
+---
+title: "Measure"
+description: "Measure a container and pass its size to a render prop."
+---
+
+# Measure
+
+`Measure` observes its container with `ResizeObserver` and passes the current `{ width, height }` to a render prop. Forwards `ref` to the underlying `div`.
+
+```tsx lineNumbers
+import { Measure } from '@ilokesto/utilinent';
+
+<Measure>{({ width, height }) => <span>{width}×{height}</span>}</Measure>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode | ({ width, height }) => ReactNode` | Content, optionally receiving the size. |
+| `box` | `ResizeObserverBoxOptions` | Observer box model. Defaults to `content-box`. |
+| `initialSize` | `DOMRectReadOnly` | Initial size before the first observation fires. |
+
+All standard `div` props and `ref` are forwarded to the observed element.

@@ -1,0 +1,20 @@
+---
+title: "useThrottle"
+description: "빠르게 변하는 값을 throttle합니다."
+---
+
+# useThrottle
+
+`useThrottle`은 `interval` ms당 최대 한 번만 갱신되는 throttled 값을 반환합니다. throttle window가 닫힌 후 최신값이 항상 반영됩니다.
+
+```tsx lineNumbers
+import { useState, useEffect } from 'react';
+import { useThrottle } from '@ilokesto/utilinent/hooks';
+
+function Tracker() {
+  const [pos, setPos] = useState(0);
+  const throttled = useThrottle(pos, 100);
+  useEffect(() => track(throttled), [throttled]);
+  return null;
+}
+```

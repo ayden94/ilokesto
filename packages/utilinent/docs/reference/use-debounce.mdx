@@ -1,0 +1,22 @@
+---
+title: "useDebounce"
+description: "Debounce a rapidly changing value."
+---
+
+# useDebounce
+
+`useDebounce` returns a debounced copy of a value that only updates after `delay` ms elapse without further changes.
+
+```tsx lineNumbers
+import { useState, useEffect } from 'react';
+import { useDebounce } from '@ilokesto/utilinent/hooks';
+
+function Search() {
+  const [query, setQuery] = useState('');
+  const debounced = useDebounce(query, 300);
+  useEffect(() => search(debounced), [debounced]);
+  return <input value={query} onChange={(e) => setQuery(e.target.value)} />;
+}
+```
+
+The initial value is emitted immediately; subsequent changes are delayed.

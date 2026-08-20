@@ -1,0 +1,20 @@
+---
+title: "useThrottle"
+description: "Throttle a rapidly changing value."
+---
+
+# useThrottle
+
+`useThrottle` returns a throttled copy of a value that updates at most once per `interval` ms. The latest value is always emitted after the throttle window closes.
+
+```tsx lineNumbers
+import { useState, useEffect } from 'react';
+import { useThrottle } from '@ilokesto/utilinent/hooks';
+
+function Tracker() {
+  const [pos, setPos] = useState(0);
+  const throttled = useThrottle(pos, 100);
+  useEffect(() => track(throttled), [throttled]);
+  return null;
+}
+```

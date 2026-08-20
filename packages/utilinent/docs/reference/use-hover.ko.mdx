@@ -1,0 +1,19 @@
+---
+title: "useHover"
+description: "element에 hover 중인지 추적합니다."
+---
+
+# useHover
+
+`useHover`는 element의 hover state를 추적합니다. `ref` callback과 현재 `isHovering` boolean을 반환합니다.
+
+```tsx lineNumbers
+import { useHover } from '@ilokesto/utilinent/hooks';
+
+function Tooltip() {
+  const { ref, isHovering } = useHover();
+  return <div ref={ref}>{isHovering ? 'Hovering' : 'Idle'}</div>;
+}
+```
+
+`useHoverRef(ref)`는 기존 ref를 받아 `isHovering` boolean을 반환하는 변형입니다.

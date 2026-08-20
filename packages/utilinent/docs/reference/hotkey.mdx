@@ -1,0 +1,25 @@
+---
+title: "Hotkey"
+description: "Declare a keyboard hotkey."
+---
+
+# Hotkey
+
+`Hotkey` declares a keyboard hotkey and renders nothing. `combo` is a `KeyboardEvent.code` value (e.g. `"Escape"`, `"KeyS"`) or `"*"` for any key.
+
+```tsx lineNumbers
+import { Hotkey } from '@ilokesto/utilinent';
+
+<Hotkey combo="Escape" onPress={() => close()} />
+<Hotkey combo="KeyS" onPress={save} ignoreEditable />
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `combo` | `string | "*"` | The key code to match. |
+| `onPress` | `(event) => void` | Invoked when the key is pressed. |
+| `enabled` | `boolean` | When `false`, the handler is not invoked. |
+| `event` | `"keydown" | "keyup"` | Listener event. Defaults to `keydown`. |
+| `ignoreEditable` | `boolean` | Ignore events from editable elements. |

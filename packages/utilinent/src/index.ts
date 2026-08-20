@@ -1,5 +1,12 @@
 // export components
+export * from './components/ClickAway';
+export * from './components/ClientOnly';
+export * from './components/ErrorBoundary';
 export * from './components/For';
+export * from './components/Hoverable';
+export * from './components/Hotkey';
+export * from './components/Measure';
+export * from './components/Media';
 export * from './components/Mount';
 export * from './components/Observer';
 export * from './components/OptionalWrapper';
@@ -9,8 +16,8 @@ export * from './components/Slacker';
 export * from './components/Slot';
 export * from './components/Switch';
 
-// export hooks
-export * from './hooks/useIntersectionObserver';
+// Hooks are available via the `./hooks` subpath export.
+// import { useMediaQuery } from '@ilokesto/utilinent/hooks'
 
 // export Register and PluginManager
 export { PluginManager } from './core/PluginManager';

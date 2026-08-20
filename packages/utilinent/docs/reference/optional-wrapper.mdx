@@ -5,7 +5,7 @@ description: "Wrap children only when a condition is truthy."
 
 # OptionalWrapper
 
-`OptionalWrapper` conditionally wraps `children`. When `when` is truthy, it returns `wrapper(children)`. Otherwise it returns `fallback(children)` or the original children.
+`OptionalWrapper` conditionally wraps `children`. When `when` is truthy, it returns `wrapper(children)`. Otherwise it returns `elseWrapper(children)` or the original children. (`fallback` is accepted as a deprecated alias for `elseWrapper`.)
 
 ```tsx lineNumbers
 import { OptionalWrapper } from '@ilokesto/utilinent';
@@ -20,14 +20,16 @@ import { OptionalWrapper } from '@ilokesto/utilinent';
 
 Use it when the content should stay the same but its container changes, such as optional links, tooltips, feature-flag wrappers, or tracking wrappers.
 
-## With fallback transformer
+## With else transformer
 
 ```tsx lineNumbers
 <OptionalWrapper
   when={enabled}
   wrapper={(children) => <FeatureShell>{children}</FeatureShell>}
-  fallback={(children) => <DisabledShell>{children}</DisabledShell>}
+  elseWrapper={(children) => <DisabledShell>{children}</DisabledShell>}
 >
   <FeatureContent />
 </OptionalWrapper>
 ```
+
+`fallback` remains as a backward-compatible alias for `elseWrapper`.

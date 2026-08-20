@@ -1,0 +1,17 @@
+---
+title: "useIsomorphicLayoutEffect"
+description: "useLayoutEffect on the client, useEffect on the server."
+---
+
+# useIsomorphicLayoutEffect
+
+`useIsomorphicLayoutEffect` is `useLayoutEffect` on the client and `useEffect` on the server, preventing SSR warnings while preserving synchronous layout semantics.
+
+```tsx lineNumbers
+import { useIsomorphicLayoutEffect } from '@ilokesto/utilinent/hooks';
+
+function MeasureOnMount() {
+  useIsomorphicLayoutEffect(() => measure(), []);
+  return null;
+}
+```

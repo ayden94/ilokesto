@@ -1,10 +1,11 @@
 import { Show } from "../Show";
-import { OptionalWrapperProps } from "./types";
+import type { OptionalWrapperProps } from "./types";
 
 /**
  * Conditionally wraps children in a `wrapper` function when `when` is truthy.
  *
- * When `when` is falsy, renders children directly — or through `fallback` if provided.
+ * When `when` is falsy, renders children directly — or through `elseWrapper`
+ * when provided. `fallback` is accepted as a deprecated alias for `elseWrapper`.
  *
  * @example
  * ```tsx
@@ -17,9 +18,13 @@ export function OptionalWrapper<T>({
   when,
   children,
   wrapper,
-  fallback
+  elseWrapper,
+  fallback,
 }: OptionalWrapperProps<T>): React.ReactNode {
-  return <Show when={when} fallback={fallback ? fallback(children) : children}>
-    {wrapper(children)}
-  </Show>;
+  const elseFn = elseWrapper ?? fallback;
+  return (
+    <Show when={when} fallback={elseFn ? elseFn(children) : children}>
+      {wrapper(children)}
+    </Show>
+  );
 }

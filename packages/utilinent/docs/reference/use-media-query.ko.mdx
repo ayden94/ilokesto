@@ -1,0 +1,19 @@
+---
+title: "useMediaQuery"
+description: "CSS media query를 구독합니다."
+---
+
+# useMediaQuery
+
+`useMediaQuery`는 CSS media query를 구독하고 현재 match 여부를 반환합니다. SSR-safe: 서버에서는 `false`를 반환하고 클라이언트에서 hydrate됩니다.
+
+```tsx lineNumbers
+import { useMediaQuery } from '@ilokesto/utilinent/hooks';
+
+function Nav() {
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  return isDesktop ? <DesktopNav /> : <MobileNav />;
+}
+```
+
+media query 문자열을 전달하면 match가 변경될 때 반환값이 반응적으로 갱신됩니다.

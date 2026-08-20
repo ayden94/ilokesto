@@ -1,0 +1,23 @@
+---
+title: "Hoverable"
+description: "hover state를 추적하여 render prop으로 전달합니다."
+---
+
+# Hoverable
+
+`Hoverable`은 hover state를 추적하고 `isHovering`을 render prop으로 전달합니다. `ref`는 underlying `div`로 전달됩니다.
+
+```tsx lineNumbers
+import { Hoverable } from '@ilokesto/utilinent';
+
+<Hoverable>{(isHovering) => <Card highlighted={isHovering} />}</Hoverable>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `children` | `ReactNode | (isHovering) => ReactNode` | content, 선택적으로 hover state를 받습니다. |
+| `fallback` | `ReactNode` | render prop 미사용 시 children과 함께 렌더링됩니다. |
+
+표준 `div` props와 `ref`가 전달됩니다.

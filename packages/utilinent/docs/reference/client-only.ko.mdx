@@ -1,0 +1,21 @@
+---
+title: "ClientOnly"
+description: "클라이언트에서만 children을 렌더링합니다."
+---
+
+# ClientOnly
+
+`ClientOnly`는 클라이언트에서 mount된 후에만 children을 렌더링합니다. SSR 및 첫 클라이언트 렌더 동안 `fallback`(기본값 `null`)을 보여주어 브라우저 전용 UI의 hydration mismatch를 방지합니다.
+
+```tsx lineNumbers
+import { ClientOnly } from '@ilokesto/utilinent';
+
+<ClientOnly fallback={<Skeleton />}><HeavyChart /></ClientOnly>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `children` | `ReactNode` | mount 후 렌더링됩니다. |
+| `fallback` | `ReactNode` | SSR / mount 전에 렌더링됩니다. 기본값은 `null`입니다. |

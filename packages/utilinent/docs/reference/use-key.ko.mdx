@@ -1,0 +1,26 @@
+---
+title: "useKey"
+description: "키 누름 시 handler를 호출합니다."
+---
+
+# useKey
+
+`useKey`는 `KeyboardEvent.code` 값(또는 모든 키에 대해 `"*"`)과 일치하는 키가 눌릴 때 handler를 호출합니다.
+
+```tsx lineNumbers
+import { useKey } from '@ilokesto/utilinent/hooks';
+
+function Modal() {
+  useKey('Escape', () => close());
+  useKey('KeyS', save, { ignoreEditable: true });
+  return <dialog>{children}</dialog>;
+}
+```
+
+## Options
+
+| Option | 설명 |
+| --- | --- |
+| `enabled` | `false`면 handler가 호출되지 않습니다. 기본값은 `true`입니다. |
+| `event` | `keydown`(기본값) 또는 `keyup`입니다. |
+| `ignoreEditable` | input/textarea/select/contenteditable에서 발생한 이벤트를 무시합니다. |

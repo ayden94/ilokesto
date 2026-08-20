@@ -9,6 +9,18 @@ interface UseIntersectionObserverOptions {
   rootMargin?: string;
   freezeOnceVisible?: boolean;
   initialIsIntersecting?: boolean;
+  /**
+   * Called when the element transitions from non-intersecting to intersecting.
+   * Matches the {@link Observer} `onIntersect` prop name.
+   */
+  onIntersect?: (
+    isIntersecting: boolean,
+    entry: IntersectionObserverEntry
+  ) => void;
+  /**
+   * @deprecated Use {@link UseIntersectionObserverOptions.onIntersect} instead.
+   * Kept as a backward-compatible alias.
+   */
   onChange?: (
     isIntersecting: boolean,
     entry: IntersectionObserverEntry
@@ -32,6 +44,9 @@ interface UseIntersectionObserverResult {
  * after the first intersection. Falls back to `initialIsIntersecting` when
  * `IntersectionObserver` is unavailable.
  *
+ * `onIntersect` fires when the element transitions from non-intersecting to
+ * intersecting. `onChange` is accepted as a deprecated alias.
+ *
  * @example
  * ```tsx
  * const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.5 });
@@ -44,8 +59,11 @@ export function useIntersectionObserver({
   rootMargin = "0%",
   freezeOnceVisible = false,
   initialIsIntersecting = false,
+  onIntersect,
   onChange,
 }: UseIntersectionObserverOptions = {}): UseIntersectionObserverResult {
+  // `onChange` is a deprecated alias for `onIntersect`.
+  const onChangeCallback = onIntersect ?? onChange;
   const [element, setElement] = useState<HTMLElement | null>(null);
   const [isIntersecting, setIsIntersecting] = useState(initialIsIntersecting);
   const [entry, setEntry] = useState<IntersectionObserverEntry | undefined>();
@@ -56,8 +74,8 @@ export function useIntersectionObserver({
 
   // Keep callback ref updated
   useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
+    onChangeRef.current = onChangeCallback;
+  }, [onChangeCallback]);
 
   // Memoize options
   const observerOptions = useMemo(

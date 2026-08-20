@@ -1,0 +1,19 @@
+---
+title: "useHover"
+description: "Track whether an element is hovered."
+---
+
+# useHover
+
+`useHover` tracks hover state on an element. Returns a `ref` callback and the current `isHovering` boolean.
+
+```tsx lineNumbers
+import { useHover } from '@ilokesto/utilinent/hooks';
+
+function Tooltip() {
+  const { ref, isHovering } = useHover();
+  return <div ref={ref}>{isHovering ? 'Hovering' : 'Idle'}</div>;
+}
+```
+
+`useHoverRef(ref)` is a variant that accepts an existing ref and returns the `isHovering` boolean.

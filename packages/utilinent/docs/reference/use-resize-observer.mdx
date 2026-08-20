@@ -1,0 +1,28 @@
+---
+title: "useResizeObserver"
+description: "Track an element's size with ResizeObserver."
+---
+
+# useResizeObserver
+
+`useResizeObserver` tracks an element's dimensions via `ResizeObserver`. Returns a `ref` callback plus the current `width` and `height`.
+
+```tsx lineNumbers
+import { useResizeObserver } from '@ilokesto/utilinent/hooks';
+
+function SizeBox() {
+  const { ref, width, height } = useResizeObserver();
+  return <div ref={ref}>{width}×{height}</div>;
+}
+```
+
+## Options
+
+| Option | Description |
+| --- | --- |
+| `box` | Observer box model. Defaults to `content-box`. |
+| `initialSize` | Initial size before the first observation fires. |
+
+## Return value
+
+`ref` is a callback ref. `width` and `height` are numbers (default `0`). `entry` is the latest `ResizeObserverEntry` when available. SSR-safe: returns zeros when `ResizeObserver` is unavailable.

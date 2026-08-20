@@ -1,0 +1,25 @@
+---
+title: "Hotkey"
+description: "키보드 hotkey를 선언합니다."
+---
+
+# Hotkey
+
+`Hotkey`는 키보드 hotkey를 선언하고 아무것도 렌더링하지 않습니다. `combo`는 `KeyboardEvent.code` 값(예: `"Escape"`, `"KeyS"`) 또는 모든 키에 대해 `"*"`입니다.
+
+```tsx lineNumbers
+import { Hotkey } from '@ilokesto/utilinent';
+
+<Hotkey combo="Escape" onPress={() => close()} />
+<Hotkey combo="KeyS" onPress={save} ignoreEditable />
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `combo` | `string | "*"` | match할 key code입니다. |
+| `onPress` | `(event) => void` | 키가 눌릴 때 호출됩니다. |
+| `enabled` | `boolean` | `false`면 handler가 호출되지 않습니다. |
+| `event` | `"keydown" | "keyup"` | 리스너 이벤트입니다. 기본값은 `keydown`입니다. |
+| `ignoreEditable` | `boolean` | editable element에서의 이벤트를 무시합니다. |

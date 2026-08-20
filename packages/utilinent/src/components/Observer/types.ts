@@ -13,4 +13,9 @@ export interface ObserverProps extends Fallback {
   rootMargin?: string;
   triggerOnce?: boolean;
   onIntersect?: (isIntersecting: boolean, entry: IntersectionObserverEntry) => void;
+  /**
+   * When `true`, forces a minimum 1x1px measurable box and `display: block` so the
+   * element can be observed even when it has no content. Defaults to `false`.
+   */
+  keepMeasurable?: boolean;
 }

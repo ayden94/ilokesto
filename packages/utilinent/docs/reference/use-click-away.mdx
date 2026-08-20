@@ -1,0 +1,28 @@
+---
+title: "useClickAway"
+description: "Invoke a handler when a pointer event occurs outside a ref."
+---
+
+# useClickAway
+
+`useClickAway` invokes a handler when a pointer or touch event occurs outside the referenced element. Ideal for closing popovers, dropdowns, and menus.
+
+```tsx lineNumbers
+import { useRef } from 'react';
+import { useClickAway } from '@ilokesto/utilinent/hooks';
+
+function Menu() {
+  const ref = useRef<HTMLDivElement>(null);
+  useClickAway(ref, () => setOpen(false));
+  return <div ref={ref}>{children}</div>;
+}
+```
+
+## Options
+
+| Option | Description |
+| --- | --- |
+| `ignore` | Additional refs whose contents are also considered "inside". |
+| `pointerEvents` | Detect `pointerdown` instead of `mousedown`/`touchstart`. |
+
+The handler receives the triggering event. SSR-safe: effects do not run on the server.

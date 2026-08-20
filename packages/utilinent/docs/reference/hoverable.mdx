@@ -1,0 +1,23 @@
+---
+title: "Hoverable"
+description: "Track hover state and pass it to a render prop."
+---
+
+# Hoverable
+
+`Hoverable` tracks hover state and passes `isHovering` to a render prop. Forwards `ref` to the underlying `div`.
+
+```tsx lineNumbers
+import { Hoverable } from '@ilokesto/utilinent';
+
+<Hoverable>{(isHovering) => <Card highlighted={isHovering} />}</Hoverable>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode | (isHovering) => ReactNode` | Content, optionally receiving hover state. |
+| `fallback` | `ReactNode` | Rendered alongside children when not using a render prop. |
+
+All standard `div` props and `ref` are forwarded.

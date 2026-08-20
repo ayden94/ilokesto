@@ -11,7 +11,7 @@ Utility React components and helpers for conditional rendering and async states.
 1. Read the root `AGENTS.md`, `PACKAGES.md`, and `ARCHITECTURE.md`.
 2. Load the `ilokesto-utilinent` skill from `.opencode/skills/ilokesto-utilinent/SKILL.md`.
 3. Keep components small, composable, and proxy-based polymorphic.
-4. Run `pnpm build` before committing (this package has no tests yet).
+4. Run `pnpm build` and `pnpm test` before committing.
 5. Add a changeset with `pnpm changeset` for any consumer-facing change.
 
 ## Release flow

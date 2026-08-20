@@ -1,0 +1,28 @@
+---
+title: "useClickAway"
+description: "ref 바깥에서 pointer 이벤트가 발생하면 handler를 호출합니다."
+---
+
+# useClickAway
+
+`useClickAway`는 참조된 element 바깥에서 pointer 또는 touch 이벤트가 발생할 때 handler를 호출합니다. popover, dropdown, menu를 닫을 때 적합합니다.
+
+```tsx lineNumbers
+import { useRef } from 'react';
+import { useClickAway } from '@ilokesto/utilinent/hooks';
+
+function Menu() {
+  const ref = useRef<HTMLDivElement>(null);
+  useClickAway(ref, () => setOpen(false));
+  return <div ref={ref}>{children}</div>;
+}
+```
+
+## Options
+
+| Option | 설명 |
+| --- | --- |
+| `ignore` | "안쪽"으로 간주할 추가 ref들입니다. |
+| `pointerEvents` | `mousedown`/`touchstart` 대신 `pointerdown`을 감지합니다. |
+
+handler는 트리거된 이벤트를 받습니다. SSR-safe: effect는 서버에서 실행되지 않습니다.

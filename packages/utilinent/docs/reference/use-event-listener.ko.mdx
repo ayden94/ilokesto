@@ -1,0 +1,28 @@
+---
+title: "useEventListener"
+description: "window, element, ref에 이벤트 리스너를 연결합니다."
+---
+
+# useEventListener
+
+`useEventListener`는 window/document/element target이나 ref에 DOM 이벤트 리스너를 연결합니다. handler는 ref에 보관되어 리스너가 재바인딩 없이 갱신됩니다.
+
+```tsx lineNumbers
+import { useEventListener } from '@ilokesto/utilinent/hooks';
+
+function WindowSize() {
+  useEventListener(window, 'resize', () => console.log('resized'));
+  return null;
+}
+```
+
+## Options
+
+| Option | 설명 |
+| --- | --- |
+| `capture` | capture phase에서 리스닝합니다. |
+| `passive` | passive 리스너입니다. |
+| `disabled` | `true`면 리스너는 연결되지만 호출되지 않습니다. |
+| `predicate` | handler 호출 전 실행되는 optional 필터입니다. |
+
+target은 `window`, `document`, `EventTarget`, 또는 `React.RefObject`가 될 수 있습니다. SSR-safe: effect는 서버에서 실행되지 않습니다.

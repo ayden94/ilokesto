@@ -1,0 +1,26 @@
+---
+title: "useKey"
+description: "Invoke a handler on a key press."
+---
+
+# useKey
+
+`useKey` invokes a handler when a key matching a `KeyboardEvent.code` value (or `"*"` for any key) is pressed.
+
+```tsx lineNumbers
+import { useKey } from '@ilokesto/utilinent/hooks';
+
+function Modal() {
+  useKey('Escape', () => close());
+  useKey('KeyS', save, { ignoreEditable: true });
+  return <dialog>{children}</dialog>;
+}
+```
+
+## Options
+
+| Option | Description |
+| --- | --- |
+| `enabled` | When `false`, the handler is not invoked. Defaults to `true`. |
+| `event` | `keydown` (default) or `keyup`. |
+| `ignoreEditable` | Ignore events from input/textarea/select/contenteditable. |

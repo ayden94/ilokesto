@@ -40,7 +40,7 @@ const renderForTag = createTagRenderer(
  * ```tsx
  * <Switch fallback={<Default />}>
  *   <Match when={status === 'loading'}><Spinner /></Match>
- *   <Match when={status === 'error'}><Error /</Match>
+ *   <Match when={status === 'error'}><Error /></Match>
  *   <Match when={data}>{(d) => <View data={d} />}</Match>
  * </Switch>
  * ```

@@ -30,7 +30,7 @@ Load this skill when the user is working on `@ilokesto/utilinent`.
 - Keep components small and composable.
 - Preserve proxy-based polymorphic behavior.
 - Ensure TypeScript types work with `react` >= 18.
-- Run `pnpm --filter @ilokesto/utilinent build` before committing (this package has no tests yet).
+- Run `pnpm --filter @ilokesto/utilinent build` and `pnpm --filter @ilokesto/utilinent test` before committing.
 - Add a root changeset under `.changeset/` for consumer-facing changes.
 
 ## Must not do

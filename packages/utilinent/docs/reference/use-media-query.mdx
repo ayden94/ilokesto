@@ -1,0 +1,19 @@
+---
+title: "useMediaQuery"
+description: "Subscribe to a CSS media query."
+---
+
+# useMediaQuery
+
+`useMediaQuery` subscribes to a CSS media query and returns whether it currently matches. SSR-safe: returns `false` on the server and hydrates on the client.
+
+```tsx lineNumbers
+import { useMediaQuery } from '@ilokesto/utilinent/hooks';
+
+function Nav() {
+  const isDesktop = useMediaQuery('(min-width: 768px)');
+  return isDesktop ? <DesktopNav /> : <MobileNav />;
+}
+```
+
+Pass a media query string. The return value updates reactively when the match changes.

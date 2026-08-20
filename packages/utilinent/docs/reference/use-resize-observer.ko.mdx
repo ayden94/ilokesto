@@ -1,0 +1,28 @@
+---
+title: "useResizeObserver"
+description: "ResizeObserver로 element의 크기를 추적합니다."
+---
+
+# useResizeObserver
+
+`useResizeObserver`는 `ResizeObserver`를 통해 element의 크기를 추적합니다. `ref` callback과 현재 `width`, `height`를 반환합니다.
+
+```tsx lineNumbers
+import { useResizeObserver } from '@ilokesto/utilinent/hooks';
+
+function SizeBox() {
+  const { ref, width, height } = useResizeObserver();
+  return <div ref={ref}>{width}×{height}</div>;
+}
+```
+
+## Options
+
+| Option | 설명 |
+| --- | --- |
+| `box` | Observer box model입니다. 기본값은 `content-box`입니다. |
+| `initialSize` | 첫 observation 이전의 initial size입니다. |
+
+## Return value
+
+`ref`는 callback ref입니다. `width`와 `height`는 number(기본값 `0`)입니다. `entry`는 사용 가능한 최신 `ResizeObserverEntry`입니다. SSR-safe: `ResizeObserver`가 없으면 0을 반환합니다.

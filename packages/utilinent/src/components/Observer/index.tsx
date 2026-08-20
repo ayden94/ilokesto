@@ -25,9 +25,10 @@ export const Observer = forwardRef<HTMLDivElement, ObserverProps & Omit<Componen
       children,
       fallback = null,
       threshold = 0,
-      rootMargin = "0px",
+      rootMargin = "0%",
       triggerOnce: freezeOnceVisible = false,
       onIntersect: onChange,
+      keepMeasurable = false,
       style,
       ...props
     },
@@ -37,7 +38,7 @@ export const Observer = forwardRef<HTMLDivElement, ObserverProps & Omit<Componen
       threshold,
       rootMargin,
       freezeOnceVisible,
-      onChange,
+      onIntersect: onChange,
     });
 
     const mergedRef = useMemo(
@@ -50,12 +51,16 @@ export const Observer = forwardRef<HTMLDivElement, ObserverProps & Omit<Componen
         ref={mergedRef}
         when={isIntersecting}
         fallback={fallback}
-        style={{
-          ...style,
-          minHeight: style?.minHeight ?? "1px",
-          minWidth: style?.minWidth ?? "1px",
-          display: style?.display ?? "block",
-        }}
+        style={
+          keepMeasurable
+            ? {
+                ...style,
+                minHeight: style?.minHeight ?? "1px",
+                minWidth: style?.minWidth ?? "1px",
+                display: style?.display ?? "block",
+              }
+            : style
+        }
         {...props}
       >
         {typeof children === "function" ? children(isIntersecting) : children}

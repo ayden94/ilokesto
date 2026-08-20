@@ -1,0 +1,28 @@
+---
+title: "useEventListener"
+description: "Attach an event listener to a window, element, or ref."
+---
+
+# useEventListener
+
+`useEventListener` attaches a DOM event listener to a window/document/element target or a ref. The handler is kept in a ref, so listeners update without re-binding.
+
+```tsx lineNumbers
+import { useEventListener } from '@ilokesto/utilinent/hooks';
+
+function WindowSize() {
+  useEventListener(window, 'resize', () => console.log('resized'));
+  return null;
+}
+```
+
+## Options
+
+| Option | Description |
+| --- | --- |
+| `capture` | Listen in the capture phase. |
+| `passive` | Passive listener. |
+| `disabled` | When `true`, the listener is attached but never invoked. |
+| `predicate` | Optional filter invoked before the handler. |
+
+The target may be `window`, `document`, an `EventTarget`, or a `React.RefObject`. SSR-safe: effects do not run on the server.
