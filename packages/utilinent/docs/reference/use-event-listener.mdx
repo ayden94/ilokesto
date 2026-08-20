@@ -8,7 +8,7 @@ description: "Attach an event listener to a window, element, or ref."
 `useEventListener` attaches a DOM event listener to a window/document/element target or a ref. The handler is kept in a ref, so listeners update without re-binding.
 
 ```tsx lineNumbers
-import { useEventListener } from '@ilokesto/utilinent';
+import { useEventListener } from '@ilokesto/utilinent/hooks';
 
 function WindowSize() {
   useEventListener(window, 'resize', () => console.log('resized'));

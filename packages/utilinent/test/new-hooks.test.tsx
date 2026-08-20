@@ -10,7 +10,7 @@ import {
   useMediaQuery,
   useResizeObserver,
   useThrottle,
-} from "../src/index";
+} from "../src/hooks";
 
 afterEach(() => {
   vi.restoreAllMocks();

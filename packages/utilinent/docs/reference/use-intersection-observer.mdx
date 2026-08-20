@@ -8,7 +8,7 @@ description: "Low-level hook behind Observer for manual intersection logic."
 `useIntersectionObserver` is the hook used by `Observer`. Use it directly when you need custom rendering or side effects around intersection state.
 
 ```tsx lineNumbers
-import { useIntersectionObserver } from '@ilokesto/utilinent';
+import { useIntersectionObserver } from '@ilokesto/utilinent/hooks';
 
 function AnalyticsSection() {
   const { ref, isIntersecting, entry } = useIntersectionObserver({

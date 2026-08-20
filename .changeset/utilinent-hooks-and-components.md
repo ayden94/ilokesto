@@ -2,9 +2,11 @@
 "@ilokesto/utilinent": minor
 ---
 
-Add browser-observation hooks, companion components, and API cleanups.
+Add browser-observation hooks (behind a `./hooks` subpath), companion components, and API cleanups. The main `.` entry is now components-only; hooks are imported from `@ilokesto/utilinent/hooks`.
 
-New hooks:
+> Migration: update hook imports `from '@ilokesto/utilinent'` to `from '@ilokesto/utilinent/hooks'`. Component imports from `@ilokesto/utilinent` are unchanged.
+
+New hooks (subpath `./hooks`):
 - `useEventListener` — attach DOM listeners to a window/document/element target or ref.
 - `useResizeObserver` — track element size; returns `ref`, `width`, `height`.
 - `useMediaQuery` — subscribe to a CSS media query (SSR-safe).
@@ -12,9 +14,9 @@ New hooks:
 - `useHover` / `useHoverRef` — track hover state.
 - `useKey` — invoke a handler on a key press (`KeyboardEvent.code` or `"*"`).
 - `useDebounce` / `useThrottle` — debounce/throttle a value.
-- `useIsomorphicLayoutEffect` — now exported as a public hook.
+- `useIsomorphicLayoutEffect` — now exported publicly (subpath `./hooks`).
 
-New components:
+New components (main `.`):
 - `Measure` — `ResizeObserver`-driven size render prop.
 - `Media` — render children based on a media query match.
 - `ClickAway` — outside-click wrapper.
@@ -23,7 +25,7 @@ New components:
 - `ErrorBoundary` — catch render errors with a `fallback` (pairs with `Mount`).
 - `ClientOnly` — render children only after client mount (SSR-safe).
 
-API cleanups (non-breaking):
+API cleanups (non-breaking unless noted):
 - `useIntersectionObserver` option `onChange` renamed to `onIntersect` to match `Observer`; `onChange` kept as a deprecated alias.
 - `OptionalWrapper` adds `elseWrapper`; `fallback` kept as a deprecated alias.
 - `Observer` adds `keepMeasurable` (opt-in 1x1 measurable box) and defaults `rootMargin` to `"0%"` to match the hook.

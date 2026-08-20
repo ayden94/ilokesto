@@ -8,7 +8,7 @@ description: "Subscribe to a CSS media query."
 `useMediaQuery` subscribes to a CSS media query and returns whether it currently matches. SSR-safe: returns `false` on the server and hydrates on the client.
 
 ```tsx lineNumbers
-import { useMediaQuery } from '@ilokesto/utilinent';
+import { useMediaQuery } from '@ilokesto/utilinent/hooks';
 
 function Nav() {
   const isDesktop = useMediaQuery('(min-width: 768px)');

@@ -16,17 +16,8 @@ export * from './components/Slacker';
 export * from './components/Slot';
 export * from './components/Switch';
 
-// export hooks
-export * from './hooks/useClickAway';
-export * from './hooks/useDebounce';
-export * from './hooks/useEventListener';
-export * from './hooks/useHover';
-export * from './hooks/useIntersectionObserver';
-export * from './hooks/useIsomorphicLayoutEffect';
-export * from './hooks/useKey';
-export * from './hooks/useMediaQuery';
-export * from './hooks/useResizeObserver';
-export * from './hooks/useThrottle';
+// Hooks are available via the `./hooks` subpath export.
+// import { useMediaQuery } from '@ilokesto/utilinent/hooks'
 
 // export Register and PluginManager
 export { PluginManager } from './core/PluginManager';

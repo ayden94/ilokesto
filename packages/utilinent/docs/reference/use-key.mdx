@@ -8,7 +8,7 @@ description: "Invoke a handler on a key press."
 `useKey` invokes a handler when a key matching a `KeyboardEvent.code` value (or `"*"` for any key) is pressed.
 
 ```tsx lineNumbers
-import { useKey } from '@ilokesto/utilinent';
+import { useKey } from '@ilokesto/utilinent/hooks';
 
 function Modal() {
   useKey('Escape', () => close());

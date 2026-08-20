@@ -8,7 +8,7 @@ description: "클라이언트에서는 useLayoutEffect, 서버에서는 useEffec
 `useIsomorphicLayoutEffect`는 클라이언트에서는 `useLayoutEffect`, 서버에서는 `useEffect`로 동작하여 SSR 경고를 방지하면서 synchronous layout 의미를 보존합니다.
 
 ```tsx lineNumbers
-import { useIsomorphicLayoutEffect } from '@ilokesto/utilinent';
+import { useIsomorphicLayoutEffect } from '@ilokesto/utilinent/hooks';
 
 function MeasureOnMount() {
   useIsomorphicLayoutEffect(() => measure(), []);

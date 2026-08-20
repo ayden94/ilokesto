@@ -13,6 +13,13 @@ This page turns a common React data component into declarative utilinent markup.
 pnpm add @ilokesto/utilinent
 ```
 
+Components are imported from the package root; hooks live under the `./hooks` subpath.
+
+```tsx lineNumbers
+import { Show, For } from '@ilokesto/utilinent';
+import { useMediaQuery } from '@ilokesto/utilinent/hooks';
+```
+
 ## 2. Start from the ordinary React version
 
 ```tsx lineNumbers
