@@ -13,15 +13,18 @@ on:
 jobs:
   sync-docs:
     runs-on: ubuntu-latest
-    if: ${{ secrets.DOCS_SYNC_TOKEN != '' }}
+    env:
+      DOCS_SYNC_TOKEN: ${{ secrets.DOCS_SYNC_TOKEN }}
     steps:
       - name: Checkout source repository
+        if: ${{ env.DOCS_SYNC_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
           path: source
           fetch-depth: 0
 
       - name: Checkout docs repository
+        if: ${{ env.DOCS_SYNC_TOKEN != '' }}
         uses: actions/checkout@v4
         with:
           repository: ilokesto/docs
@@ -29,11 +32,13 @@ jobs:
           path: docs
 
       - name: Set up Git identity
+        if: ${{ env.DOCS_SYNC_TOKEN != '' }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Sync package docs
+        if: ${{ env.DOCS_SYNC_TOKEN != '' }}
         env:
           PACKAGE: ${{ inputs.package }}
         run: |
@@ -42,6 +47,7 @@ jobs:
           cp -R "source/packages/$PACKAGE/docs/." "docs/content/docs/$PACKAGE/"
 
       - name: Create pull request
+        if: ${{ env.DOCS_SYNC_TOKEN != '' }}
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.DOCS_SYNC_TOKEN }}
