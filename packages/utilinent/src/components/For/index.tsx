@@ -16,4 +16,15 @@ const renderForTag = createTagRenderer(
   { fallback: null },
 );
 
+/**
+ * Renders a list by mapping `children` over each item in `each`.
+ *
+ * Renders `fallback` when the array is empty or nullish.
+ * Polymorphic: access typed HTML tag variants via `For.ul`, `For.div`, etc.
+ *
+ * @example
+ * ```tsx
+ * <For.ul each={items}>{(item, i) => <li key={i}>{item}</li>}</For.ul>
+ * ```
+ */
 export const For: ForType = createProxy(BaseFor, renderForTag, "for");

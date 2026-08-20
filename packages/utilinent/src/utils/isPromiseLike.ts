@@ -1,3 +1,6 @@
+/**
+ * Type guard: narrows `value` to `PromiseLike<T>` when it has a `then` method.
+ */
 export function isPromiseLike<T = unknown>(
   value: unknown,
 ): value is PromiseLike<T> {

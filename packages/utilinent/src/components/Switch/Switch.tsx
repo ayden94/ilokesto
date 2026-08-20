@@ -30,4 +30,19 @@ const renderForTag = createTagRenderer(
   { fallback: null },
 );
 
+/**
+ * Renders the first {@link Match} child whose `when` condition is truthy.
+ *
+ * Falls back to `fallback` when no Match satisfies its condition.
+ * Polymorphic: access typed HTML tag variants via `Switch.div`, etc.
+ *
+ * @example
+ * ```tsx
+ * <Switch fallback={<Default />}>
+ *   <Match when={status === 'loading'}><Spinner /></Match>
+ *   <Match when={status === 'error'}><Error /</Match>
+ *   <Match when={data}>{(d) => <View data={d} />}</Match>
+ * </Switch>
+ * ```
+ */
 export const Switch: SwitchType = createProxy(BaseSwitch, renderForTag, "switch");

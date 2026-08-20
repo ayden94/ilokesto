@@ -1,10 +1,23 @@
 import type { BaseTypeHelperFn, Fallback, NonNullableElements, ProxyType } from "../../types";
 
+/**
+ * Props for {@link Show} when `when` is an array.
+ *
+ * Renders children when the array is non-empty and every element is truthy.
+ * The render-prop callback receives a tuple with all `NonNullable` elements.
+ */
 export interface ShowPropsArray<T extends unknown[]> extends Fallback {
   when: T;
   children: React.ReactNode | ((item: NonNullableElements<T>) => React.ReactNode);
 }
 
+/**
+ * Props for {@link Show}.
+ *
+ * `when` — condition value; children render when truthy.
+ * `children` — ReactNode or a render-prop that receives the narrowed `NonNullable<T>` value.
+ * `fallback` — rendered when `when` is falsy (defaults to `null`).
+ */
 export interface ShowProps<T = unknown> extends Fallback {
   when: T;
   children: React.ReactNode | ((item: NonNullable<T>) => React.ReactNode);

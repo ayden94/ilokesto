@@ -2,6 +2,18 @@ import { htmlTags } from "../constants/htmlTags";
 import type { RegistryCategory } from "../types";
 import { PluginManager } from "./PluginManager";
 
+/**
+ * Creates a polymorphic proxy component with typed HTML tag variants.
+ *
+ * The returned proxy exposes every HTML tag in {@link htmlTags} as a property
+ * (e.g. `Show.div`, `Show.span`), each rendering the base component's output
+ * through the corresponding tag. Plugin-registered components are resolved
+ * lazily via {@link PluginManager} on first access.
+ *
+ * @param base - the base render function or component
+ * @param renderForTag - factory that wraps the base in a `forwardRef` element for a given tag
+ * @param category - plugin registry category for this component
+ */
 export function createProxy<TProxy extends object, TBase extends object = TProxy>(
   base: TBase,
   renderForTag: (tag: any) => React.ForwardRefExoticComponent<any>,

@@ -17,6 +17,12 @@ function setRef<T>(ref: ComposableRef<T>, node: T | null): RefCleanup | void {
   }
 }
 
+/**
+ * Composes multiple refs (callback or object) into a single callback ref.
+ *
+ * Supports React 19 ref cleanup: if any ref returns a cleanup function,
+ * a composite cleanup is returned that resets all refs on unmount.
+ */
 export function composeRefs<T>(...refs: ComposableRef<T>[]) {
   return (node: T | null) => {
     let hasCleanup = false;

@@ -5,6 +5,20 @@ import { Show } from "../Show";
 import { composeRefs } from "../../utils/composeRefs";
 import type { ObserverProps } from "./types";
 
+/**
+ * Wraps children in an IntersectionObserver-driven container.
+ *
+ * Renders `fallback` until the element intersects the viewport, then renders children.
+ * Supports a render-prop callback that receives the current `isIntersecting` boolean.
+ * Forwards `ref` to the underlying `div`.
+ *
+ * @example
+ * ```tsx
+ * <Observer fallback={<Placeholder />} rootMargin="100px">
+ *   {(isIntersecting) => isIntersecting ? <Content /> : <Spinner />}
+ * </Observer>
+ * ```
+ */
 export const Observer = forwardRef<HTMLDivElement, ObserverProps & Omit<ComponentPropsWithRef<'div'>, 'ref'>>(
   function Observer(
     {

@@ -78,4 +78,18 @@ const renderForTag = createTagRenderer(
   { fallback: null },
 );
 
+/**
+ * Resolves and renders children that may be synchronous or asynchronous.
+ *
+ * Accepts a factory function returning `ReactNode | Promise<ReactNode>`.
+ * Shows `fallback` while the factory is pending or on error.
+ * Polymorphic: access typed HTML tag variants via `Mount.div`, etc.
+ *
+ * @example
+ * ```tsx
+ * <Mount fallback={<Spinner />}>
+ *   {() => fetchProfile().then(p => <Profile data={p} />)}
+ * </Mount>
+ * ```
+ */
 export const Mount: MountType = createProxy(BaseMount, renderForTag, "mount");

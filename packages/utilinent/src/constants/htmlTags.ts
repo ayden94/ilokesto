@@ -1,3 +1,7 @@
+/**
+ * Map of supported HTML tag names for polymorphic proxy components.
+ * Each key-value pair is identical (e.g. `div: "div"`).
+ */
 export const htmlTags = {
   a: "a",
   abbr: "abbr",

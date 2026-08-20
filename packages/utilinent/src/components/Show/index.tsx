@@ -23,4 +23,17 @@ const renderForTag = createTagRenderer(
   { fallback: null },
 );
 
+/**
+ * Conditionally renders children when `when` is truthy.
+ *
+ * Supports a render-prop callback that receives the narrowed `NonNullable` value.
+ * Polymorphic: access typed HTML tag variants via `Show.div`, `Show.span`, etc.,
+ * and plugin-registered components via `Show.Link`, `Show.motionDiv`, etc.
+ *
+ * @example
+ * ```tsx
+ * <Show when={user}>{(u) => <h1>Hello {u.name}</h1>}</Show>
+ * <Show.div when={count > 0}>{count} items</Show.div>
+ * ```
+ */
 export const Show: ShowType = createProxy(BaseShow, renderForTag, "show");

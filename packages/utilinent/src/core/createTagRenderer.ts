@@ -1,5 +1,11 @@
 import { createElement, forwardRef } from "react";
 
+/**
+ * Creates a `renderForTag` factory for {@link createProxy}.
+ *
+ * Props listed in `baseKeys` are routed to `renderBase`; all remaining props
+ * are spread onto the HTML tag. `defaults` fills in missing base prop values.
+ */
 export function createTagRenderer<TProps extends Record<string, any>>(
   renderBase: (props: TProps) => React.ReactNode,
   baseKeys: readonly string[],
