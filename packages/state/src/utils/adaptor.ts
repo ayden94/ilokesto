@@ -1,6 +1,6 @@
 import { Draft, produce } from 'immer';
 
-// 객체만 처리할 수 있도록 제약 추가
+// Constrain to objects so immer drafts only apply to reference types
 export function adaptor<T extends object>(fn: (draft: Draft<T>) => void) {
   return produce<T>(fn);
 }

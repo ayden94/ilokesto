@@ -7,14 +7,13 @@ type CleanupEntry = {
   readonly cleanup: Cleanup;
 };
 
-const cleanupsByStore = new WeakMap<Store<unknown>, Set<CleanupEntry>>();
-const cleanupEntriesByStore: WeakMap<object, Set<CleanupEntry>> = cleanupsByStore;
+const cleanupsByStore = new WeakMap<object, Set<CleanupEntry>>();
 
 export function registerStoreCleanup<T>(store: Store<T>, cleanup: Cleanup): () => void {
   const entry: CleanupEntry = { active: true, cleanup };
-  const entries = cleanupEntriesByStore.get(store) ?? new Set<CleanupEntry>();
+  const entries = cleanupsByStore.get(store) ?? new Set<CleanupEntry>();
   entries.add(entry);
-  cleanupEntriesByStore.set(store, entries);
+  cleanupsByStore.set(store, entries);
 
   return () => {
     if (!entry.active) {
@@ -27,13 +26,13 @@ export function registerStoreCleanup<T>(store: Store<T>, cleanup: Cleanup): () =
 }
 
 export function dispose<T>(store: Store<T>): void {
-  const entries = cleanupEntriesByStore.get(store);
+  const entries = cleanupsByStore.get(store);
   if (!entries) {
     return;
   }
 
   const snapshot = [...entries];
-  cleanupEntriesByStore.delete(store);
+  cleanupsByStore.delete(store);
   const errors: unknown[] = [];
 
   for (const entry of snapshot) {

@@ -16,7 +16,7 @@ type DebouncePipeMiddleware = PipeableMiddleware<
 const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
   const store = getStore(initialState);
 
-  let timeout: NodeJS.Timeout | null = null;
+  let timeout: ReturnType<typeof setTimeout> | null = null;
   let updates: Array<StoreSetStateAction<T>> = [];
   let savedNext: Dispatch<StoreSetStateAction<T>> | null = null;
   let unregisterTimeout: (() => void) | null = null;

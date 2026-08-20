@@ -206,13 +206,13 @@ export const setStorage: PersistUtils['setStorage'] = ({
     } else if (storageType === 'session') {
       sessionStorage.setItem(storageKey, encodedState);
     } else if (storageType === 'cookie') {
-      document.cookie = `${storageKey}=${encodeURIComponent(encodedState)}`;
+      document.cookie = `${storageKey}=${encodeURIComponent(encodedState)}; path=/`;
     }
 
     storageWriteCache.set(cacheKey, encodedState);
   } catch (error) {
     if (typeof window !== 'undefined') {
-      console.error('Caro-Kann : Failed to write to storage', error);
+      console.error('[@ilokesto/state/persist] Failed to write to storage', error);
     }
   }
 };

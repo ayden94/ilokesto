@@ -1,4 +1,4 @@
-import type { Store } from '@ilokesto/store';
+import { Store } from '@ilokesto/store';
 import { getStoreActionMetadata } from '../lib/actionMetadata.js';
 import { getStore } from '../lib/getStore.js';
 import { registerStoreCleanup } from '../lib/storeCleanup.js';
@@ -40,10 +40,6 @@ const getDevtoolsExtension = () => {
     .__REDUX_DEVTOOLS_EXTENSION__;
 };
 
-const hasInitialState = <T>(value: T | Store<T>): value is Store<T> => {
-  return typeof value === 'object' && value !== null && 'getInitialState' in value;
-};
-
 const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
   const store = getStore(initialState);
   const isProduction = typeof process !== 'undefined' && process.env.NODE_ENV === 'production';
@@ -63,7 +59,7 @@ const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
         case 'RESET':
           isDispatchAction = true;
           store.setState(
-            hasInitialState(initialState)
+            initialState instanceof Store
               ? (initialState.getInitialState() as T)
               : (initialState as T),
           );
