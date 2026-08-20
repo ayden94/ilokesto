@@ -1,0 +1,27 @@
+---
+title: "ErrorBoundary"
+description: "렌더 에러를 잡고 fallback을 보여줍니다."
+---
+
+# ErrorBoundary
+
+`ErrorBoundary`는 하위 컴포넌트의 렌더 에러를 잡고 `fallback`을 대신 렌더링합니다. async 에러를 다루는 `Mount`와 함께 사용하면 동기 렌더 에러와 비동기 factory 에러를 모두 커버합니다.
+
+```tsx lineNumbers
+import { ErrorBoundary } from '@ilokesto/utilinent';
+
+<ErrorBoundary fallback={({ error, reset }) => <button onClick={reset}>Retry</button>}>
+  <RiskyWidget />
+</ErrorBoundary>
+```
+
+## Props
+
+| Prop | Type | 설명 |
+| --- | --- | --- |
+| `children` | `ReactNode` | 보호할 subtree입니다. |
+| `fallback` | `ReactNode | ({ error, reset }) => ReactNode` | 하위 컴포넌트가 throw할 때 렌더링됩니다. |
+| `onError` | `(error, info) => void` | 에러가 잡혔을 때 호출됩니다. |
+| `resetKeys` | `readonly unknown[]` | 이 값들이 변경되면 boundary가 reset됩니다. |
+
+render prop `fallback`은 잡힌 `error`와 error state를 지우는 `reset` callback을 받습니다.

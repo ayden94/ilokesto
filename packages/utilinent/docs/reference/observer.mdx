@@ -22,8 +22,9 @@ import { Observer } from '@ilokesto/utilinent';
 | `children` | `ReactNode | (isIntersecting) => ReactNode` | Content rendered while intersecting. |
 | `fallback` | `ReactNode` | Rendered while not intersecting. |
 | `threshold` | `number | number[]` | Intersection threshold. Defaults to `0`. |
-| `rootMargin` | `string` | Observer root margin. Defaults to `"0px"`. |
+| `rootMargin` | `string` | Observer root margin. Defaults to `"0%"`. |
 | `triggerOnce` | `boolean` | Stop observing after first intersection. |
 | `onIntersect` | `(isIntersecting, entry) => void` | Called when entering intersection after initial observation. |
+| `keepMeasurable` | `boolean` | Force a minimum 1×1px measurable box and `display: block` so the element can be observed even without content. Defaults to `false`. |
 
 `Observer` renders through `Show.div`, so the observed element is a `div` and accepts normal div props/ref.

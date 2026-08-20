@@ -1,0 +1,24 @@
+---
+title: "Media"
+description: "Render children based on a CSS media query match."
+---
+
+# Media
+
+`Media` renders children based on a CSS media query match. With a render prop it receives the `matches` boolean; otherwise it renders `children` when the query matches and `fallback` when it does not.
+
+```tsx lineNumbers
+import { Media } from '@ilokesto/utilinent';
+
+<Media query="(min-width: 768px)">{(matches) => matches ? <Desktop /> : <Mobile />}</Media>
+
+<Media query="(min-width: 768px)" fallback={<MobileNav />}><DesktopNav /></Media>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `query` | `string` | A CSS media query string. |
+| `children` | `ReactNode | (matches) => ReactNode` | Content or render prop. |
+| `fallback` | `ReactNode` | Rendered when the query does not match (non-render-prop usage). Defaults to `null`. |

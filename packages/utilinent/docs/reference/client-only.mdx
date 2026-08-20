@@ -1,0 +1,21 @@
+---
+title: "ClientOnly"
+description: "Render children only on the client."
+---
+
+# ClientOnly
+
+`ClientOnly` renders children only after mount on the client. Shows `fallback` (default `null`) during SSR and the first client render, avoiding hydration mismatches for browser-only UI.
+
+```tsx lineNumbers
+import { ClientOnly } from '@ilokesto/utilinent';
+
+<ClientOnly fallback={<Skeleton />}><HeavyChart /></ClientOnly>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode` | Rendered after mount. |
+| `fallback` | `ReactNode` | Rendered during SSR / before mount. Defaults to `null`. |

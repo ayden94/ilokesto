@@ -1,0 +1,27 @@
+---
+title: "ErrorBoundary"
+description: "Catch render errors and show a fallback."
+---
+
+# ErrorBoundary
+
+`ErrorBoundary` catches render errors in descendants and renders `fallback` instead. Pair with `Mount` (which handles async errors) to cover both synchronous render errors and asynchronous factory errors.
+
+```tsx lineNumbers
+import { ErrorBoundary } from '@ilokesto/utilinent';
+
+<ErrorBoundary fallback={({ error, reset }) => <button onClick={reset}>Retry</button>}>
+  <RiskyWidget />
+</ErrorBoundary>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode` | The subtree to guard. |
+| `fallback` | `ReactNode | ({ error, reset }) => ReactNode` | Rendered when a descendant throws. |
+| `onError` | `(error, info) => void` | Called when an error is caught. |
+| `resetKeys` | `readonly unknown[]` | When these values change, the boundary resets. |
+
+A render-prop `fallback` receives the caught `error` and a `reset` callback that clears the error state.

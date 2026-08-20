@@ -1,0 +1,24 @@
+---
+title: "ClickAway"
+description: "Invoke a handler when a pointer event occurs outside the element."
+---
+
+# ClickAway
+
+`ClickAway` invokes `onClickAway` when a pointer or touch event occurs outside the element. Forwards `ref` to the underlying `div`. Ideal for closing popovers, dropdowns, and menus.
+
+```tsx lineNumbers
+import { ClickAway } from '@ilokesto/utilinent';
+
+<ClickAway onClickAway={() => setOpen(false)}>{children}</ClickAway>
+```
+
+## Props
+
+| Prop | Type | Description |
+| --- | --- | --- |
+| `onClickAway` | `(event) => void` | Invoked for outside pointer/touch events. |
+| `ignore` | `RefObject[]` | Additional refs considered "inside". |
+| `pointerEvents` | `boolean` | Detect `pointerdown` instead of `mousedown`/`touchstart`. |
+
+All standard `div` props and `ref` are forwarded.

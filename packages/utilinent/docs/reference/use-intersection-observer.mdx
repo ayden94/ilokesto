@@ -14,7 +14,7 @@ function AnalyticsSection() {
   const { ref, isIntersecting, entry } = useIntersectionObserver({
     threshold: 0.5,
     freezeOnceVisible: true,
-    onChange: () => console.log('seen'),
+    onIntersect: () => console.log('seen'),
   });
 
   return <section ref={ref}>{isIntersecting ? 'Visible' : 'Hidden'}</section>;
@@ -30,7 +30,8 @@ function AnalyticsSection() {
 | `rootMargin` | Margin around root. Defaults to `"0%"`. |
 | `freezeOnceVisible` | Stop observing after the first visible state. |
 | `initialIsIntersecting` | Initial state before observing. |
-| `onChange` | Called when entering intersection after initial observation. |
+| `onIntersect` | Called when entering intersection after initial observation. |
+| `onChange` | **Deprecated** alias for `onIntersect`. |
 
 ## Return value
 
