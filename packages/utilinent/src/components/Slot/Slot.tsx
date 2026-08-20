@@ -1,5 +1,5 @@
 import { Children, cloneElement, forwardRef, isValidElement } from 'react';
-import { composeRefs } from './composeRefs';
+import { composeRefs } from '../../utils/composeRefs';
 import { mergeProps } from './mergeProps';
 import { isSlottable } from './Slottable';
 

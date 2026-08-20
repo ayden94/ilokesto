@@ -1,13 +1,9 @@
-import {
-  ComponentPropsWithRef,
-  createElement,
-  forwardRef
-} from "react";
 import { createProxy } from "../../core/createProxy";
+import { createTagRenderer } from "../../core/createTagRenderer";
 import { resolveWhen } from "../../utils/resolveWhen";
 import { flattenChildren } from "./flattenChildren";
 import { isMatchElement } from "./Match";
-import { SwitchProps, SwitchType } from "./types";
+import type { SwitchProps, SwitchType } from "./types";
 
 function BaseSwitch({ children, fallback = null }: SwitchProps) {
   const childArray = flattenChildren(children);
@@ -28,14 +24,10 @@ function BaseSwitch({ children, fallback = null }: SwitchProps) {
   return fallback;
 }
 
-const renderForTag =
-  (tag: any) =>
-  forwardRef(function Render(
-    { children, fallback = null, ...props }: SwitchProps & ComponentPropsWithRef<any>,
-    ref: any
-  ) {
-    const content = BaseSwitch({ children, fallback });
-    return createElement(tag, { ...props, ref }, content);
-  });
+const renderForTag = createTagRenderer(
+  BaseSwitch as (props: any) => React.ReactNode,
+  ["children", "fallback"],
+  { fallback: null },
+);
 
 export const Switch: SwitchType = createProxy(BaseSwitch, renderForTag, "switch");

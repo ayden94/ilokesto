@@ -1,5 +1,5 @@
-import { ComponentPropsWithRef, createElement, forwardRef } from "react";
 import { createProxy } from "../../core/createProxy";
+import { createTagRenderer } from "../../core/createTagRenderer";
 import type { ForProps, ForType } from "./types";
 
 function BaseFor<T extends Array<unknown>>({
@@ -10,15 +10,10 @@ function BaseFor<T extends Array<unknown>>({
   return each && each.length > 0 ? each.map(children) : fallback;
 }
 
-const renderForTag =
-  (tag: any) =>
-  // forward ref so consumers can attach a ref to the underlying DOM element
-  forwardRef(<T extends Array<unknown>>(
-    { each, children, fallback = null, ...props }: ForProps<T> & ComponentPropsWithRef<any>,
-    ref: any
-  ) => {
-    const content = BaseFor({ each, children, fallback });
-    return createElement(tag, { ...props, ref }, content);
-  });
+const renderForTag = createTagRenderer(
+  BaseFor as (props: any) => React.ReactNode,
+  ["each", "children", "fallback"],
+  { fallback: null },
+);
 
 export const For: ForType = createProxy(BaseFor, renderForTag, "for");

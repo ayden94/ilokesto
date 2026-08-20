@@ -2,7 +2,7 @@ import { forwardRef, useMemo } from "react";
 import type { ComponentPropsWithRef } from "react";
 import { useIntersectionObserver } from "../../hooks/useIntersectionObserver";
 import { Show } from "../Show";
-import { composeRefs } from "../Slot/composeRefs";
+import { composeRefs } from "../../utils/composeRefs";
 import type { ObserverProps } from "./types";
 
 export const Observer = forwardRef<HTMLDivElement, ObserverProps & Omit<ComponentPropsWithRef<'div'>, 'ref'>>(

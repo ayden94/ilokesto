@@ -1,4 +1,3 @@
-import { HtmlTag } from "../../constants/htmlTags";
 import type { BaseTypeHelperFn, Fallback, NonNullableElements, ProxyType } from "../../types";
 
 export interface MatchProps<T = unknown> {
@@ -22,10 +21,5 @@ type BaseSwitchType<X = object> = {
 interface BaseSwitchTypeFn extends BaseTypeHelperFn {
   type: BaseSwitchType<this["props"]>;
 }
-type SwitchTagHelper<K> = K extends keyof HtmlTag
-  ? BaseSwitchType<Omit<React.ComponentPropsWithRef<K>, 'children'>>
-  : K extends React.ComponentType<infer P>
-    ? BaseSwitchType<Omit<P, 'children'>>
-    : K;
 
 export type SwitchType = ProxyType<BaseSwitchTypeFn, "switch">;

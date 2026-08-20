@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useIsomorphicLayoutEffect } from "../../hooks/useIsomorphicLayoutEffect";
 import { Observer } from "../Observer";
 import type { SlackerProps } from "./types";
 
@@ -9,7 +10,6 @@ type LoadState<T> =
   | { readonly status: "success"; readonly data: T };
 
 const IDLE_STATE = { status: "idle" } as const;
-const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function Slacker<T = any>({
   children,

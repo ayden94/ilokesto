@@ -66,7 +66,7 @@ export const htmlTags = {
   section: "section",
   select: "select",
   small: "small",
-  span:  "span",
+  span: "span",
   strong: "strong",
   sub: "sub",
   summary: "summary",
