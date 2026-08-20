@@ -25,6 +25,16 @@ export function registerStoreCleanup<T>(store: Store<T>, cleanup: Cleanup): () =
   };
 }
 
+/**
+ * Dispose a store by running all registered cleanup functions.
+ *
+ * Cancels pending timers (debounce, throttle) and releases middleware-owned
+ * resources. Disposal is scoped to the given store and is safe to call
+ * multiple times.
+ *
+ * @param store - The store to dispose.
+ * @throws {AggregateError} When one or more cleanup functions throw.
+ */
 export function dispose<T>(store: Store<T>): void {
   const entries = cleanupsByStore.get(store);
   if (!entries) {

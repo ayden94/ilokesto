@@ -103,6 +103,25 @@ const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
   return store;
 };
 
+/**
+ * Create a pipe middleware that connects the store to the Redux DevTools
+ * browser extension.
+ *
+ * Supports `RESET`, `COMMIT`, and `ROLLBACK` dispatch messages from the
+ * DevTools UI. Automatically disabled in production
+ * (`NODE_ENV === 'production'`).
+ *
+ * @param name - Label shown in the DevTools extension.
+ * @returns Pipe middleware registered with `@ilokesto/state/devtools` metadata.
+ *
+ * @example
+ * ```ts
+ * import { devtools } from '@ilokesto/state/middleware';
+ * import { pipe } from '@ilokesto/state/utils';
+ *
+ * const store = pipe.use(devtools('counter')).create({ count: 0 });
+ * ```
+ */
 export function devtools(name: string): CurriedDevtools {
   return definePipeableMiddleware(
     <State>(initialState: State | Store<State>) => applyDevtools(initialState, name),
