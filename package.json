@@ -7,6 +7,8 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
     "test:monorepo": "node --test tests/monorepo/*.test.mjs",
+    "workflow:ledger": "node --test tests/monorepo/workflow-contract.test.mjs tests/monorepo/lane-ledger.test.mjs",
+    "test:workflow": "node --test tests/monorepo/ci-workflow.test.mjs tests/monorepo/lane-ledger.test.mjs tests/monorepo/workflow-*.test.mjs",
     "changeset": "changeset",
     "changeset:status": "changeset status",
     "version-packages": "changeset version && pnpm install --lockfile-only",

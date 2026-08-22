@@ -44,6 +44,21 @@ test("changeset status receives a local main base ref", async () => {
   assert.match(workflow, /git branch --force main origin\/main/);
 });
 
+test("workflow verification runs the exact root gate after install and before package builds", async () => {
+  const workflow = await readWorkflow("ci.yml");
+  const install = workflow.indexOf("name: Install dependencies");
+  const workflowVerification = workflow.indexOf("name: Verify workflow ledger");
+  const build = workflow.indexOf("name: Build packages");
+
+  assert.ok(install >= 0);
+  assert.ok(workflowVerification > install);
+  assert.ok(build > workflowVerification);
+  assert.match(
+    workflow,
+    /- name: Verify workflow ledger\n\s+run: pnpm test:workflow/,
+  );
+});
+
 test("changeset status is required only for ordinary pull requests", async () => {
   const workflow = await readWorkflow("ci.yml");
 

@@ -92,6 +92,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Verify workflow ledger
+        run: pnpm test:workflow
+
       - name: Install Playwright Chromium
         run: pnpm --filter @ilokesto/modal exec playwright install --with-deps chromium
 
