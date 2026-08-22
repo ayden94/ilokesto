@@ -1,6 +1,6 @@
 # ilokesto OpenCode Commands & Skills
 
-This document lists OpenCode commands, agents, and skills defined for the ilokesto ecosystem.
+This document lists OpenCode commands, agents, and skills defined for the ilokesto ecosystem. The complete state, transition, receipt, authority, and evidence contract lives in [`ilokesto-workflow-governance`](.opencode/skills/ilokesto-workflow-governance/SKILL.md); this catalog does not restate it.
 
 ## Global rules
 
@@ -15,8 +15,8 @@ Custom agents live in `.opencode/agents/` and are invoked explicitly by commands
 
 | Agent | Role | Permissions |
 |---|---|---|
-| `ilokesto-scoped-implementer` | Non-UI package implementation (store, state, form core, fetcher) | `edit: allow` (worktree-scoped) |
-| `ilokesto-ui-implementer` | UI package implementation (overlay, modal, toast, utilinent, form adapters) | `edit: allow` (worktree-scoped) |
+| `ilokesto-scoped-implementer` | Non-UI package implementation (store, state, form core, fetcher) | Root profile is `edit: deny`; launcher grants assigned-worktree edit only |
+| `ilokesto-ui-implementer` | UI package implementation (overlay, modal, toast, utilinent, form adapters) | Root profile is `edit: deny`; launcher grants assigned-worktree edit only |
 | `ilokesto-contract-reviewer` | Public API and cross-package contract review | `edit: deny` (read-only) |
 | `ilokesto-code-reviewer` | Bug, type safety, implementation quality review | `edit: deny` (read-only) |
 | `ilokesto-verification-reviewer` | Test coverage and verification result review | `edit: deny` (read-only) |
@@ -37,7 +37,7 @@ Package-level audit or R&D discovery. Routes to purpose-based reviewers, drafts 
 
 ### `/create-lane`
 
-Consumes confirmed issues from `/search-issue` and creates a lane ledger at `.omo/lanes/<lane-id>.json` with dependency-aware parallel grouping.
+Consumes the approved source handoff from `/search-issue` and asks the supervisor-owned ledger boundary to create a lane with dependency-aware parallel grouping. It does not edit ledger JSON directly.
 
 ```
 /create-lane <issue-url|issue-number|search-run-id> [base-branch]
@@ -45,15 +45,15 @@ Consumes confirmed issues from `/search-issue` and creates a lane ledger at `.om
 
 ### `/execute-lane`
 
-Consumes a lane ledger and dispatches `/issue-to-pr` per lane item. Completed PRs go through `/pr-to-merge` immediately (per-lane progress, no global batch barrier). Supports fix-back and gated merge/cleanup.
+The supervisor consumes a validated lane and coordinates `/issue-to-pr` and `/pr-to-merge` per item. Resume reconciles persisted receipts with current external facts, without repeating completed effects. Merge, cleanup, and root sync each consume one separately approved authority receipt.
 
 ```
-/execute-lane <lane-id|lane-ledger-path> [resume] [--full-auto] [base-branch]
+/execute-lane <lane-id> [resume] [--full-auto]
 ```
 
 ### `/issue-to-pr`
 
-Creates a worktree, delegates implementation to `@ilokesto-scoped-implementer` or `@ilokesto-ui-implementer`, verifies, commits, and opens a PR. Supports fix-back mode for existing PRs.
+The supervisor creates the worktree, delegates through a machine-readable handoff to the assigned implementer, verifies the returned receipt, commits, and opens or updates a PR. Implementers edit, test, and commit only in the assigned worktree.
 
 ```
 /issue-to-pr <github-issue-url|issue-number> [base-branch] [--fix-back <pr-url|pr-number> <branch-name> <worktree-path>]
@@ -61,7 +61,7 @@ Creates a worktree, delegates implementation to `@ilokesto-scoped-implementer` o
 
 ### `/pr-to-merge`
 
-Reviews a PR with three independent reviewers (contract, code, verification) plus docs-release when consumer-facing. Returns `approve | block | needs-human-check` with blocker evidence.
+Reviews a PR with three independent reviewers, plus docs-release when consumer-facing, and returns a machine-readable review receipt for the supervisor.
 
 ```
 /pr-to-merge <pr-url|pr-number>
@@ -134,6 +134,13 @@ Skills live in `.opencode/skills/<name>/SKILL.md` and are loaded by agents and c
 | `ilokesto-release-governance` | Changesets rules, semver policy, release gate |
 | `ilokesto-docs-governance` | Fumadocs layout, bilingual README, sync workflow |
 | `ilokesto-worktree-governance` | Worktree path rules, branch naming, fix-back mode, cleanup gate |
+
+## Workflow boundary
+
+- Use `/search-issue` → `/create-lane` → `/execute-lane`; execution coordinates `/issue-to-pr` and `/pr-to-merge`.
+- The workflow is version 1 only. Do not add migration, aliases, fallback parsing, or compatibility layers.
+- OpenCode stops at a non-authorizing GitHub Actions release handoff. It never publishes packages locally or remotely.
+- Verify with `pnpm workflow:ledger`, `pnpm test:workflow`, `pnpm test:monorepo`, `pnpm typecheck`, and the exact F3 command recorded by the workflow plan when applicable.
 
 ## Conventions
 

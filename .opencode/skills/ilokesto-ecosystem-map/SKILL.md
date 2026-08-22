@@ -10,7 +10,7 @@ metadata:
 
 # ilokesto Ecosystem Map
 
-This skill is the routing knowledge for the ilokesto monorepo. Commands and agents consult it to pick the right implementer, reviewer, and package skill.
+This skill is the routing knowledge for the ilokesto monorepo. Commands and agents consult it to pick the right implementer, reviewer, and package skill. Workflow state and receipt semantics are owned only by [`ilokesto-workflow-governance`](../ilokesto-workflow-governance/SKILL.md).
 
 ## Package Groups
 
@@ -63,3 +63,7 @@ utilinent (standalone)
 - For multi-package changes, `/create-lane` should split work per package to keep worktrees isolated.
 - Release and docs changes always pass through `ilokesto-docs-release-reviewer`.
 - Issue drafts from `/search-issue` always pass through `ilokesto-issue-registration-reviewer` before any GitHub issue creation.
+- The canonical command sequence is `/search-issue` → `/create-lane` → `/execute-lane`; execution coordinates `/issue-to-pr` and `/pr-to-merge`.
+- `ilokesto-workflow-supervisor` is the sole ledger writer. Implementers and reviewers return machine-readable handover receipts.
+- Resume starts from persisted receipts plus current external facts and must not repeat a completed side effect. Merge, cleanup, and root sync each require a separately approved, single-operation authority receipt.
+- Version 1 is a clean cutover with no migration, aliases, fallback parser, or compatibility layer. Durable evidence excludes secrets, session IDs, absolute local paths, and raw transcripts.

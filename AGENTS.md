@@ -1,6 +1,6 @@
 # ilokesto Handbook
 
-This repository is the single source of truth for the ilokesto library ecosystem. Publishable packages live under `packages/` in one pnpm workspace and are released independently through root Changesets automation.
+This repository is the single source of truth for the ilokesto library ecosystem. Publishable packages live under `packages/` in one pnpm workspace and are released independently through root Changesets automation. Workflow states, receipts, ownership, authority, and durable evidence are defined only in [`ilokesto-workflow-governance`](.opencode/skills/ilokesto-workflow-governance/SKILL.md).
 
 ## When you work on ilokesto
 
@@ -10,6 +10,7 @@ This repository is the single source of truth for the ilokesto library ecosystem
 4. Read `packages/<name>/AGENTS.md` and load the matching skill before changing a package.
 5. Run package commands with `pnpm --filter @ilokesto/<name> <script>` or from that package directory.
 6. Add a root changeset for consumer-facing changes.
+7. For workflow work, follow the canonical sequence: `/search-issue` → `/create-lane` → `/execute-lane`, which coordinates `/issue-to-pr` and `/pr-to-merge`.
 
 ## Repository layout
 
@@ -23,7 +24,7 @@ ilokesto/
 │   ├── skills/             # Knowledge skills (ilokesto-*/SKILL.md)
 │   ├── opencode.json       # Project config
 │   └── VALIDATION.md       # Agent/command/skill validation guide
-├── .omo/                   # Lane and search-run ledgers
+├── .omo/                   # Supervisor-owned handoffs, receipts, and evidence
 │   ├── lanes/
 │   └── search-runs/
 ├── .worktrees/             # Isolated implementation worktrees
@@ -50,20 +51,23 @@ ilokesto/
 - **Agents** (`.opencode/agents/ilokesto-*.md`): role-specific subagents with frontmatter permissions. Implementers are worktree-scoped; reviewers are read-only.
 - **Commands** (`.opencode/commands/*.md`): slash-command harnesses that orchestrate workflows and delegate to agents.
 - **Skills** (`.opencode/skills/ilokesto-*/SKILL.md`): knowledge packs loaded by agents and commands. Package-specific skills hold domain knowledge; governance skills hold cross-cutting rules.
-- **Ledgers** (`.omo/`): `search-runs/` for `/search-issue` output; `lanes/` for `/create-lane` and `/execute-lane` state.
+- **Workflow**: `ilokesto-workflow-supervisor` is the sole ledger writer. Workers and reviewers return machine-readable handover receipts; they never write workflow state.
+- **Receipts**: Resume and reconciliation start from persisted receipts plus current Git, GitHub, and worktree facts, then avoid repeating effects already proved complete.
+- **Data minimization**: Durable receipts and evidence contain no secrets, session IDs, absolute local paths, or raw transcripts.
 
 ## Authority and side-effect gates
 
 High-impact side effects require explicit user approval or command harness authority:
 
 - GitHub issue creation
-- Pull Request merging
-- Worktree/branch cleanup
-- Package publishing (always via GitHub Actions Changesets workflow, never local)
+- Pull Request merging, worktree cleanup, and root sync, each through a separately approved, single-operation authority receipt
+- Package publishing, which stops at a non-authorizing GitHub Actions handoff. OpenCode never publishes packages.
 
 ## Naming conventions
 
 - Custom agent names MUST start with `ilokesto-` and must not collide with OMO built-in names (`oracle`, `librarian`, `explore`, `momus`, `metis`, `sisyphus`, `prometheus`).
 - Command names must not shadow skill names to avoid resolver conflicts.
+- All workflow command frontmatter resolves to `ilokesto-workflow-supervisor`.
+- The version 1 contract is a clean cutover. There is no migration, alias, fallback parser, or compatibility layer.
 - Package skills are named `ilokesto-<package>`.
 - Governance skills are named `ilokesto-<domain>` (e.g., `ilokesto-release-governance`).
