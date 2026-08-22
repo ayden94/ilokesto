@@ -8,146 +8,61 @@ options:
   textVerbosity: low
 temperature: 0.1
 permission:
+  '*': deny
   read: allow
   grep: allow
   glob: allow
   list: allow
+  skill: allow
   edit: deny
+  external_directory: deny
   bash:
-    '*': ask
-    'find *': deny
-    'xargs *': deny
-    'ls *': allow
-    'test *': allow
-    'true *': allow
-    'exit *': allow
-    'printf *': allow
-    'echo *': allow
-    'command -v *': allow
-    'jq *': allow
-    'actionlint': allow
-    'actionlint *': allow
-    'diff *': allow
-    'uname': allow
-    'uname *': allow
-    'lsof *': allow
-    'gh api *': allow
-    'rmdir *': allow
-    'bun --version': allow
-    'bun run *': allow
-    'python -c *': allow
-    'git fetch *': allow
-    'git show-ref *': allow
-    'print *': allow
-    'git worktree *': allow
-    'python3 *': allow
-    'nohup *': allow
-    'jobs *': allow
-    'ps *': allow
-    'node *': allow
-    'pnpm --version *': allow
-    'command *': allow
-    'file *': allow
-    'readlink *': allow
-    'pgrep *': allow
-    'sleep *': allow
-    'env *': allow
-    'npx *': allow
-    'git ls-remote *': allow
-    'gh pr view *': allow
-    'realpath *': allow
-    'pnpm vitest *': allow
-    'perl *': allow
-    'pnpm exec biome *': allow
-    'kill *': allow
-    'pnpm *': allow
-    'pnpm publish*': deny
-    'base64 *': allow
-    'nl *': allow
-    'sed *': allow
-    'rg *': allow
-    'git show *': allow
-    'grep *': allow
-    'awk *': allow
-    'wc *': allow
-    'tr *': allow
-    'dirname *': allow
-    'which *': allow
-    'shasum *': allow
-    'pwd *': allow
-    'git status *': allow
-    'git log *': allow
-    'git branch': allow
+    '*': deny
+    'env *': deny
+    'command *': deny
+    'sh *': deny
+    'bash *': deny
+    'zsh *': deny
+    'node *': deny
+    'git status*': allow
+    'git diff*': allow
+    'git log*': allow
+    'git show*': allow
+    'git rev-parse*': allow
+    'git merge-base*': allow
+    'git show-ref*': allow
+    'git ls-files*': allow
     'git branch --show-current': allow
     'git branch --list*': allow
-    'git branch -a*': allow
-    'git branch -r*': allow
-    'git *': allow
-    'git push*': deny
-    'git merge*': deny
-    'git rebase*': deny
-    'git reset': deny
-    'git reset *': deny
-    'git clean*': deny
-    'git rm*': deny
-    'git add*': deny
-    'git commit*': deny
-    'git checkout*': deny
-    'git switch*': deny
-    'git restore*': deny
-    'git stash*': deny
-    'git apply*': deny
-    'git am*': deny
-    'git cherry-pick*': deny
-    'git revert*': deny
-    'git mv*': deny
-    'git worktree add*': deny
-    'git branch -d *': deny
-    'git branch -D *': deny
-    'git branch --delete *': deny
-    'git worktree remove*': deny
-    'sort*': allow
-    'gh search issues *': allow
-    'gh search code *': allow
-    'gh repo view *': allow
-    'gh release view *': allow
-    'gh pr *': allow
-    'gh issue *': allow
-    'gh label *': allow
+    'git worktree list*': allow
+    'gh search issues*': allow
+    'gh search code*': allow
+    'gh repo view*': allow
+    'gh release view*': allow
+    'gh issue view*': allow
+    'gh issue list*': allow
+    'gh pr view*': allow
+    'gh pr list*': allow
+    'gh pr checks*': allow
+    'gh pr diff*': allow
     'gh run view*': allow
-    'gh --version *': allow
-    'gh auth status *': allow
-    'gh run list *': allow
-    'gh run watch *': allow
-    'gh pr create*': deny
-    'gh pr checkout*': deny
-    'gh pr comment*': deny
-    'gh pr ready*': deny
-    'gh pr lock*': deny
-    'gh pr unlock*': deny
-    'gh issue create*': deny
-    'gh issue develop*': deny
-    'gh issue transfer*': deny
-    'gh issue delete*': deny
-    'gh issue lock*': deny
-    'gh issue unlock*': deny
-    'gh issue pin*': deny
-    'gh issue unpin*': deny
-    'gh issue edit*': deny
-    'gh issue comment*': deny
-    'gh issue close*': deny
-    'gh issue reopen*': deny
-    'gh pr merge*': deny
-    'gh pr edit*': deny
-    'gh pr review*': deny
-    'gh pr close*': deny
-    'gh pr reopen*': deny
-    'gh run cancel*': deny
-    'gh run rerun*': deny
-    'gh label create*': deny
-    'gh label edit*': deny
-    'gh label delete*': deny
+    'gh run list*': allow
+    'git diff *--no-index*': deny
+    'git diff *--output*': deny
+    'git diff *--ext-diff*': deny
+    'git diff *--textconv*': deny
+    'git diff* /*': deny
+    'git diff*../*': deny
+    '*>*': deny
+    '*<*': deny
+    '*|*': deny
+    '*&&*': deny
+    '*&*': deny
+    '*;*': deny
+    '*$(*': deny
+    '*`*': deny
   webfetch: deny
+  websearch: deny
 ---
 
 # ilokesto-docs-release-reviewer
@@ -174,7 +89,10 @@ permission:
 ## Output
 
 ```yaml
-verdict: approve | block | needs-human-check
+status: PASS | BLOCK | NEEDS_HUMAN_CHECK
+receipt_id: <review-receipt-id>
+evidence_sha256: <64-character lowercase hex digest>
+artifact_basename: <session-free evidence basename>
 findings:
   - severity: P0 | P1 | P2
     package: <package-name>
@@ -186,6 +104,10 @@ findings:
 ## Rules
 
 - 읽기 전용. 파일 편집 금지.
+- `/pr-to-merge`가 조건부로 호출한 결과는 `reviewers.docs_release`에 귀속되며 다른 reviewer 역할로 대체하지 않는다.
 - docs 파일을 직접 수정하지 않는다; 갭만 보고한다.
+- Review claims use only exact current-head CI checks and canonical worker verification receipts and evidence.
+- Do not execute repository-controlled scripts locally, including package scripts, `actionlint`, or Changesets commands.
+- Missing or stale required evidence must produce `BLOCK`, never local execution.
 - `/search-issue`의 `docs` 또는 `release-impact` 목적에서는 할당된 패키지만 감사한다.
 - `ilokesto-docs-governance`와 `ilokesto-release-governance` 스킬을 로드한다.
