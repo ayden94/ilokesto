@@ -12,11 +12,13 @@
   "permission": {
     "edit": "ask",
     "bash": {
+      "*": "ask",
       "npm publish*": "deny",
       "pnpm publish*": "deny",
       "gh pr merge*": "ask",
-      "gh issue create*": "ask",
-      "*": "ask"
+      "gh issue create*": "deny",
+      "node scripts/workflow/lane-ledger-cli.mjs authorize *": "ask",
+      "node scripts/workflow/supervisor-boundary.mjs issue-create * .omo/inbox/* .omo/inbox/*": "ask"
     }
   }
 }
