@@ -8,137 +8,61 @@ options:
   textVerbosity: low
 temperature: 0.2
 permission:
+  '*': deny
   read: allow
   grep: allow
   glob: allow
   list: allow
-  edit: allow
+  skill: allow
+  edit: deny
+  external_directory: deny
   bash:
-    '*': ask
-    'find *': deny
-    'xargs *': deny
-    'ls *': allow
-    'test *': allow
-    'true *': allow
-    'exit *': allow
-    'printf *': allow
-    'echo *': allow
-    'command -v *': allow
-    'jq *': allow
-    'actionlint': allow
-    'actionlint *': allow
-    'diff *': allow
-    'uname': allow
-    'uname *': allow
-    'lsof *': allow
-    'gh api *': allow
-    'rmdir *': allow
-    'bun --version': allow
-    'bun run *': allow
-    'python -c *': allow
-    'git fetch *': allow
-    'git show-ref *': allow
-    'print *': allow
-    'git worktree *': allow
-    'python3 *': allow
-    'nohup *': allow
-    'jobs *': allow
-    'ps *': allow
-    'node *': allow
-    'pnpm --version *': allow
-    'command *': allow
-    'file *': allow
-    'readlink *': allow
-    'pgrep *': allow
-    'sleep *': allow
-    'env *': allow
-    'npx *': allow
-    'git ls-remote *': allow
-    'gh pr view *': allow
-    'realpath *': allow
-    'pnpm vitest *': allow
-    'perl *': allow
-    'pnpm exec biome *': allow
-    'kill *': allow
-    'pnpm *': allow
-    'base64 *': allow
-    'nl *': allow
-    'sed *': allow
-    'rg *': allow
-    'git show *': allow
-    'grep *': allow
-    'awk *': allow
-    'wc *': allow
-    'tr *': allow
-    'dirname *': allow
-    'which *': allow
-    'shasum *': allow
-    'pwd *': allow
-    'git status *': allow
-    'git log *': allow
-    'git branch': allow
+    '*': deny
+    'env *': deny
+    'command *': deny
+    'sh *': deny
+    'bash *': deny
+    'zsh *': deny
+    'node *': deny
+    'git status*': allow
+    'git diff*': allow
+    'git log*': allow
+    'git show*': allow
+    'git rev-parse*': allow
+    'git merge-base*': allow
+    'git show-ref*': allow
+    'git ls-files*': allow
     'git branch --show-current': allow
     'git branch --list*': allow
-    'git branch -a*': allow
-    'git branch -r*': allow
-    'git *': allow
-    'git reset': deny
-    'git reset *': deny
-    'git clean*': deny
-    'git rm*': deny
-    'git branch -d *': deny
-    'git branch -D *': deny
-    'git branch --delete *': deny
-    'git worktree remove*': deny
-    'git push --force*': deny
-    'git push * --force*': deny
-    'git push -f*': deny
-    'git push * -f*': deny
-    'git push * +*': deny
-    'git merge*': deny
-    'git rebase*': deny
-    'sort*': allow
     'git worktree list*': allow
-    'git worktree add*': allow
-    'git add*': allow
-    'git commit*': allow
-    'git fetch*': allow
-    'git push*': allow
-    'gh search issues *': allow
-    'gh search code *': allow
-    'gh repo view *': allow
-    'gh release view *': allow
     'gh issue view*': allow
-    'gh issue list*': allow
-    'gh label list*': allow
     'gh pr view*': allow
-    'gh pr list*': allow
     'gh pr checks*': allow
     'gh pr diff*': allow
-    'gh pr create*': allow
-    'gh --version *': allow
-    'gh auth status *': allow
-    'gh run list *': allow
-    'gh run watch *': allow
-    'gh run view*': allow
-    'npm publish*': deny
-    'pnpm publish*': deny
-    'gh issue create*': deny
-    'gh issue edit*': deny
-    'gh issue comment*': deny
-    'gh issue close*': deny
-    'gh issue reopen*': deny
-    'gh pr merge*': deny
-    'gh pr edit*': deny
-    'gh pr review*': deny
-    'gh pr close*': deny
-    'gh pr reopen*': deny
-    'gh run cancel*': deny
-    'gh run rerun*': deny
-    'gh label create*': deny
-    'gh label edit*': deny
-    'gh label delete*': deny
+    'git *--output*': deny
+    'git *--ext-diff*': deny
+    'git *--textconv*': deny
+    'git commit *--amend*': deny
+    'git commit *--no-verify*': deny
+    'git commit -m * -a*': deny
+    'git commit -m *--all*': deny
+    'git add --all*': deny
+    'git add -A*': deny
+    'git add .worktrees/*': deny
+    'git add *../*': deny
+    'git add /*': deny
+    'git add ~*': deny
+    'git add *$*': deny
+    '*>*': deny
+    '*<*': deny
+    '*|*': deny
+    '*&&*': deny
+    '*&*': deny
+    '*;*': deny
+    '*$(*': deny
+    '*`*': deny
   webfetch: deny
+  websearch: deny
 ---
 
 # ilokesto-scoped-implementer
@@ -156,16 +80,16 @@ permission:
 
 ### 허용 (ALLOWED)
 - 할당된 `.worktrees/<branch>` 경로 내 파일 읽기/편집
-- 신규 구현 모드에서 전용 `.worktrees/<branch>` 생성
-- 해당 worktree 내 `git add`, `git commit`, `git push`
-- `pnpm --filter @ilokesto/<name> install/test/typecheck/build/lint/exec` 실행
+- trusted root VCS wrapper를 통한 해당 worktree 내 명시적 staging과 신규 commit
+- Darwin `sandbox-exec`로 descendant write가 exact assigned worktree에 제한된 trusted root verifier mapping 실행
 - `gh issue view` 로 이슈 컨텍스트 읽기
-- `gh pr create` / `gh pr view` / `gh pr checks` 로 해당 issue PR 생성 및 상태 확인
+- `gh pr view` / `gh pr checks` / `gh pr diff` 로 해당 issue PR 상태 확인
 - `.changeset/*.md` 파일 생성 (public package 변경 시)
 - 검증 요약 보고
 
 ### 금지 (DENIED — 프론트매터 permission으로 강제)
 - `git merge`, `git rebase` — 절대 금지
+- `git worktree add`, 모든 `git push`/refspec — supervisor 소유
 - `git branch -d/-D`, `git worktree remove` — cleanup 금지
 - `npm publish`, `pnpm publish` — 배포 금지
 - `gh pr merge`, `gh pr close`, `gh pr review`, `gh pr edit` — PR merge/close/review/edit 금지
@@ -202,19 +126,23 @@ permission:
 - fix-back mode에서는 전달된 `BLOCKERS`만 해소한다.
 
 ### 5. 검증
+- `node <trusted-root>/scripts/workflow/implementer-verify.mjs <package> <verifier>`만 사용한다.
+- verifier는 Darwin `/usr/bin/sandbox-exec`가 없거나 실행 불가능하면 unsandboxed fallback 없이 실패한다.
+- verifier descendant는 global metadata만 조회할 수 있고 file content는 assigned worktree, exact trusted config/tool, canonical dependency/tool/cache root, narrow system runtime file만 읽을 수 있다. Supervisor root, sibling worktree, user credential, arbitrary host file은 읽을 수 없다.
 - `pnpm --filter @ilokesto/<name> typecheck`
 - `pnpm --filter @ilokesto/<name> test`
 - `pnpm --filter @ilokesto/<name> build`
 - `fetcher`인 경우 `pnpm --filter @ilokesto/fetcher test:dist` 추가
 
 ### 6. 커밋
+- clean launch index에서 `node <trusted-root>/scripts/workflow/implementer-vcs.mjs stage <explicit-file>...`와 `commit <message>`만 사용한다. Stage는 root-owned private index만 갱신하고, commit은 기록된 exact path/status/tree로 commit object를 만든 뒤 assigned branch를 launch HEAD에서 새 commit으로 atomic compare-and-swap한다.
 - worktree branch 위에 커밋한다.
 - `Co-Authored-By` trailer를 넣지 않는다.
 - 저장소의 최근 커밋 스타일을 따른다.
 
-### 7. Push 및 PR 생성
-- 신규 구현 모드에서는 branch를 origin에 push하고 `gh pr create`로 PR을 생성한다.
-- PR body에는 linked issue closing reference(`Closes #...`)와 검증 요약을 포함한다.
+### 7. Supervisor handoff
+- commit SHA, 변경 파일, 검증 receipt, changeset 판단을 포함한 `worker.completed` 후보를 supervisor에 반환한다.
+- push, PR 생성/수정, ledger 기록은 supervisor가 독립 검증 후 수행한다.
 
 ### 8. 검증 요약 보고
 - 처리한 issue URL, branch, worktree path, 변경 파일, 검증 결과, changeset 여부, 미해결 사항 보고
