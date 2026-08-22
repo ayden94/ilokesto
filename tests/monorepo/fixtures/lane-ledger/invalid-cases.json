@@ -1,0 +1,18 @@
+[
+  { "name": "wrong-version", "operation": "create", "expected_code": "ERR_UNSUPPORTED_VERSION" },
+  { "name": "missing-version", "operation": "create", "expected_code": "ERR_UNSUPPORTED_VERSION" },
+  { "name": "null-receipt-create", "operation": "create", "expected_code": "ERR_INVALID_RECEIPT" },
+  { "name": "null-receipt-transition", "operation": "transition", "expected_code": "ERR_INVALID_RECEIPT" },
+  { "name": "illegal-transition", "operation": "transition", "expected_code": "ERR_ILLEGAL_TRANSITION" },
+  { "name": "duplicate-receipt-id", "operation": "transition", "expected_code": "ERR_DUPLICATE_RECEIPT" },
+  { "name": "projection-drift", "operation": "validate", "expected_code": "ERR_PROJECTION_DRIFT" },
+  { "name": "revision-conflict", "operation": "transition", "expected_code": "ERR_REVISION_CONFLICT" },
+  { "name": "duplicate-pr", "operation": "transition", "expected_code": "ERR_INVALID_RECEIPT" },
+  { "name": "invalid-sha", "operation": "transition", "expected_code": "ERR_INVALID_RECEIPT" },
+  { "name": "absolute-path", "operation": "transition", "expected_code": "ERR_PATH_OUTSIDE_ROOT" },
+  { "name": "windows-absolute-path", "operation": "transition", "expected_code": "ERR_PATH_OUTSIDE_ROOT" },
+  { "name": "unc-absolute-path", "operation": "transition", "expected_code": "ERR_PATH_OUTSIDE_ROOT" },
+  { "name": "null-review-payload", "operation": "transition", "expected_code": "ERR_INVALID_RECEIPT" },
+  { "name": "secret-like-key", "operation": "transition", "expected_code": "ERR_FORBIDDEN_DATA" },
+  { "name": "cleanup-before-merge", "operation": "transition", "expected_code": "ERR_ILLEGAL_TRANSITION" }
+]

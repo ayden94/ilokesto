@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "receipt_id": "receipt-forbidden-data",
+  "event": "worker.completed",
+  "lane_id": "lane-test-1",
+  "item_id": "issue-101",
+  "attempt": 1,
+  "dispatch_id": "dispatch-1",
+  "producer": "supervisor after verifying child receipt",
+  "expected_revision": 4,
+  "repository": "ilokesto/ilokesto",
+  "base_branch": "main",
+  "created_at": "2026-08-18T00:00:04.000Z",
+  "payload": {
+    "commit_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "runtime_session_id": "must-not-persist"
+  }
+}
