@@ -1,9 +1,31 @@
 ---
 description: search-issue — ilokesto 패키지에서 목적 기반 감사 또는 R&D를 수행하여 issue 후보를 작성하고 등록 심사를 거쳐 사용자 승인 시에만 GitHub issue를 생성하는 읽기 전용 발굴 하네스
 argument-hint: "<package-name|all> <purpose> [--register]"
+agent: ilokesto-workflow-supervisor
 ---
 
 # search-issue
+
+This command hands its approved `source.selected` result to the supervisor workflow defined by `ilokesto-workflow-governance`; it does not define ledger state or receipt transitions.
+
+```source-selection-contract
+{
+  "version": 1,
+  "handoff_id": "<id>",
+  "event": "source.selected",
+  "repository": "<owner/name>",
+  "created_at": "<timezone-aware ISO-8601>",
+  "issues": [{
+    "issue_number": 123,
+    "issue_url": "<canonical GitHub issue URL>",
+    "source": "registered | direct",
+    "approval": "explicit",
+    "provenance": { "kind": "search-run | direct-input", "reference": "<id>" }
+  }]
+}
+```
+
+Candidate dispositions (`registered`, `deferred`, `rejected`, `duplicate`, `direct`) belong to the non-ledger `source.candidates` input and search-run output. They are pre-handoff selection evidence used to produce the approved issue list, never a `source.selected` payload field.
 
 이 커맨드는 ilokesto 모노레포의 패키지에서 목적 기반 감사 또는 R&D를 수행하여 issue 후보를 작성하는 읽기 전용 발굴 하네스다. 기본 동작은 issue draft까지만 생성하고, `--register` 플래그가 있어도 등록 심사와 사용자 최종 확인을 통과해야 GitHub issue를 생성한다.
 
@@ -43,13 +65,14 @@ argument-hint: "<package-name|all> <purpose> [--register]"
 6. **issue draft 작성** — 각 발견을 issue draft로 변환한다. 라벨은 `ilokesto-issue-audit` 스킬의 Label Allowlist를 준수한다.
 7. **등록 심사** — `@ilokesto-issue-registration-reviewer`에게 draft를 전달하여 `register | defer | reject` 판정을 받는다.
 8. **사용자 확인** — `register` 판정을 받은 draft만 사용자에게 목록으로 보여주고 생성 여부를 확인받는다.
-9. **issue 생성** — 사용자가 승인한 경우에만 `gh issue create`로 issue를 생성한다.
+9. **issue 생성** — 사용자가 승인한 경우에만 native `ask` gate인 `node scripts/workflow/supervisor-boundary.mjs issue-create <owner/name> .omo/inbox/<title>.txt .omo/inbox/<body>.md`로 issue 하나를 생성한다. Raw `gh issue create`는 금지한다.
 10. **기록** — 감사 결과와 판정을 `.omo/search-runs/<run-id>.json`에 기록한다.
 
 ## 권한 경계
 
 - 이 커맨드의 reviewer는 모두 읽기 전용(`edit: deny`)이다.
-- `gh issue create`는 사용자 명시 승인 후에만 실행한다.
+- `supervisor-boundary.mjs issue-create`는 사용자 명시 승인 후 native `ask` gate에서만 실행한다. 제목/본문은 direct regular `.omo/inbox/` files만 허용한다.
+- `gh search issues`, `gh search code`, `gh issue view/list`는 read-only discovery로 유지한다.
 - `--register`가 없으면 draft까지만 작성하고 issue 생성을 시도하지 않는다.
 - security-sensitive 발견은 issue로 등록하지 않고 비공개 채널을 안내한다.
 - support/usage question은 issue draft에서 제외한다.
@@ -76,7 +99,7 @@ ledger: .omo/search-runs/<run-id>.json
 
 ## 금지 사항
 
-- `gh issue create`를 사용자 승인 없이 실행하지 않는다.
+- issue-create wrapper를 사용자 승인 없이 실행하지 않고 raw `gh issue create`는 항상 실행하지 않는다.
 - `defer` 또는 `reject` 판정을 받은 draft를 issue로 생성하지 않는다.
 - security-sensitive 발견을 공개 issue로 생성하지 않는다.
 - 파일을 편집하지 않는다 (reviewer는 읽기 전용).
