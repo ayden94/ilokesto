@@ -58,6 +58,8 @@ Every child dispatch, child response, `git`/`gh` inspection, branch push, PR cre
 
 External facts are observations, never projection mutations. A proven ledger-versus-Git/GitHub/worktree identity conflict is persisted at the next valid revision as `item.blocked` with `error_state: blocked-ledger-conflict` and bounded evidence. Do not auto-repair, remap a PR, switch a branch, replace a worktree, or reuse another item’s identity.
 
+The ledger module owns portable persistence. It serializes with a fully initialized regular-file claim published by a no-clobber hard link, then commits fsynced ledger bytes with one atomic rename. Commands must not add a retire/link protocol or claim that userspace pre-checks turn portable rename into hostile compare-and-replace; the exact threat boundary and `ERR_DURABILITY_UNCERTAIN` retry contract live in `ilokesto-workflow-governance`.
+
 ## Per-item drain
 
 Use `scripts/workflow/execute-lane-reconcile.mjs` as the deterministic decision contract. Re-plan all non-terminal items after every accepted receipt; execute independently runnable item actions immediately. Do not wait for a parallel group, all workers, all PRs, or all reviews.
@@ -77,7 +79,7 @@ Use `scripts/workflow/execute-lane-reconcile.mjs` as the deterministic decision 
 - If a pending review’s live PR head changes, append `evidence.invalidated` with the exact pending review receipt ID and every exact superseded check run ID. Re-read checks and start a new review at the new full head. Old review/check receipts remain history and cannot satisfy merge.
 - A changed head after merge readiness is stale evidence and must not merge. Persist a proven identity conflict or return the canonical stale-head error; never reuse the old review.
 - A `block` result stays on the same PR, branch, worktree, item, and dispatch. `fix_back.started` increments only the attempt and carries exactly the blocker signatures and blocking review receipt.
-- Permit at most attempts 1, 2, and 3. A fourth request, any block after attempt 3, or a repeated blocker signature after attempt 3 appends `item.blocked` with `blocked-retry-exhausted`. Do not create a replacement PR or reset the retry count.
+- Permit at most three fix-back attempts. Any repeated blocker signature exhausts recovery immediately; otherwise, a fourth fix-back request or any block after the third fix-back appends `item.blocked` with `blocked-retry-exhausted`. Do not create a replacement PR or reset the retry count.
 - `needs-human-check` is terminal and cannot enter fix-back or merge.
 
 ## Crash-window decisions

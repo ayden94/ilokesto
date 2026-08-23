@@ -31,6 +31,8 @@ issue-<number>-<short-title>
 ```
 
 - `<short-title>` is the issue title in kebab-case with unsafe characters removed.
+- `<number>` is a positive integer and must equal the assigned issue number at every handoff and PR ingress.
+- The exact grammar is `issue-<positive-number>-<lowercase-kebab-slug>`; uppercase, underscores, dots, slashes, and empty slugs are invalid.
 - Branch names must be unique within `.worktrees/`.
 
 ## Worktree Creation
