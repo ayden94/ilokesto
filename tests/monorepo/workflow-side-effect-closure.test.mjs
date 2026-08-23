@@ -9,9 +9,10 @@ import {
   createReceipt,
   createStoredLane,
   openTestLedgerStore,
-  validateLegalTransition,
+  validateReceipt,
   validateStoredLane,
   withLockedStoredLaneTransaction,
+  withTestLockedStoredLaneSideEffectTransaction,
 } from '../../scripts/workflow/lane-ledger.mjs';
 import { runWorkflowSideEffect } from '../../scripts/workflow/workflow-side-effect.mjs';
 
@@ -57,7 +58,7 @@ function cleanupHarness(live, cleanupResult) {
       return callback({
         projection,
         append(receipt) {
-          validateLegalTransition(projection, receipt);
+          validateReceipt(receipt);
           calls.push(['append', receipt]);
           return { projection, receipt };
         },
@@ -111,12 +112,16 @@ test('side-effect wrapper contains no lane lock read replay or persistence imple
     'openSync', 'readFileSync', 'writeFileSync', 'fsyncSync', 'renameSync', 'mkdirSync',
     'locksFd', '.locks',
   ]) assert.equal(source.includes(forbidden), false, forbidden);
-  assert.match(source, /withRuntimeLockedStoredLaneTransaction/u);
+  assert.match(source, /executeRuntimeWorkflowSideEffect/u);
   const ledgerSource = await readFile(new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url), 'utf8');
   assert.match(ledgerSource, /export function withLockedStoredLaneTransaction/u);
   assert.match(ledgerSource, /export function withRuntimeLockedStoredLaneTransaction/u);
+  assert.doesNotMatch(ledgerSource, /export function withLockedStoredLaneSideEffectTransaction/u);
+  assert.doesNotMatch(ledgerSource, /export function withRuntimeLockedStoredLaneSideEffectTransaction/u);
   assert.match(ledgerSource, /transitionStoredLane[\s\S]*withLockedStoredLaneTransaction/u);
-  assert.match(ledgerSource, /authorizeStoredLane[\s\S]*withLockedStoredLaneTransaction/u);
+  assert.doesNotMatch(ledgerSource, /export function authorizeStoredLane/u);
+  assert.match(ledgerSource, /export function authorizeRuntimeStoredLane[\s\S]*authorizeStoredLane/u);
+  assert.match(ledgerSource, /export function authorizeTestStoredLane[\s\S]*test authorization requires a test ledger store/u);
 });
 
 test('canonical transaction holds one lane lock across async work and validated append', async (context) => {
@@ -125,7 +130,7 @@ test('canonical transaction holds one lane lock across async work and validated 
   const store = openTestLedgerStore(root);
   const created = JSON.parse(await readFile(new URL('./fixtures/lane-ledger/create-receipt.json', import.meta.url), 'utf8'));
   createStoredLane(store, created);
-  const lockOwner = join(root, '.omo', 'lanes', '.locks', `${created.lane_id}.lock`, 'owner.json');
+  const lockOwner = join(root, '.omo', 'lanes', '.locks', `${created.lane_id}.lock`);
   const started = createReceipt({
     version: 1,
     receipt_id: 'task-6-workflow-started',
@@ -142,7 +147,7 @@ test('canonical transaction holds one lane lock across async work and validated 
     payload: {},
   });
 
-  const result = await withLockedStoredLaneTransaction(store, created.lane_id, 'side-effect', async ({ append }) => {
+  const result = await withTestLockedStoredLaneSideEffectTransaction(store, created.lane_id, async ({ append }) => {
     await Promise.resolve();
     assert.match(await readFile(lockOwner, 'utf8'), new RegExp(`"lane_id":"${created.lane_id}"`, 'u'));
     return append(started);

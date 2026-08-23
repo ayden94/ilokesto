@@ -3,9 +3,10 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-import { LaneLedgerError, validateLegalTransition } from '../../scripts/workflow/lane-ledger.mjs';
+import { LaneLedgerError, validateReceipt } from '../../scripts/workflow/lane-ledger.mjs';
 import { createSystemEffects, runWorkflowSideEffect } from '../../scripts/workflow/workflow-side-effect.mjs';
 
 const SHA_A = 'a'.repeat(40);
@@ -82,8 +83,8 @@ function projectionFor(operation, authority = {}) {
     authority: authority.missing ? null : {
       repository: 'ilokesto/ilokesto',
       lane_id: 'lane-task-6',
-      issues: [101],
-      operations: ['merge', 'cleanup', 'root-sync'],
+      issues: operation === 'root-sync' ? [] : authority.issues ?? [101],
+      operations: [operation],
       consumed_operations: consumed,
       receipt_id: authority.receipt_id ?? 'authority-task-6',
     },
@@ -129,7 +130,7 @@ function harness(operation, authority, projection = projectionFor(operation, aut
           projection,
           append(receipt) {
             assert.equal(locked, true, 'outcome append must occur before lock release');
-            validateLegalTransition(projection, receipt);
+            validateReceipt(receipt);
             calls.push(['append', receipt]);
             return { projection, receipt };
           },
@@ -154,11 +155,26 @@ function assertCode(code) {
   return (error) => error instanceof LaneLedgerError && error.code === code;
 }
 
+test('system effects discover the canonical Git workspace when workspace is omitted', async () => {
+  const repositoryRoot = await realpath(fileURLToPath(new URL('../..', import.meta.url)));
+  assert.equal(await realpath(git(repositoryRoot, ['rev-parse', '--show-toplevel'])), repositoryRoot);
+  const moduleUrl = new URL('../../scripts/workflow/workflow-side-effect.mjs', import.meta.url).href;
+  const construction = spawnSync(process.execPath, [
+    '--input-type=module',
+    '-e',
+    `import{createSystemEffects}from ${JSON.stringify(moduleUrl)};process.stdout.write(JSON.stringify(Object.keys(createSystemEffects()).sort()))`,
+  ], { cwd: repositoryRoot, encoding: 'utf8', timeout: 2000 });
+
+  assert.equal(construction.status, 0, construction.stderr);
+  assert.deepEqual(JSON.parse(construction.stdout), ['cleanup', 'inspectCleanup', 'inspectMerge', 'inspectRootSync', 'merge', 'rootSync']);
+});
+
 for (const operation of ['merge', 'cleanup', 'root-sync']) {
   test(`${operation} rejects missing mismatched and consumed authority before external access`, async () => {
     const cases = [
       [{ missing: true }, 'ERR_AUTHORITY_MISSING'],
       [{ receipt_id: 'other-authority' }, 'ERR_AUTHORITY_MISMATCH'],
+      ...(operation === 'root-sync' ? [] : [[{ issues: [102], consumed_operations: [`${operation}:102`] }, 'ERR_AUTHORITY_MISMATCH']]),
       [{ consumed_operations: [operation === 'root-sync' ? 'root-sync' : `${operation}:101`] }, 'ERR_AUTHORITY_CONSUMED'],
     ];
     for (const [authority, code] of cases) {
@@ -433,19 +449,25 @@ test('root sync fast-forwards the bound base and appends completion before lock 
   assert.equal(rootInput.expected_head_sha, SHA_C);
 });
 
-test('production root sync rejects a wrong checked-out branch without a success receipt', async (context) => {
+test('production root sync records a wrong checked-out branch as a canonical blocked receipt', async (context) => {
   const repository = await disposableRepository(context);
   await advanceRemote(repository, 'remote-ahead');
   git(repository.workspace, ['switch', '-c', 'wrong-branch']);
   const current = harness('root-sync');
   const system = createSystemEffects(repository.workspace);
 
-  await assert.rejects(
-    runWorkflowSideEffect(requestFor('root-sync'), { ledger: current.ledger, effects: system }),
-    assertCode('ERR_SIDE_EFFECT_PRECONDITION'),
-  );
+  const result = await runWorkflowSideEffect(requestFor('root-sync'), {
+    ledger: current.ledger,
+    effects: system,
+    now: () => '2026-08-18T10:00:00.000Z',
+    receiptId: () => 'root-wrong-branch',
+  });
+
+  assert.equal(result.receipt.event, 'root_sync.blocked');
+  assert.equal(result.receipt.payload.reason, 'external-identity-mismatch');
+  assert.deepEqual(Object.keys(result.receipt.payload.evidence).sort(), ['artifact_basename', 'evidence_sha256', 'receipt_id']);
   assert.equal(git(repository.workspace, ['branch', '--show-current']), 'wrong-branch');
-  assert.deepEqual(current.calls, []);
+  assert.deepEqual(current.calls.map(([name]) => name), ['append']);
 });
 
 test('production root sync fast-forwards only the inspected base identity', async (context) => {
@@ -487,17 +509,51 @@ test('production root sync rejects a local HEAD race after inspection', async (c
   assert.notEqual(git(repository.workspace, ['rev-parse', 'HEAD']), live.head_sha);
 });
 
-test('production root sync rejects a canonical remote for another repository', async (context) => {
+test('production root sync records a canonical remote for another repository as blocked', async (context) => {
   const repository = await disposableRepository(context);
   git(repository.workspace, ['remote', 'set-url', 'origin', 'git@github.com:other/repository.git']);
   const current = harness('root-sync');
   const system = createSystemEffects(repository.workspace);
 
-  await assert.rejects(
-    runWorkflowSideEffect(requestFor('root-sync'), { ledger: current.ledger, effects: system }),
-    assertCode('ERR_SIDE_EFFECT_PRECONDITION'),
-  );
+  const result = await runWorkflowSideEffect(requestFor('root-sync'), {
+    ledger: current.ledger,
+    effects: system,
+    now: () => '2026-08-18T10:00:00.000Z',
+    receiptId: () => 'root-wrong-repository',
+  });
+
+  assert.equal(result.receipt.event, 'root_sync.blocked');
+  assert.equal(result.receipt.payload.reason, 'external-identity-mismatch');
+  assert.deepEqual(Object.keys(result.receipt.payload.evidence).sort(), ['artifact_basename', 'evidence_sha256', 'receipt_id']);
+  assert.deepEqual(current.calls.map(([name]) => name), ['append']);
+});
+
+test('root sync does not convert unrelated inspection failures into identity conflicts', async () => {
+  const current = harness('root-sync');
+  const processFailure = new Error('git inspection failed');
+  current.effects.inspectRootSync = async () => { throw processFailure; };
+
+  await assert.rejects(runWorkflowSideEffect(requestFor('root-sync'), { ledger: current.ledger, effects: current.effects }), (error) => error === processFailure);
   assert.deepEqual(current.calls, []);
+});
+
+test('root sync records external repository or branch identity conflicts without mutation', async () => {
+  for (const conflict of ['repository', 'branch']) {
+    const current = harness('root-sync');
+    current.effects.inspectRootSync = async (input) => {
+      current.calls.push(['inspectRootSync', input]);
+      return { identity_conflict: conflict, dirty: false, head_sha: SHA_B, remote_head_sha: SHA_C, fast_forward: true };
+    };
+    const result = await runWorkflowSideEffect(requestFor('root-sync'), {
+      ledger: current.ledger,
+      effects: current.effects,
+      now: () => '2026-08-18T10:00:00.000Z',
+      receiptId: () => `root-identity-${conflict}`,
+    });
+    assert.equal(result.receipt.event, 'root_sync.blocked');
+    assert.equal(result.receipt.payload.reason, 'external-identity-mismatch');
+    assert.deepEqual(current.calls.map(([name]) => name), ['inspectRootSync', 'append']);
+  }
 });
 
 test('production CLI source exposes no adapter or module-path injection flags', async () => {

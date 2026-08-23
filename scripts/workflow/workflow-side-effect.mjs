@@ -11,8 +11,8 @@ import {
   LaneLedgerError,
   createReceipt,
   discoverWorkspaceRoot,
+  executeRuntimeWorkflowSideEffect,
   validateLaneId,
-  withRuntimeLockedStoredLaneTransaction,
 } from './lane-ledger.mjs';
 
 const OPERATIONS = ['merge', 'cleanup', 'root-sync'];
@@ -201,7 +201,7 @@ async function rootSyncEffect(context, dependencies) {
   }
   requireAuthority(projection, request);
   const live = await dependencies.effects.inspectRootSync({ repository: projection.repository, base_branch: projection.base_branch });
-  const blockedReason = live.dirty ? 'dirty-root' : live.fast_forward ? null : 'non-ff';
+  const blockedReason = live.identity_conflict ? 'external-identity-mismatch' : live.dirty ? 'dirty-root' : live.fast_forward ? null : 'non-ff';
   if (blockedReason) {
     const id = dependencies.receiptId();
     const receipt = envelope(projection, request, null, 'root_sync.blocked', {
@@ -243,7 +243,7 @@ export async function runWorkflowSideEffect(input, injected = {}) {
     return rootSyncEffect({ projection, request, append }, dependencies);
   };
   if (dependencies.ledger) return dependencies.ledger.withLockedLane(request.lane_id, operation);
-  return withRuntimeLockedStoredLaneTransaction(discoverWorkspaceRoot(), request.lane_id, 'side-effect', operation);
+  return executeRuntimeWorkflowSideEffect(request);
 }
 
 function command(file, args, cwd) {
@@ -270,11 +270,15 @@ export function createSystemEffects(workspace = discoverWorkspaceRoot()) {
     return null;
   }
 
-  function assertRepositoryIdentity(repository) {
+  function repositoryIdentityMatches(repository) {
     const topLevel = realpathSync(command('git', ['rev-parse', '--show-toplevel'], canonicalWorkspace));
-    if (topLevel !== canonicalWorkspace) fail('ERR_SIDE_EFFECT_PRECONDITION', 'side effect workspace is not the canonical repository root');
+    if (topLevel !== canonicalWorkspace) return false;
     const remoteUrl = command('git', ['config', '--get', 'remote.origin.url'], canonicalWorkspace);
-    if (normalizeGitHubRepository(remoteUrl) !== repository) fail('ERR_SIDE_EFFECT_PRECONDITION', 'origin does not match the authorized repository');
+    return normalizeGitHubRepository(remoteUrl) === repository;
+  }
+
+  function assertRepositoryIdentity(repository) {
+    if (!repositoryIdentityMatches(repository)) fail('ERR_SIDE_EFFECT_PRECONDITION', 'origin does not match the authorized repository');
   }
 
   function inspectRemoteBranch(repository, branch) {
@@ -344,9 +348,9 @@ export function createSystemEffects(workspace = discoverWorkspaceRoot()) {
   }
 
   function inspectRootIdentity(repository, baseBranch) {
-    assertRepositoryIdentity(repository);
+    if (!repositoryIdentityMatches(repository)) return { identity_conflict: 'repository' };
     const branch = command('git', ['branch', '--show-current'], canonicalWorkspace);
-    if (branch !== baseBranch) fail('ERR_SIDE_EFFECT_PRECONDITION', 'root sync is not checked out on the authorized base branch');
+    if (branch !== baseBranch) return { identity_conflict: 'branch' };
     const dirty = command('git', ['status', '--porcelain=v1', '--untracked-files=all'], canonicalWorkspace).length > 0;
     const headSha = command('git', ['rev-parse', 'HEAD'], canonicalWorkspace);
     const remoteHeadSha = inspectRemoteBranch(repository, baseBranch);
