@@ -18,7 +18,11 @@ Version 1 is the first and only supported ilokesto ledger version. A missing or 
 
 ## Canonical Platform Policy
 
-The runtime store has one canonical strategy per supported platform. Linux opens `workspace/.omo/lanes/locks` descriptor-relatively through `/proc/self/fd` and fstats targets. Darwin uses the verified identity-bound `bound-path` strategy because directory traversal through `/dev/fd` is unavailable. Darwin opens canonical no-follow directories, retains descriptor, device, and inode identities, and revalidates realpath, type, device, and inode before every critical operation. It uses exclusive temporary writes, file fsync, atomic rename, and parent-directory fsync, and binds lock release to directory identity and owner token. If parent, target, or lock substitution is observed, the operation fails before persistence and never deletes the replacement. Unsupported platforms fail closed. This Darwin strategy is canonical platform behavior, not compatibility parsing or a fallback executor.
+The runtime store has one canonical strategy per supported platform. Linux opens `workspace/.omo/lanes/.locks` descriptor-relatively through `/proc/self/fd` and fstats targets. Darwin uses the verified identity-bound `bound-path` strategy because directory traversal through `/dev/fd` is unavailable. Darwin opens canonical no-follow directories, retains descriptor, device, and inode identities, and revalidates realpath, type, device, and inode before every critical operation. Unsupported platforms fail closed. This Darwin strategy is canonical platform behavior, not compatibility parsing or a fallback executor.
+
+Ledger persistence exclusively creates and fsyncs a private sibling file, performs every feasible parent, source, target, revision, and lock check, then uses one `renameSync(temporary, target)` as the sole commit point before parent-directory fsync. Raw-path readers therefore observe complete old or new JSON without an intentional absent interval. Portable rename atomically replaces the target entry present at the syscall; Node has no portable compare-and-replace rename, so pre-checks do not eliminate a hostile insertion in the final userspace-to-rename interval. Observed substitutions before rename fail before persistence, but final-syscall hostile preservation is not a supported guarantee. Any failure after successful rename is `ERR_DURABILITY_UNCERTAIN`; an exact retry confirms durability without duplicating the receipt. A durable intent marker may support that retry but never publishes canonical ledger bytes.
+
+The canonical lock is a fully initialized regular file. The runtime writes lane ID, PID, host, creation time, and a random owner token to a private sibling claim, fsyncs it, and publishes the canonical name with one no-clobber hard link. That link cannot replace an existing file, directory, symlink, FIFO, or final-boundary foreign entry. Crash before the link leaves no canonical lock; crash after it leaves complete parseable metadata. Commit and release revalidate the opened inode, exact bytes, lane ID, PID/host, and owner token. Proven dead same-host claims and owned releases are moved to unique retained quarantines; uncertain or replaced objects are retained rather than unlinked.
 
 ## Canonical States
 
@@ -64,6 +68,8 @@ Accepted state/verdict aliases: none.
 
 `authority.granted` is forbidden to the general transition operation and may only be appended by the dedicated native-approval-gated authorize operation.
 
+Workflow branches are exactly `issue-<positive-number>-<lowercase-kebab-slug>`. Every receipt, handoff, worktree, push, and PR ingress binds the numeric branch component to the same issue number; uppercase, underscores, dots, slashes, empty slugs, and mismatched issue numbers are rejected.
+
 ## Receipts and Evidence
 
 Every receipt has this envelope:
@@ -88,11 +94,11 @@ Workers, reviewers, fix-back workers, merge wrappers, cleanup wrappers, and rele
 
 ## Authority and Retry Rules
 
-Merge, cleanup, and root sync require a separately recorded, user-approved authority receipt. Writable ledger booleans cannot mint authority. The authority receipt must match the exact repository, lane, issues, operations, squash method, and approval timestamp, and it is consumed by the authorized operation.
+Merge, cleanup, and root sync require a separately recorded, user-approved authority receipt. Writable ledger booleans cannot mint authority. Each authority receipt grants exactly one operation and, for merge or cleanup, exactly one item issue. Root sync authority is lane-scoped and carries no item issue. The receipt must match the exact repository, lane, operation, issue scope, squash method, and approval timestamp, and it is consumed by the authorized operation.
 
 A changed PR head sends `pr-open` or `in-review` back to `pr-open` by appending `evidence.invalidated`. Previous review and check receipts remain historical but cannot satisfy merge readiness.
 
-The retry budget is three fix-back attempts per item. A fourth request, or the same blocker signature after the third attempt, transitions to `blocked-retry-exhausted`.
+The retry budget is three fix-back attempts per item. A repeated blocker signature transitions immediately to `blocked-retry-exhausted`; otherwise, a fourth fix-back request or a block after the third fix-back exhausts the budget.
 
 ## Stable Operation Errors
 

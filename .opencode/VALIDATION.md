@@ -36,8 +36,11 @@
 - [ ] workflow 문서와 command가 `.omo/lanes/*.json` 직접 편집을 지시하지 않는가?
 - [ ] complete state/receipt table은 workflow-governance 외부에 하나도 없는가?
 - [ ] canonical platform policy는 [`ilokesto-workflow-governance`](skills/ilokesto-workflow-governance/SKILL.md)의 Linux `/proc/self/fd` 및 Darwin identity-bound `bound-path` 규칙을 참조하며, unsupported platform은 fail closed 하는가?
+- [ ] ledger는 fsync된 private sibling에서 canonical target으로 단 한 번 `renameSync`하며, raw-path reader에 old/new complete JSON만 보이고 마지막 userspace-check 이후 hostile replacement 보존을 portable guarantee로 주장하지 않는가?
+- [ ] canonical lock은 metadata가 미리 기록·fsync된 regular file을 no-clobber hard link로 게시하며, file/directory/symlink/FIFO contention과 link 전후 crash를 검증하는가?
+- [ ] 모든 workflow branch/worktree ingress가 `issue-<positive-number>-<lowercase-kebab-slug>`를 사용하고 숫자 부분을 exact item issue number에 bind하는가?
 
-검증 기준은 governance SSOT의 다음 문장을 그대로 따른다. Linux opens `workspace/.omo/lanes/locks` descriptor-relatively through `/proc/self/fd` and fstats targets. Darwin uses the verified identity-bound `bound-path` strategy because directory traversal through `/dev/fd` is unavailable. Unsupported platforms fail closed.
+검증 기준은 governance SSOT의 다음 문장을 그대로 따른다. Linux opens `workspace/.omo/lanes/.locks` descriptor-relatively through `/proc/self/fd` and fstats targets. Darwin uses the verified identity-bound `bound-path` strategy because directory traversal through `/dev/fd` is unavailable. Ledger publication uses one atomic rename with the documented final-syscall threat boundary; canonical lock publication uses a fully initialized regular-file hard-link claim. Unsupported platforms fail closed.
 
 ---
 

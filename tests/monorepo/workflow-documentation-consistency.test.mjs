@@ -22,7 +22,7 @@ const handbookFiles = [
 const legacyVerdicts = /approve\s*\|\s*block\s*\|\s*needs-human-check|(?:^|\n)\s*verdict\s*:\s*(?:approve|block|needs-human-check)\b/iu;
 const transitionTableHeader = /\|\s*Event\s*\/\s*outcome\s*\|\s*From\s*\|\s*To\s*\|\s*Sole\s+producer\s*\|\s*Required\s+proof\s*\|/iu;
 const platformPolicy = {
-  linux: 'Linux opens `workspace/.omo/lanes/locks` descriptor-relatively through `/proc/self/fd` and fstats targets.',
+  linux: 'Linux opens `workspace/.omo/lanes/.locks` descriptor-relatively through `/proc/self/fd` and fstats targets.',
   darwin: 'Darwin uses the verified identity-bound `bound-path` strategy because directory traversal through `/dev/fd` is unavailable.',
   failClosed: 'Unsupported platforms fail closed.',
 };
@@ -37,9 +37,8 @@ async function actualInputs() {
   const handbook = await Promise.all(handbookFiles.map((path) => readFile(join(root, path), 'utf8')));
   const commands = await Promise.all(workflowCommands.map((name) => readFile(join(commandDirectory, `${name}.md`), 'utf8')));
   const governance = await readFile(join(skillDirectory, 'ilokesto-workflow-governance', 'SKILL.md'), 'utf8');
-  const plan = await readFile(join(root, '.omo/plans/workflow-ledger-handover.md'), 'utf8');
   const validation = await readFile(join(root, '.opencode/VALIDATION.md'), 'utf8');
-  return { commandNames: workflowCommands, allCommandNames: allCommandNames.map((name) => name.slice(0, -3)), skillNames, handbook, commands, governance, plan, validation };
+  return { commandNames: workflowCommands, allCommandNames: allCommandNames.map((name) => name.slice(0, -3)), skillNames, handbook, commands, governance, validation };
 }
 
 function checkDocumentation({ commandNames, allCommandNames = commandNames, skillNames, handbook, commands, governance }) {
@@ -61,18 +60,17 @@ function checkDocumentation({ commandNames, allCommandNames = commandNames, skil
   assert.ok(transitionTableHeader.test(governance), 'workflow governance table is missing');
 }
 
-test('platform policy has one governance source and consistent plan and validation references', async () => {
-  const { governance, plan, validation } = await actualInputs();
+test('platform policy has one governance source and consistent committed validation references', async () => {
+  const { governance, validation } = await actualInputs();
   for (const policy of Object.values(platformPolicy)) {
     assert.equal(governance.split(policy).length - 1, 1, `governance must state policy once: ${policy}`);
   }
-  assert.match(plan, /ilokesto-workflow-governance.*Linux opens.*\/proc\/self\/fd.*Darwin.*bound-path.*Unsupported platforms fail closed/isu);
   assert.match(validation, /ilokesto-workflow-governance.*Linux.*\/proc\/self\/fd.*Darwin.*bound-path.*fail closed/isu);
-  assert.doesNotMatch(plan, /\/dev\/fd` on macOS|traverse through the parent descriptor.*\/dev\/fd/iu);
-  assert.match(plan, /unbound path-based validate-then-open/iu);
   assert.match(governance, /revalidates realpath, type, device, and inode before every critical operation/iu);
-  assert.match(governance, /binds lock release to directory identity and owner token/iu);
-  assert.match(governance, /fails before persistence and never deletes the replacement/iu);
+  assert.match(governance, /one `renameSync\(temporary, target\)` as the sole commit point/iu);
+  assert.match(governance, /pre-checks do not eliminate a hostile insertion in the final userspace-to-rename interval/iu);
+  assert.match(governance, /canonical lock is a fully initialized regular file/iu);
+  assert.match(governance, /publishes the canonical name with one no-clobber hard link/iu);
 });
 
 test('repository documentation and active workflow commands satisfy one shared checker', async () => {
