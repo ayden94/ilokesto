@@ -85,7 +85,7 @@ async function createDisposableRepository(testContext) {
   return { environment, expectedHead, invoke, repository };
 }
 
-function handoff(worktreePath) {
+function handoff(worktreePath, overrides = {}) {
   return JSON.stringify({
     BASE_BRANCH: 'main',
     BLOCKERS: [],
@@ -98,6 +98,7 @@ function handoff(worktreePath) {
     MODE: 'new-pr',
     PACKAGE: 'store',
     WORKTREE_PATH: worktreePath,
+    ...overrides,
   });
 }
 
@@ -194,6 +195,27 @@ test('launcher rejects alternate authority, controls, duplicate flags, traversal
     repositoryRoot,
     registeredWorktrees: [worktreePath],
   }));
+});
+
+test('launcher requires lowercase kebab branches bound to the handoff issue number', async (context) => {
+  const repositoryRoot = await mkdtemp(join(tmpdir(), 'ilokesto-launch-branch-contract-'));
+  context.after(() => rm(repositoryRoot, { recursive: true, force: true }));
+  const inboxPath = join(repositoryRoot, '.omo', 'inbox');
+  await mkdir(inboxPath, { recursive: true });
+  for (const branch of ['issue-123-Upper', 'issue-123-two_parts', 'issue-123/two-parts', 'issue-124-test']) {
+    const worktreePath = join(repositoryRoot, '.worktrees', branch);
+    await mkdir(worktreePath, { recursive: true });
+    const handoffPath = join(inboxPath, `${branch.replaceAll('/', '-')}.json`);
+    await writeFile(handoffPath, handoff(worktreePath, { BRANCH_NAME: branch }));
+    await assert.rejects(
+      validateLaunchInput({
+        argv: [scopedRole, `.worktrees/${branch}`, `.omo/inbox/${branch.replaceAll('/', '-')}.json`],
+        repositoryRoot,
+        registeredWorktrees: [worktreePath],
+      }),
+      branch,
+    );
+  }
 });
 
 test('worktree validation rejects root, sibling, traversal, unregistered, and symlink targets', async () => {

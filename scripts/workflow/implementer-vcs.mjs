@@ -10,13 +10,13 @@ import {
   validateWorktreeRuntime,
   withMutationLock,
 } from './worktree-boundary.mjs';
+import { parseIssueBranchRef } from './issue-branch.mjs';
 
 const pathMagic = /(^-|^:|(^|\/)\.\.($|\/)|[?*[]|^~|^\$|^\$\{|\\)/u;
 const coAuthor = /Co-Authored-By\s*:/iu;
 const manifestName = 'ilokesto-implementer-approved-index.json';
 const privateIndexName = 'ilokesto-implementer.index';
 const shaPattern = /^[0-9a-f]{40}$/u;
-const branchRefPattern = /^refs\/heads\/issue-[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 
 export function validateStagePaths(paths) {
   if (paths.length === 0 || paths.length > 100) throw new CapabilityBoundaryError('stage requires 1-100 explicit files');
@@ -181,7 +181,7 @@ function validateAtomicRuntime(assignment) {
 }
 
 export function updateBranchAtomically(worktreePath, branchRef, newCommit, expectedOldHead) {
-  if (!branchRefPattern.test(branchRef)
+  if (parseIssueBranchRef(branchRef) === null
     || !shaPattern.test(newCommit)
     || !shaPattern.test(expectedOldHead)) {
     throw new CapabilityBoundaryError('atomic ref update is invalid');

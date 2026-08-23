@@ -3,9 +3,9 @@ import { accessSync, constants, lstatSync, realpathSync } from 'node:fs';
 import { lstat, mkdir, readFile, realpath, rm } from 'node:fs/promises';
 import { userInfo } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { parseIssueWorktree } from './issue-branch.mjs';
 
 const controlCharacters = /[\u0000-\u001f\u007f]/u;
-const worktreeRelativePath = /^\.worktrees\/issue-[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 const sandboxExecutable = '/usr/bin/sandbox-exec';
 const gitExecutable = '/usr/bin/git';
 const sandboxReadGrants = new WeakMap();
@@ -225,7 +225,7 @@ async function rejectSymlinkSegments(root, target) {
 export async function validateAssignedWorktree(input) {
   const repositoryRoot = await realpath(input.repositoryRoot);
   const requestedPath = assertSafeText(input.requestedPath, 'worktree path');
-  if (isAbsolute(requestedPath) || !worktreeRelativePath.test(requestedPath)) {
+  if (isAbsolute(requestedPath) || parseIssueWorktree(requestedPath) === null) {
     throw new CapabilityBoundaryError('worktree must be one .worktrees/issue-* segment');
   }
   const lexicalPath = resolve(repositoryRoot, requestedPath);

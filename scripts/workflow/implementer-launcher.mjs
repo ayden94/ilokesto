@@ -14,6 +14,7 @@ import {
   runGitFile,
   validateAssignedWorktree,
 } from './worktree-boundary.mjs';
+import { parseIssueBranch } from './issue-branch.mjs';
 
 const roles = ['ilokesto-scoped-implementer', 'ilokesto-ui-implementer'];
 const handoffKeys = [
@@ -21,7 +22,6 @@ const handoffKeys = [
   'ISSUE_TITLE', 'ISSUE_URL', 'MODE', 'PACKAGE', 'WORKTREE_PATH',
 ];
 const handoffPathPattern = /^\.omo\/inbox\/[A-Za-z0-9][A-Za-z0-9._-]*\.json$/u;
-const branchPattern = /^issue-[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 const sessionPattern = /^ses_[A-Za-z0-9]+$/u;
 const approvedIndexManifest = 'ilokesto-implementer-approved-index.json';
 const approvedPrivateIndex = 'ilokesto-implementer.index';
@@ -106,7 +106,8 @@ export async function validateLaunchInput(input) {
   });
   const handoff = await readHandoff(boundary.repositoryRoot, handoffRelativePath);
   if (handoff.parsed.WORKTREE_PATH !== boundary.worktreePath) throw new CapabilityBoundaryError('handoff worktree does not match');
-  if (handoff.parsed.BRANCH_NAME !== requestedPath.slice('.worktrees/'.length) || !branchPattern.test(handoff.parsed.BRANCH_NAME)) {
+  if (handoff.parsed.BRANCH_NAME !== requestedPath.slice('.worktrees/'.length)
+    || parseIssueBranch(handoff.parsed.BRANCH_NAME, handoff.parsed.ISSUE_NUMBER) === null) {
     throw new CapabilityBoundaryError('handoff branch does not match');
   }
   return Object.freeze({ ...boundary, handoff: handoff.source, role, session });
