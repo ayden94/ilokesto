@@ -2,7 +2,7 @@
 
 import {
   LaneLedgerError,
-  authorizeStoredLane,
+  authorizeRuntimeStoredLane,
   createStoredLaneFromSourceSelection,
   discoverWorkspaceRoot,
   openRuntimeLedgerStore,
@@ -15,6 +15,7 @@ import {
   validateStoredLane,
 } from './lane-ledger.mjs';
 import { readCanonicalInboxJson } from './canonical-inbox.mjs';
+import { parsePositiveSafeInteger } from './issue-branch.mjs';
 
 function failUsage(message) {
   throw new LaneLedgerError('ERR_INVALID_SCHEMA', message);
@@ -52,6 +53,10 @@ function parseArguments(argv) {
     if (!/^\d+$/u.test(options['--expected-revision'])) failUsage('authorize expected revision must be a non-negative integer');
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(options['--repository'])) failUsage('authorize repository must be owner/name');
     if (options['--squash-method'] !== 'squash') failUsage('authorize squash method must be squash');
+    const operations = options['--operations'].split(',');
+    const issues = options['--issues'] === '' ? [] : options['--issues'].split(',');
+    if (operations.length !== 1 || !['merge', 'cleanup', 'root-sync'].includes(operations[0])) failUsage('authorize must name exactly one operation');
+    if (operations[0] === 'root-sync' ? issues.length !== 0 : issues.length !== 1 || parsePositiveSafeInteger(issues[0]) === null) failUsage('authorize issue scope does not match its operation');
   }
   if ((operation === 'validate' || operation === 'project') && args.length > 0) failUsage(`${operation} accepts only a lane ID`);
   return {
@@ -59,7 +64,7 @@ function parseArguments(argv) {
     laneId,
     expectedRevision: options['--expected-revision'] === undefined ? null : Number(options['--expected-revision']),
     repository: options['--repository'] ?? null,
-    issues: options['--issues']?.split(',').map((value) => Number(value)) ?? null,
+    issues: options['--issues'] === undefined ? null : options['--issues'] === '' ? [] : options['--issues'].split(',').map((value) => parsePositiveSafeInteger(value)),
     operations: options['--operations']?.split(',') ?? null,
     squashMethod: options['--squash-method'] ?? null,
     receiptPath,
@@ -98,31 +103,7 @@ function execute(command) {
         return transitionStoredLane(store, receipt);
       }
       case 'authorize': {
-        const ledger = validateStoredLane(store, command.laneId);
-        const now = new Date().toISOString();
-        const authority = {
-          version: 1,
-          receipt_id: `authority-${crypto.randomUUID()}`,
-          event: 'authority.granted',
-          lane_id: command.laneId,
-          item_id: null,
-          attempt: 0,
-          dispatch_id: null,
-          producer: 'dedicated native-approval-gated authorize operation',
-          expected_revision: command.expectedRevision,
-          repository: command.repository,
-          base_branch: ledger.projection.base_branch,
-          created_at: now,
-          payload: {
-            repository: command.repository,
-            lane_id: command.laneId,
-            issues: command.issues,
-            operations: command.operations,
-            squash_method: command.squashMethod,
-            approved_at: now,
-          },
-        };
-        return authorizeStoredLane(store, authority);
+        return authorizeRuntimeStoredLane(store, command);
       }
       case 'validate': return validateStoredLane(store, command.laneId);
       case 'project': return projectStoredLane(store, command.laneId);

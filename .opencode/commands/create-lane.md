@@ -12,7 +12,9 @@ Canonical creation writes one compact JSON object containing exactly `lane_recei
 
 Authority remains separate and native approval-gated:
 
-`node scripts/workflow/lane-ledger-cli.mjs authorize <lane-id> --expected-revision <revision> --repository <owner/name> --issues <issue-numbers> --operations <operations> --squash-method squash`
+`node scripts/workflow/lane-ledger-cli.mjs authorize <lane-id> --expected-revision <revision> --repository <owner/name> --issues <one-issue-number-or-empty> --operations <one-operation> --squash-method squash`
+
+Each approval grants exactly one operation. `merge` and `cleanup` bind one exact issue number; `root-sync` uses an empty `--issues` value and is lane-scoped.
 
 이 커맨드는 `/search-issue`의 승인된 `source.selected` handoff를 소비하여 의존성 그래프와 병렬 실행 가능성을 분석하는 계획 하네스다. Supervisor가 canonical handoff/receipt 입력을 `.omo/inbox/` direct file로 소유하고, `lane-ledger-cli.mjs create <lane-id> <receipt-file>`을 호출한 뒤 `validate`와 `project`로 결과를 확인한다. lane은 canonical CLI만 persistence하며 command prose는 ledger JSON을 직접 쓰지 않는다.
 
@@ -59,6 +61,8 @@ project: node scripts/workflow/lane-ledger-cli.mjs project <lane-id>
 - PR을 생성하지 않는다.
 
 ## 출력 계약
+
+Every emitted branch uses `issue-<positive-number>-<lowercase-kebab-slug>`, with the numeric component equal to the item issue number.
 
 ```
 lane_id: <lane-id>

@@ -7,7 +7,7 @@ import test from 'node:test';
 
 import {
   LaneLedgerError,
-  authorizeStoredLane,
+  authorizeTestStoredLane,
   createSourceSelectionFromIssueCandidates,
   createStoredLaneFromSourceSelection,
   openTestLedgerStore,
@@ -86,8 +86,8 @@ function authorityReceipt(revision = 1) {
     payload: {
       repository,
       lane_id: 'lane-task-4',
-      issues: [101, 105],
-      operations: ['merge', 'cleanup', 'root-sync'],
+      issues: [101],
+      operations: ['merge'],
       squash_method: 'squash',
       approved_at: '2026-08-18T09:02:00.000Z',
     },
@@ -155,13 +155,13 @@ test('producer: authority remains absent until the dedicated authorize operation
   // When / Then
   assert.throws(() => transitionStoredLane(store, authority), assertCode('ERR_ILLEGAL_TRANSITION'));
   assert.equal(validateStoredLane(store, authority.lane_id).projection.authority, null);
-  const authorized = authorizeStoredLane(store, authority);
+  const authorized = authorizeTestStoredLane(store, authority);
   assert.equal(authorized.revision, 2);
   assert.deepEqual(authorized.projection.authority, {
     repository,
     lane_id: 'lane-task-4',
-    issues: [101, 105],
-    operations: ['merge', 'cleanup', 'root-sync'],
+    issues: [101],
+    operations: ['merge'],
     consumed_operations: [],
     receipt_id: 'authority-task-4',
   });
@@ -192,7 +192,7 @@ test('producer commands expose only canonical source create and approval-gated a
   assert.match(createLane, /validateLaneCreationFromSourceSelection/u);
   assert.match(createLane, /hard_dependencies/u);
   assert.match(createLane, /ordering_after/u);
-  assert.match(createLane, /lane-ledger-cli\.mjs authorize <lane-id> --expected-revision <revision> --repository <owner\/name> --issues <issue-numbers> --operations <operations> --squash-method squash/u);
+  assert.match(createLane, /lane-ledger-cli\.mjs authorize <lane-id> --expected-revision <revision> --repository <owner\/name> --issues <one-issue-number-or-empty> --operations <one-operation> --squash-method squash/u);
   assert.match(cli, /case 'authorize'/u);
   assert.equal(bashPermissions['node scripts/workflow/lane-ledger-cli.mjs authorize *'], 'ask');
   assert.ok(Object.keys(bashPermissions).indexOf('node scripts/workflow/lane-ledger-cli.mjs authorize *') > Object.keys(bashPermissions).indexOf('*'));
