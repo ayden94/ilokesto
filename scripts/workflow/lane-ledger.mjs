@@ -1,6 +1,6 @@
 // allow: SIZE_OK - The canonical replay state machine is intentionally kept in one executable module.
 import { execFileSync } from 'node:child_process';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import {
   constants,
   existsSync,
@@ -15,12 +15,14 @@ import {
   fstatSync,
   fsyncSync,
   lstatSync,
+  linkSync,
   realpathSync,
   unlinkSync,
 } from 'node:fs';
 import { hostname, platform } from 'node:os';
 import { basename, isAbsolute, join, resolve, win32 } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { isPositiveSafeInteger, parseIssueBranch, parsePositiveSafeInteger } from './issue-branch.mjs';
 
 const SKILL_PATH = new URL('../../.opencode/skills/ilokesto-workflow-governance/SKILL.md', import.meta.url);
 const PR_EVENTS = new Set([
@@ -63,6 +65,14 @@ const RECOVERY_REASON_PATTERN = /^[A-Za-z0-9][A-Za-z0-9 .,_:/()'-]{0,255}$/u;
 const CREDENTIAL_VALUE_PATTERN = /(?:^|[\s,;])(?:password|passwd|token|secret|credential|api[ _-]?key|auth|authorization)\s*(?::|=|\bis\b)\s*\S+/iu;
 const TEST_STORE_HOOKS = new WeakMap();
 const PENDING_DURABILITY = new WeakMap();
+const REPLAY_CAPABILITY = Symbol('replay');
+const AUTHORIZE_CAPABILITY = Symbol('authorize');
+const SIDE_EFFECT_CAPABILITY = Symbol('side-effect');
+const WRAPPER_EVENTS = new Set([
+  'merge.completed',
+  'cleanup.completed', 'cleanup.skipped', 'cleanup.blocked',
+  'root_sync.completed', 'root_sync.skipped', 'root_sync.blocked',
+]);
 
 function valuesFromBackticks(line) {
   return [...line.matchAll(/`([^`]+)`/gu)].map((match) => match[1]);
@@ -152,7 +162,7 @@ function assertId(value, field) {
 }
 
 function assertPositiveInteger(value, field) {
-  assertReceipt(Number.isInteger(value) && value > 0, `${field} must be a positive integer`);
+  assertReceipt(isPositiveSafeInteger(value), `${field} must be a positive safe integer`);
 }
 
 function assertTimestamp(value, field) {
@@ -184,8 +194,16 @@ function assertIssueUrl(value, issueNumber, field) {
   assertReceipt(typeof value === 'string' && new RegExp(`^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/issues/${String(issueNumber)}$`, 'u').test(value), `${field} must be a canonical GitHub issue URL`);
 }
 
-function assertBranch(value, field) {
-  assertReceipt(typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._/-]*$/u.test(value) && !value.includes('..'), `${field} is invalid`);
+function assertBranch(value, field, issueNumber) {
+  assertReceipt(parseIssueBranch(value, issueNumber) !== null, `${field} is invalid or not bound to the issue`);
+}
+
+function issueNumberFromItemId(itemId) {
+  const issueNumber = typeof itemId === 'string' && itemId.startsWith('issue-')
+    ? parsePositiveSafeInteger(itemId.slice('issue-'.length))
+    : null;
+  assertReceipt(issueNumber !== null, 'item_id must bind a positive safe issue number');
+  return issueNumber;
 }
 
 function assertBlockerSignatures(value, field, minimum = 0) {
@@ -285,8 +303,8 @@ function assertIssueBinding(payload, field = 'payload') {
   assertIssueUrl(payload.issue_url, payload.issue_number, `${field}.issue_url`);
 }
 
-function assertWorktreeBinding(payload, field = 'payload') {
-  assertBranch(payload.branch, `${field}.branch`);
+function assertWorktreeBinding(payload, field = 'payload', issueNumber = payload.issue_number) {
+  assertBranch(payload.branch, `${field}.branch`, issueNumber);
   assertRelativePath(payload.worktree, `${field}.worktree`);
   assertReceipt(payload.worktree === `.worktrees/${payload.branch}`, `${field}.worktree must bind branch`);
 }
@@ -393,8 +411,8 @@ function validatePayload(receipt) {
     case 'evidence.invalidated':
       assertSha(payload.previous_head_sha, 'payload.previous_head_sha'); assertSha(payload.new_head_sha, 'payload.new_head_sha');
       assertReceipt(payload.previous_head_sha !== payload.new_head_sha && payload.new_head_sha === receipt.head_sha, 'evidence invalidation head binding is invalid');
-      assertStringArray(payload.superseded_review_receipt_ids, 'payload.superseded_review_receipt_ids', { minimum: 1 });
-      assertReceipt(Array.isArray(payload.superseded_check_run_ids) && payload.superseded_check_run_ids.length > 0 && payload.superseded_check_run_ids.every((id) => Number.isInteger(id) && id > 0) && new Set(payload.superseded_check_run_ids).size === payload.superseded_check_run_ids.length, 'payload.superseded_check_run_ids is invalid');
+      assertStringArray(payload.superseded_review_receipt_ids, 'payload.superseded_review_receipt_ids');
+      assertReceipt(Array.isArray(payload.superseded_check_run_ids) && payload.superseded_check_run_ids.every((id) => Number.isInteger(id) && id > 0) && new Set(payload.superseded_check_run_ids).size === payload.superseded_check_run_ids.length, 'payload.superseded_check_run_ids is invalid');
       break;
     case 'fix_back.started':
       assertIssueBinding(payload); assertWorktreeBinding(payload); assertBlockerSignatures(payload.blocker_signatures, 'payload.blocker_signatures', 1); assertId(payload.review_receipt_id, 'payload.review_receipt_id'); break;
@@ -403,19 +421,20 @@ function validatePayload(receipt) {
     case 'cleanup.started':
       assertPositiveInteger(payload.issue_number, 'payload.issue_number'); assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertSha(payload.merge_sha, 'payload.merge_sha'); assertWorktreeBinding(payload); assertRelativePathArray(payload.tracked_baseline, 'payload.tracked_baseline'); assertRelativePathArray(payload.untracked_baseline, 'payload.untracked_baseline'); break;
     case 'cleanup.completed':
-      assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertWorktreeBinding(payload); ['worktree_removed', 'local_branch_deleted', 'remote_branch_deleted'].forEach((field) => assertReceipt(typeof payload[field] === 'boolean', `payload.${field} must be boolean`)); break;
+      assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertWorktreeBinding(payload, 'payload', issueNumberFromItemId(receipt.item_id)); ['worktree_removed', 'local_branch_deleted', 'remote_branch_deleted'].forEach((field) => assertReceipt(typeof payload[field] === 'boolean', `payload.${field} must be boolean`)); break;
     case 'cleanup.skipped':
-      assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertWorktreeBinding(payload); assertReceipt(['already-removed', 'branch-retained'].includes(payload.reason), 'payload.reason is invalid'); break;
+      assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertWorktreeBinding(payload, 'payload', issueNumberFromItemId(receipt.item_id)); assertReceipt(['already-removed', 'branch-retained'].includes(payload.reason), 'payload.reason is invalid'); break;
     case 'cleanup.blocked':
-      assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertWorktreeBinding(payload); assertRelativePathArray(payload.tracked_conflicts, 'payload.tracked_conflicts'); assertRelativePathArray(payload.untracked_conflicts, 'payload.untracked_conflicts'); assertReceipt(payload.tracked_conflicts.length + payload.untracked_conflicts.length > 0, 'cleanup block requires conflict evidence'); break;
+      assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertWorktreeBinding(payload, 'payload', issueNumberFromItemId(receipt.item_id)); assertRelativePathArray(payload.tracked_conflicts, 'payload.tracked_conflicts'); assertRelativePathArray(payload.untracked_conflicts, 'payload.untracked_conflicts'); assertReceipt(payload.tracked_conflicts.length + payload.untracked_conflicts.length > 0, 'cleanup block requires conflict evidence'); break;
     case 'release_handoff.created':
       assertReceipt(Array.isArray(payload.merged_shas) && payload.merged_shas.length > 0, 'payload.merged_shas must be non-empty'); payload.merged_shas.forEach((sha, index) => assertSha(sha, `payload.merged_shas[${String(index)}]`));
       assertReceipt(['store', 'state', 'form', 'overlay', 'modal', 'toast', 'fetcher', 'utilinent'].includes(payload.package), 'payload.package is invalid');
       assertReceipt(['included', 'not-required'].includes(payload.changeset), 'payload.changeset is invalid'); assertReceipt(['latest', 'beta'].includes(payload.target_dist_tag), 'payload.target_dist_tag is invalid'); assertReceipt(payload.required_external_step === 'github-actions-release', 'payload.required_external_step is invalid'); break;
     case 'authority.granted':
       assertReceipt(payload.repository === receipt.repository && payload.lane_id === receipt.lane_id, 'authority identity differs from receipt');
-      assertReceipt(Array.isArray(payload.issues) && payload.issues.length > 0, 'payload.issues must be non-empty'); payload.issues.forEach((issue, index) => assertPositiveInteger(issue, `payload.issues[${String(index)}]`)); assertReceipt(new Set(payload.issues).size === payload.issues.length, 'payload.issues must not contain duplicates');
-      assertReceipt(Array.isArray(payload.operations) && payload.operations.length > 0 && payload.operations.every((operation) => ['merge', 'cleanup', 'root-sync'].includes(operation)) && new Set(payload.operations).size === payload.operations.length, 'authority operations are invalid');
+      assertReceipt(Array.isArray(payload.operations) && payload.operations.length === 1 && ['merge', 'cleanup', 'root-sync'].includes(payload.operations[0]), 'authority must grant exactly one operation');
+      assertReceipt(Array.isArray(payload.issues), 'payload.issues must be an array'); payload.issues.forEach((issue, index) => assertPositiveInteger(issue, `payload.issues[${String(index)}]`));
+      assertReceipt(payload.operations[0] === 'root-sync' ? payload.issues.length === 0 : payload.issues.length === 1, 'authority issue scope does not match its operation');
       assertReceipt(payload.squash_method === 'squash', 'authority must bind squash method'); assertTimestamp(payload.approved_at, 'payload.approved_at'); assertReceipt(Date.parse(payload.approved_at) <= Date.parse(receipt.created_at), 'payload.approved_at cannot follow receipt creation'); break;
     case 'root_sync.completed':
       assertId(payload.authority_receipt_id, 'payload.authority_receipt_id'); assertSha(payload.head_sha, 'payload.head_sha'); assertReceipt(payload.method === 'ff-only', 'payload.method must be ff-only'); break;
@@ -603,7 +622,7 @@ export function validateReceipt(receipt) {
   assertReceipt(typeof receipt.base_branch === 'string' && /^[A-Za-z0-9][A-Za-z0-9._/-]*$/u.test(receipt.base_branch) && !receipt.base_branch.includes('..'), 'base_branch is invalid');
   assertReceipt(typeof receipt.created_at === 'string' && Number.isFinite(Date.parse(receipt.created_at)) && /(?:Z|[+-]\d\d:\d\d)$/u.test(receipt.created_at), 'created_at must be timezone-aware ISO-8601');
   if (PR_EVENTS.has(receipt.event)) {
-    assertReceipt(Number.isInteger(receipt.pr_number) && receipt.pr_number > 0, 'pr_number must be a positive integer');
+    assertReceipt(isPositiveSafeInteger(receipt.pr_number), 'pr_number must be a positive safe integer');
     assertSha(receipt.head_sha, 'head_sha');
   }
   if (receipt.event === 'review.completed') {
@@ -665,7 +684,8 @@ function assertAuthorityAvailable(projection, receipt, operation, issueNumber) {
   const expected = expectedAuthorityKeys(authority);
   if (new Set(authority.consumed_operations).size !== authority.consumed_operations.length || !authority.consumed_operations.every((key) => expected.includes(key))) fail('ERR_AUTHORITY_MISMATCH', 'authority consumption keys are invalid');
   const key = authorityConsumptionKey(operation, issueNumber);
-  if (authority.consumed_operations.includes(key)) fail('ERR_AUTHORITY_MISSING', `${operation} authority is consumed`);
+  if (operation !== 'root-sync' && !authority.issues.includes(issueNumber)) fail('ERR_AUTHORITY_MISMATCH', `${operation} issue is not authorized`);
+  if (authority.consumed_operations.includes(key)) fail('ERR_AUTHORITY_CONSUMED', `${operation} authority is consumed`);
   if (receipt.payload.authority_receipt_id !== authority.receipt_id) fail('ERR_AUTHORITY_MISMATCH', `${operation} authority differs`);
   return key;
 }
@@ -678,7 +698,9 @@ export function validateLegalTransition(projection, receipt, options = {}) {
   }
   assertIdentity(projection, receipt);
   if (receipt.event === 'lane.created') fail('ERR_ILLEGAL_TRANSITION', 'lane.created may only be the first receipt');
-  if (receipt.event === 'authority.granted' && options.allowAuthority !== true) fail('ERR_ILLEGAL_TRANSITION', 'authority.granted requires the dedicated authorize operation');
+  const capability = options.capability;
+  if (receipt.event === 'authority.granted' && capability !== AUTHORIZE_CAPABILITY && capability !== REPLAY_CAPABILITY) fail('ERR_ILLEGAL_TRANSITION', 'authority.granted requires the dedicated authorize operation');
+  if (WRAPPER_EVENTS.has(receipt.event) && capability !== SIDE_EFFECT_CAPABILITY && capability !== REPLAY_CAPABILITY) fail('ERR_ILLEGAL_TRANSITION', `${receipt.event} requires the dedicated side-effect wrapper`);
   const item = receipt.item_id === null ? null : itemFor(projection, receipt);
   switch (receipt.event) {
     case 'workflow.started':
@@ -734,19 +756,19 @@ export function validateLegalTransition(projection, receipt, options = {}) {
       assertCurrentAttemptDispatch(item, receipt);
       assertPrIdentity(projection, item, receipt);
       if (!item.pending_review || !isDeepStrictEqual(item.pending_review.checks, normalizedCheckIdentities(receipt.payload.checks))) fail('ERR_STALE_HEAD', 'review check identities differ from review start');
-      if (receipt.payload.outcome === 'block' && receipt.payload.remaining_fix_back_attempts !== 3 - item.attempt) fail('ERR_SIDE_EFFECT_PRECONDITION', 'review fix-back budget differs from current attempt');
+      if (receipt.payload.outcome === 'block' && receipt.payload.remaining_fix_back_attempts !== 4 - item.attempt) fail('ERR_SIDE_EFFECT_PRECONDITION', 'review fix-back budget differs from current attempt');
       break;
     case 'evidence.invalidated':
       assertItemState(item, ['pr-open', 'in-review'], receipt.event);
       assertCurrentAttemptDispatch(item, receipt);
       if (item.head_sha === receipt.head_sha || receipt.payload.previous_head_sha !== item.head_sha) fail('ERR_STALE_HEAD', 'evidence invalidation requires the exact changed head SHA');
-      if (!item.pending_review) fail('ERR_STALE_HEAD', 'evidence invalidation requires pending review evidence');
+      if (!item.pending_review && (receipt.payload.superseded_review_receipt_ids.length !== 0 || receipt.payload.superseded_check_run_ids.length !== 0)) fail('ERR_STALE_HEAD', 'evidence invalidation cannot supersede evidence that does not exist');
       if (item.pending_review && !isDeepStrictEqual(receipt.payload.superseded_review_receipt_ids, [item.pending_review.receipt_id])) fail('ERR_STALE_HEAD', 'evidence invalidation does not exactly supersede the current review receipt');
       if (item.pending_review && !isDeepStrictEqual(new Set(receipt.payload.superseded_check_run_ids), new Set(item.pending_review.checks.map((check) => check.run_id)))) fail('ERR_STALE_HEAD', 'evidence invalidation does not exactly supersede current check identities');
       break;
     case 'fix_back.started':
       assertItemState(item, ['fix-back-pending'], receipt.event);
-      if (receipt.dispatch_id !== item.dispatch_id || receipt.attempt !== item.attempt + 1 || receipt.attempt > 3) fail('ERR_SIDE_EFFECT_PRECONDITION', 'fix-back attempt or dispatch is outside the retry budget');
+      if (receipt.dispatch_id !== item.dispatch_id || receipt.attempt !== item.attempt + 1 || receipt.attempt > 4) fail('ERR_SIDE_EFFECT_PRECONDITION', 'fix-back attempt or dispatch is outside the retry budget');
       assertPrIdentity(projection, item, receipt);
       assertReceipt(receipt.payload.issue_number === item.issue_number && receipt.payload.issue_url === item.issue_url && receipt.payload.branch === item.branch && receipt.payload.worktree === item.worktree, 'fix-back identity is unbound');
       assertReceipt(item.review?.receipt_id === receipt.payload.review_receipt_id && isDeepStrictEqual(item.review?.blocker_signatures, receipt.payload.blocker_signatures), 'fix-back blockers are unbound');
@@ -788,10 +810,13 @@ export function validateLegalTransition(projection, receipt, options = {}) {
       break;
     case 'authority.granted':
       if (projection.authority && expectedAuthorityKeys(projection.authority).some((key) => !projection.authority.consumed_operations.includes(key))) fail('ERR_AUTHORITY_MISMATCH', 'unconsumed authority already exists');
-      assertReceipt(receipt.item_id === null && Array.isArray(receipt.payload.operations), 'authority receipt is malformed');
-      assertReceipt(receipt.payload.operations.length > 0 && receipt.payload.operations.every((operation) => ['merge', 'cleanup', 'root-sync'].includes(operation)), 'authority operations are invalid');
+      assertReceipt(receipt.item_id === null && receipt.payload.operations.length === 1, 'authority receipt is malformed');
       assertReceipt(receipt.payload.squash_method === 'squash', 'authority must bind squash method');
-      assertReceipt(receipt.payload.issues.length === Object.values(projection.items).length && Object.values(projection.items).every((candidate) => receipt.payload.issues.includes(candidate.issue_number)), 'authority issues differ from lane issues');
+      if (receipt.payload.operations[0] === 'root-sync') {
+        assertReceipt(receipt.payload.issues.length === 0, 'root-sync authority cannot bind an item issue');
+      } else {
+        assertReceipt(receipt.payload.issues.length === 1 && Object.values(projection.items).some((candidate) => candidate.issue_number === receipt.payload.issues[0]), 'authority issue is not a lane item');
+      }
       break;
     case 'root_sync.completed':
     case 'root_sync.skipped':
@@ -805,7 +830,7 @@ export function validateLegalTransition(projection, receipt, options = {}) {
       assertAuthorityAvailable(projection, receipt, 'root-sync');
       break;
     case 'item.blocked':
-      if (TERMINAL_ITEMS.has(item.state)) fail('ERR_ILLEGAL_TRANSITION', 'terminal item cannot be blocked again');
+      if (isTerminalItemState(item.state)) fail('ERR_ILLEGAL_TRANSITION', 'terminal item cannot be blocked again');
       assertCurrentAttemptDispatch(item, receipt);
       break;
     case 'workflow.completed':
@@ -925,7 +950,7 @@ export function replayReceipts(receipts) {
   for (const receipt of receipts) {
     assertReceipt(isObject(receipt), 'receipt must be an object');
     if (seen.has(receipt.receipt_id)) fail('ERR_DUPLICATE_RECEIPT', `duplicate receipt_id: ${receipt.receipt_id}`);
-    validateLegalTransition(projection, receipt, { allowAuthority: true });
+    validateLegalTransition(projection, receipt, { capability: REPLAY_CAPABILITY });
     seen.add(receipt.receipt_id);
     projection = projection === null ? createProjection(receipt) : applyReceipt(projection, receipt);
   }
@@ -1150,6 +1175,100 @@ function clearPendingDurability(store, laneId) {
   if (pending?.size === 0) PENDING_DURABILITY.delete(store);
 }
 
+function durabilityMarkerPath(store, laneId) {
+  return storePath(store, 'lane', `.${validateLaneId(laneId)}.durability.json`);
+}
+
+function durabilityMarkerFor(laneId, ledger, publication = {}) {
+  return {
+    lane_id: laneId,
+    revision: ledger.revision,
+    receipt_id: ledger.receipts.at(-1)?.receipt_id ?? null,
+    ledger_sha256: createHash('sha256').update(JSON.stringify(ledger)).digest('hex'),
+    temporary_basename: publication.temporaryBasename ?? null,
+  };
+}
+
+function readDurabilityMarker(store, laneId) {
+  const path = durabilityMarkerPath(store, laneId);
+  let descriptor;
+  try {
+    descriptor = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const identity = fstatSync(descriptor);
+    if (!identity.isFile()) fail('ERR_INVALID_TARGET_TYPE', 'durability marker must be a regular file');
+    const bytes = readFileSync(descriptor, 'utf8');
+    const marker = JSON.parse(bytes);
+    const markerKeys = ['lane_id', 'ledger_sha256', 'receipt_id', 'revision', 'temporary_basename'];
+    const validTemporary = typeof marker.temporary_basename === 'string' && /^\.lane-[a-z0-9-]+\.\d+\.[a-f0-9-]+\.tmp$/u.test(marker.temporary_basename);
+    if (!isObject(marker) || !isDeepStrictEqual(Object.keys(marker).sort(), markerKeys) || marker.lane_id !== laneId || !Number.isInteger(marker.revision) || typeof marker.receipt_id !== 'string' || !DIGEST_PATTERN.test(marker.ledger_sha256) || !validTemporary) {
+      fail('ERR_DURABILITY_UNCERTAIN', 'durability marker is malformed');
+    }
+    return { path, identity, marker, bytes };
+  } catch (cause) {
+    if (cause?.code === 'ENOENT') return null;
+    if (cause instanceof LaneLedgerError) throw cause;
+    if (cause?.code === 'ELOOP') fail('ERR_PATH_SYMLINK', 'durability marker is a symlink', { cause });
+    fail('ERR_DURABILITY_UNCERTAIN', 'durability marker cannot be read', { cause });
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function markerMatchesLedger(marker, laneId, ledger) {
+  return marker?.marker.lane_id === laneId
+    && marker.marker.revision === ledger.revision
+    && marker.marker.receipt_id === ledger.receipts.at(-1)?.receipt_id
+    && marker.marker.ledger_sha256 === durabilityMarkerFor(laneId, ledger).ledger_sha256;
+}
+
+function writeDurabilityMarker(store, laneId, ledger, parentDescriptor, publication) {
+  const path = durabilityMarkerPath(store, laneId);
+  let descriptor;
+  try {
+    descriptor = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW | constants.O_NONBLOCK, 0o600);
+    const identity = fstatSync(descriptor);
+    if (!identity.isFile()) fail('ERR_INVALID_TARGET_TYPE', 'durability marker must be a regular file');
+    const bytes = `${JSON.stringify(durabilityMarkerFor(laneId, ledger, publication))}\n`;
+    writeFileSync(descriptor, bytes);
+    fsyncSync(descriptor);
+    fsyncSync(parentDescriptor);
+    return { path, identity, bytes };
+  } catch (cause) {
+    if (cause instanceof LaneLedgerError) throw cause;
+    fail('ERR_DURABILITY_UNCERTAIN', 'durability marker cannot be created', { cause });
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+  }
+}
+
+function removeDurabilityMarker(store, marker, parentDescriptor) {
+  if (!marker) return;
+  const quarantinePath = `${marker.path}.remove-${randomUUID()}`;
+  let moved = false;
+  try {
+    runTestStoreHook(store, 'beforeDurabilityMarkerRemoval', { path: marker.path, quarantinePath });
+    assertStoreParents(store);
+    renameSync(marker.path, quarantinePath);
+    moved = true;
+    const current = lstatSync(quarantinePath);
+    if (!current.isFile() || current.dev !== marker.identity.dev || current.ino !== marker.identity.ino || readFileSync(quarantinePath, 'utf8') !== marker.bytes) {
+      try { linkSync(quarantinePath, marker.path); } catch {}
+      fail('ERR_DURABILITY_UNCERTAIN', 'durability marker identity changed');
+    }
+    runTestStoreHook(store, 'afterDurabilityMarkerQuarantineFinalCheck', { quarantinePath });
+    fsyncSync(parentDescriptor);
+  } catch (cause) {
+    if (moved) { try { linkSync(quarantinePath, marker.path); } catch {} }
+    if (cause instanceof LaneLedgerError) throw cause;
+    fail('ERR_DURABILITY_UNCERTAIN', 'durability marker cannot be removed', { cause });
+  }
+}
+
+function removeReconciledDurabilityMarker(store, marker) {
+  const parent = openStoreParent(store, 'lane');
+  try { removeDurabilityMarker(store, marker, parent.descriptor); } finally { closeStoreParent(parent); }
+}
+
 function storePath(store, kind, name) {
   if (store.kind === 'descriptor') {
     const descriptor = kind === 'lane' ? store.lanesFd : store.locksFd;
@@ -1199,32 +1318,22 @@ function parseLockMetadata(bytes, laneId) {
   return { metadata: value, liveness };
 }
 
-function readLockOwner(store, lockFd, lockPath, laneId) {
+function openLockFile(store, lockPath, laneId) {
   assertStoreParents(store);
-  const ownerPath = store.kind === 'descriptor' ? childPath(store.prefix, lockFd, 'owner.json') : join(lockPath, 'owner.json');
-  let ownerFd;
+  let descriptor;
   try {
-    ownerFd = openSync(ownerPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-    const identity = fstatSync(ownerFd);
-    if (!identity.isFile()) fail('ERR_INVALID_TARGET_TYPE', 'lock metadata must be a regular file');
-    const bytes = readFileSync(ownerFd, 'utf8');
+    descriptor = openSync(lockPath, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    const identity = fstatSync(descriptor);
+    if (!identity.isFile()) fail('ERR_INVALID_TARGET_TYPE', 'canonical lock must be a regular file');
+    const bytes = readDescriptorBytes(descriptor, identity.size);
     assertStoreParents(store);
-    return { ownerPath, identity, bytes, ...parseLockMetadata(bytes, laneId) };
+    return { path: lockPath, descriptor, dev: identity.dev, ino: identity.ino, identity, bytes, laneId, ...parseLockMetadata(bytes, laneId) };
   } catch (cause) {
+    if (descriptor !== undefined) closeSync(descriptor);
     if (cause instanceof LaneLedgerError) throw cause;
-    if (cause?.code === 'ELOOP') fail('ERR_PATH_SYMLINK', 'lock metadata is a symlink', { cause });
+    if (cause?.code === 'ELOOP') fail('ERR_PATH_SYMLINK', 'canonical lock is a symlink', { cause });
     throw cause;
-  } finally {
-    if (ownerFd !== undefined) closeSync(ownerFd);
   }
-}
-
-function assertCapturedOwner(store, lock, lockPath) {
-  const current = readLockOwner(store, lock.descriptor, lockPath, lock.laneId);
-  if (current.identity.dev !== lock.ownerIdentity.dev || current.identity.ino !== lock.ownerIdentity.ino || current.bytes !== lock.ownerBytes) {
-    fail('ERR_LOCK_BUSY', 'lane lock metadata identity or bytes changed');
-  }
-  return current;
 }
 
 function openStoreParent(store, kind) {
@@ -1250,13 +1359,13 @@ function assertQuarantinedLock(store, lock, quarantinePath) {
   let current;
   try { current = lstatSync(quarantinePath); } catch (cause) { fail('ERR_LOCK_BUSY', 'quarantined lane lock is no longer reachable', { cause }); }
   if (current.isSymbolicLink()) fail('ERR_PATH_SYMLINK', 'quarantined lane lock became a symlink');
-  if (!current.isDirectory()) fail('ERR_INVALID_TARGET_TYPE', 'quarantined lane lock is no longer a directory');
+  if (!current.isFile()) fail('ERR_INVALID_TARGET_TYPE', 'quarantined lane lock is no longer a regular file');
   if (current.dev !== lock.dev || current.ino !== lock.ino) fail('ERR_LOCK_BUSY', 'quarantined lane lock identity changed');
+  if (readFileSync(quarantinePath, 'utf8') !== lock.bytes) fail('ERR_LOCK_BUSY', 'quarantined lane lock bytes changed');
 }
 
-function quarantineAndRemoveLock(store, lock) {
+function quarantineLock(store, lock) {
   assertOwnedLock(store, lock);
-  const capturedOwner = assertCapturedOwner(store, lock, lock.path);
   const quarantineName = `.${lock.laneId}.lock.quarantine-${randomUUID()}`;
   const quarantinePath = storePath(store, 'lock', quarantineName);
   try {
@@ -1266,24 +1375,13 @@ function quarantineAndRemoveLock(store, lock) {
     if (cause instanceof LaneLedgerError) throw cause;
     if (cause?.code !== 'ENOENT') throw cause;
   }
-  runTestStoreHook(store, 'beforeLockQuarantineRename', { canonicalPath: lock.path, ownerPath: capturedOwner.ownerPath, quarantinePath });
+  runTestStoreHook(store, 'beforeLockQuarantineRename', { canonicalPath: lock.path, ownerPath: lock.path, quarantinePath });
   assertOwnedLock(store, lock);
-  assertCapturedOwner(store, lock, lock.path);
   assertStoreParents(store);
   renameSync(lock.path, quarantinePath);
   assertStoreParents(store);
   runTestStoreHook(store, 'afterLockQuarantineRename', { canonicalPath: lock.path, quarantinePath });
   assertQuarantinedLock(store, lock, quarantinePath);
-  const quarantinedOwner = assertCapturedOwner(store, lock, quarantinePath);
-  runTestStoreHook(store, 'beforeQuarantineOwnerUnlink', { quarantinePath, ownerPath: quarantinedOwner.ownerPath });
-  assertQuarantinedLock(store, lock, quarantinePath);
-  const verifiedOwner = assertCapturedOwner(store, lock, quarantinePath);
-  assertStoreParents(store);
-  unlinkSync(verifiedOwner.ownerPath);
-  fsyncSync(lock.descriptor);
-  assertQuarantinedLock(store, lock, quarantinePath);
-  assertStoreParents(store);
-  rmdirSync(quarantinePath);
   const parent = openStoreParent(store, 'lock');
   try { fsyncSync(parent.descriptor); } finally { closeStoreParent(parent); }
   assertStoreParents(store);
@@ -1294,71 +1392,67 @@ function acquireLock(store, laneId, timeoutMs) {
   const lockPath = storePath(store, 'lock', lockName);
   const started = Date.now();
   while (true) {
+    let claimDescriptor;
     try {
       assertStoreParents(store);
-      mkdirSync(lockPath, { mode: 0o700 });
-      assertStoreParents(store);
-      const lockFd = openDirectory(lockPath);
-      const lockIdentity = fstatSync(lockFd);
+      const claimPath = storePath(store, 'lock', `.${laneId}.lock.claim-${randomUUID()}`);
       const ownerToken = randomUUID();
-      const metadataPath = store.kind === 'descriptor' ? childPath(store.prefix, lockFd, 'owner.json') : join(lockPath, 'owner.json');
-      let ownerFd;
-      try {
-        ownerFd = openSync(metadataPath, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW | constants.O_NONBLOCK, 0o600);
-        if (!fstatSync(ownerFd).isFile()) fail('ERR_INVALID_TARGET_TYPE', 'lock metadata must be a regular file');
-        writeFileSync(ownerFd, `${JSON.stringify({ lane_id: laneId, host: hostname(), pid: process.pid, created_at: new Date().toISOString(), owner_token: ownerToken })}\n`);
-        fsyncSync(ownerFd);
-        closeSync(ownerFd);
-        ownerFd = undefined;
-        fsyncSync(lockFd);
-        assertStoreParents(store);
-        const owner = readLockOwner(store, lockFd, lockPath, laneId);
-        return { path: lockPath, descriptor: lockFd, dev: lockIdentity.dev, ino: lockIdentity.ino, metadataPath, ownerToken, laneId, ownerIdentity: owner.identity, ownerBytes: owner.bytes };
-      } catch (cause) {
-        if (ownerFd !== undefined) closeSync(ownerFd);
-        try { unlinkSync(metadataPath); } catch {}
-        closeSync(lockFd);
-        try { rmdirSync(lockPath); } catch {}
-        throw cause;
+      const bytes = `${JSON.stringify({ lane_id: laneId, host: hostname(), pid: process.pid, created_at: new Date().toISOString(), owner_token: ownerToken })}\n`;
+      claimDescriptor = openSync(claimPath, constants.O_RDWR | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW | constants.O_NONBLOCK, 0o600);
+      const claimIdentity = fstatSync(claimDescriptor);
+      if (!claimIdentity.isFile()) fail('ERR_INVALID_TARGET_TYPE', 'private lock claim must be a regular file');
+      writeFileSync(claimDescriptor, bytes);
+      fsyncSync(claimDescriptor);
+      assertStoreParents(store);
+      runTestStoreHook(store, 'beforeLockPublish', { claimPath, canonicalPath: lockPath, ownerPath: claimPath });
+      const privateIdentity = lstatSync(claimPath);
+      if (!privateIdentity.isFile() || privateIdentity.dev !== claimIdentity.dev || privateIdentity.ino !== claimIdentity.ino || readFileSync(claimPath, 'utf8') !== bytes) fail('ERR_LOCK_BUSY', 'private lock claim changed before publication');
+      runTestStoreHook(store, 'afterLockFinalTargetCheck', { claimPath, canonicalPath: lockPath, ownerPath: claimPath });
+      linkSync(claimPath, lockPath);
+      runTestStoreHook(store, 'afterLockPublish', { claimPath, canonicalPath: lockPath, ownerPath: claimPath });
+      const lock = openLockFile(store, lockPath, laneId);
+      if (lock.dev !== claimIdentity.dev || lock.ino !== claimIdentity.ino || lock.bytes !== bytes || lock.metadata?.owner_token !== ownerToken) {
+        closeSync(lock.descriptor);
+        fail('ERR_LOCK_BUSY', 'published lane lock differs from its private claim');
       }
+      const lockParent = openStoreParent(store, 'lock');
+      try { fsyncSync(lockParent.descriptor); } finally { closeStoreParent(lockParent); }
+      closeSync(claimDescriptor);
+      claimDescriptor = undefined;
+      return { ...lock, claimPath, ownerToken };
     } catch (cause) {
+      if (claimDescriptor !== undefined) closeSync(claimDescriptor);
       if (cause?.code !== 'EEXIST') throw cause;
       if (Date.now() - started < timeoutMs) {
         Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, Math.min(20, timeoutMs));
         continue;
       }
+      let existing;
       try {
-        assertStoreParents(store);
-        const lockFd = openDirectory(lockPath);
-        let staleLock;
-        try {
-          const lockIdentity = fstatSync(lockFd);
-          const owner = readLockOwner(store, lockFd, lockPath, laneId);
-          staleLock = { path: lockPath, descriptor: lockFd, dev: lockIdentity.dev, ino: lockIdentity.ino, metadataPath: owner.ownerPath, ownerToken: owner.metadata?.owner_token, laneId, ownerIdentity: owner.identity, ownerBytes: owner.bytes };
-          if (owner.liveness?.host === hostname()) {
-            let dead = false;
-            try {
-              runTestStoreHook(store, 'probeLockOwner', { pid: owner.liveness.pid });
-              process.kill(owner.liveness.pid, 0);
-            } catch (probe) {
-              dead = probe?.code === 'ESRCH';
-            }
-            if (dead) {
-              if (owner.metadata === null) fail('ERR_STALE_LOCK', 'dead same-host lock metadata is not reclaimable');
-              try {
-                quarantineAndRemoveLock(store, staleLock);
-              } catch (cause) {
-                fail('ERR_STALE_LOCK', 'dead same-host lock changed during reclamation', { cause });
-              }
-              continue;
-            }
+        existing = openLockFile(store, lockPath, laneId);
+        if (existing.liveness?.host === hostname()) {
+          let dead = false;
+          try {
+            runTestStoreHook(store, 'probeLockOwner', { pid: existing.liveness.pid });
+            process.kill(existing.liveness.pid, 0);
+          } catch (probe) {
+            dead = probe?.code === 'ESRCH';
           }
-        } finally {
-          closeSync(lockFd);
+          if (dead) {
+            if (existing.metadata === null) fail('ERR_STALE_LOCK', 'dead same-host lock metadata is not reclaimable');
+            try {
+              quarantineLock(store, existing);
+            } catch (error) {
+              fail('ERR_STALE_LOCK', 'dead same-host lock changed during reclamation', { cause: error });
+            }
+            continue;
+          }
         }
       } catch (metadataError) {
         if (metadataError instanceof LaneLedgerError) throw metadataError;
-        if (metadataError?.code === 'ELOOP') fail('ERR_PATH_SYMLINK', 'lock metadata is a symlink', { cause: metadataError });
+        throw metadataError;
+      } finally {
+        if (existing !== undefined) { try { closeSync(existing.descriptor); } catch {} }
       }
       fail('ERR_LOCK_BUSY', 'lane ledger lock wait timed out');
     }
@@ -1372,16 +1466,18 @@ function assertOwnedLock(store, lock) {
   let current;
   try { current = lstatSync(lock.path); } catch (cause) { fail('ERR_LOCK_BUSY', 'lane lock is no longer reachable', { cause }); }
   if (current.isSymbolicLink()) fail('ERR_PATH_SYMLINK', 'lane lock became a symlink');
-  if (!current.isDirectory()) fail('ERR_INVALID_TARGET_TYPE', 'lane lock is no longer a directory');
+  if (!current.isFile()) fail('ERR_INVALID_TARGET_TYPE', 'lane lock is no longer a regular file');
   if (current.dev !== lock.dev || current.ino !== lock.ino) fail('ERR_LOCK_BUSY', 'lane lock identity changed');
+  const bytes = readDescriptorBytes(lock.descriptor, opened.size);
+  if (bytes !== lock.bytes) fail('ERR_LOCK_BUSY', 'lane lock bytes changed');
 }
 
 function releaseLock(store, lock) {
   try {
     assertOwnedLock(store, lock);
-    const { metadata } = assertCapturedOwner(store, lock, lock.path);
+    const { metadata } = parseLockMetadata(lock.bytes, lock.laneId);
     if (metadata.owner_token !== lock.ownerToken || metadata.pid !== process.pid || metadata.host !== hostname()) fail('ERR_LOCK_BUSY', 'lane lock ownership changed');
-    quarantineAndRemoveLock(store, lock);
+    quarantineLock(store, lock);
   } finally {
     closeSync(lock.descriptor);
   }
@@ -1433,15 +1529,6 @@ function assertExpectedLedgerTarget(store, expectation) {
   if (afterRead.dev !== opened.dev || afterRead.ino !== opened.ino || afterRead.size !== opened.size) fail('ERR_PATH_OUTSIDE_ROOT', 'ledger descriptor changed while reading');
 }
 
-function removeOwnedTemporary(store, path, identity) {
-  if (!identity) return;
-  try {
-    assertStoreParents(store);
-    const current = lstatSync(path);
-    if (current.isFile() && current.dev === identity.dev && current.ino === identity.ino) unlinkSync(path);
-  } catch {}
-}
-
 function persistLedger(store, laneId, ledger) {
   assertStoreParents(store);
   const target = lanePath(store, laneId);
@@ -1450,6 +1537,8 @@ function persistLedger(store, laneId, ledger) {
   let descriptor;
   let temporaryIdentity;
   let parent;
+  let durabilityMarker;
+  let expectedTarget;
   let published = false;
   try {
     descriptor = openSync(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW | constants.O_NONBLOCK, 0o600);
@@ -1459,15 +1548,26 @@ function persistLedger(store, laneId, ledger) {
     writeFileSync(descriptor, `${JSON.stringify(ledger, null, 2)}\n`);
     fsyncSync(descriptor);
     assertStoreParents(store);
-    const expectedTarget = assertOptionalRegularTarget(target, 'ledger target');
+    expectedTarget = assertOptionalRegularTarget(target, 'ledger target');
     const ownedTemporary = fstatSync(descriptor);
     if (!ownedTemporary.isFile() || ownedTemporary.dev !== temporaryIdentity.dev || ownedTemporary.ino !== temporaryIdentity.ino) fail('ERR_PATH_OUTSIDE_ROOT', 'temporary ledger descriptor identity changed');
     const temporaryTarget = assertOptionalRegularTarget(temporary, 'temporary ledger');
     if (!temporaryTarget || temporaryTarget.dev !== ownedTemporary.dev || temporaryTarget.ino !== ownedTemporary.ino) fail('ERR_PATH_OUTSIDE_ROOT', 'temporary ledger identity changed');
     parent = openStoreParent(store, 'lane');
+    if (expectedTarget !== null) {
+      parseLedger(readFileSync(target, 'utf8'));
+      assertExpectedTarget(target, expectedTarget, 'ledger target');
+    }
+    durabilityMarker = writeDurabilityMarker(store, laneId, ledger, parent.descriptor, {
+      temporaryBasename: basename(temporary),
+    });
     runTestStoreHook(store, 'beforeLedgerRename', { target, temporary });
     assertStoreParents(store);
     assertExpectedTarget(target, expectedTarget, 'ledger target');
+    runTestStoreHook(store, 'afterLedgerFinalTargetCheck', { target, temporary });
+    assertExpectedTarget(target, expectedTarget, 'ledger target');
+    const finalTemporary = assertOptionalRegularTarget(temporary, 'temporary ledger');
+    if (!finalTemporary || finalTemporary.dev !== temporaryIdentity.dev || finalTemporary.ino !== temporaryIdentity.ino) fail('ERR_PATH_OUTSIDE_ROOT', 'temporary ledger identity changed before publication');
     renameSync(temporary, target);
     published = true;
     runTestStoreHook(store, 'afterLedgerRename', { target });
@@ -1477,13 +1577,17 @@ function persistLedger(store, laneId, ledger) {
     assertStoreParents(store);
     assertExpectedTarget(target, temporaryIdentity, 'published ledger target');
     fsyncSync(parent.descriptor);
+    removeDurabilityMarker(store, durabilityMarker, parent.descriptor);
+    durabilityMarker = undefined;
   } catch (cause) {
     if (descriptor !== undefined) {
       try { closeSync(descriptor); } catch {}
       descriptor = undefined;
     }
     if (!published) {
-      removeOwnedTemporary(store, temporary, temporaryIdentity);
+      if (durabilityMarker !== undefined && parent !== undefined) {
+        try { removeDurabilityMarker(store, durabilityMarker, parent.descriptor); } catch {}
+      }
       if (parent !== undefined) { try { closeStoreParent(parent); } catch {} }
       throw cause;
     }
@@ -1512,6 +1616,11 @@ function confirmStoredLedgerDurability(store, laneId, ledger) {
     fsyncSync(descriptor);
     assertStoreParents(store);
     fsyncSync(parent.descriptor);
+    const marker = readDurabilityMarker(store, laneId);
+    if (marker !== null) {
+      if (!markerMatchesLedger(marker, laneId, ledger)) fail('ERR_DURABILITY_UNCERTAIN', 'durability marker does not bind the published ledger');
+      removeDurabilityMarker(store, marker, parent.descriptor);
+    }
     clearPendingDurability(store, laneId);
   } catch (cause) {
     fail('ERR_DURABILITY_UNCERTAIN', 'published ledger durability cannot be confirmed', { cause });
@@ -1521,16 +1630,22 @@ function confirmStoredLedgerDurability(store, laneId, ledger) {
   }
 }
 
-function reconcilePublishedReceipt(store, laneId, ledger, receipt) {
+function reconcilePublishedReceipt(store, laneId, ledger, receipt, capability) {
   const duplicate = ledger.receipts.find((candidate) => candidate.receipt_id === receipt.receipt_id);
   const expectedRevision = receipt.expected_revision + 1;
   const finalReceipt = ledger.receipts.at(-1);
-  if (hasPendingDurability(store, laneId, ledger) && ledger.revision === expectedRevision && finalReceipt?.receipt_id === receipt.receipt_id && isDeepStrictEqual(finalReceipt, receipt)) {
+  const durableMarker = readDurabilityMarker(store, laneId);
+  if ((hasPendingDurability(store, laneId, ledger) || markerMatchesLedger(durableMarker, laneId, ledger)) && ledger.revision === expectedRevision && finalReceipt?.receipt_id === receipt.receipt_id && isDeepStrictEqual(finalReceipt, receipt)) {
     confirmStoredLedgerDurability(store, laneId, ledger);
     return ledger;
   }
   if (duplicate !== undefined) fail('ERR_DUPLICATE_RECEIPT', 'receipt_id already exists');
   if (ledger.revision !== receipt.expected_revision) fail('ERR_REVISION_CONFLICT', 'expected revision no longer matches');
+  if (durableMarker !== null) {
+    const stagedLedger = stageLockedReceipt(ledger, receipt, capability);
+    if (!markerMatchesLedger(durableMarker, laneId, stagedLedger)) fail('ERR_DURABILITY_UNCERTAIN', 'orphan durability marker conflicts with the retry receipt');
+    removeReconciledDurabilityMarker(store, durableMarker);
+  }
   return null;
 }
 
@@ -1544,7 +1659,8 @@ export function createStoredLane(store, receipt, options = {}) {
     const existing = readStoredLedger(store, receipt.lane_id, true);
     if (existing !== null) {
       if (isDeepStrictEqual(existing, ledger)) {
-        if (!hasPendingDurability(store, receipt.lane_id, ledger)) fail('ERR_REVISION_CONFLICT', 'lane already exists');
+        const marker = readDurabilityMarker(store, receipt.lane_id);
+        if (!hasPendingDurability(store, receipt.lane_id, ledger) && !markerMatchesLedger(marker, receipt.lane_id, ledger)) fail('ERR_REVISION_CONFLICT', 'lane already exists');
         confirmStoredLedgerDurability(store, receipt.lane_id, ledger);
         ledger = existing;
       } else if (existing.receipts.some((candidate) => candidate.receipt_id === receipt.receipt_id)) {
@@ -1553,6 +1669,11 @@ export function createStoredLane(store, receipt, options = {}) {
         fail('ERR_REVISION_CONFLICT', 'lane already exists');
       }
     } else {
+      const marker = readDurabilityMarker(store, receipt.lane_id);
+      if (marker !== null) {
+        if (!markerMatchesLedger(marker, receipt.lane_id, ledger)) fail('ERR_DURABILITY_UNCERTAIN', 'orphan durability marker conflicts with lane creation');
+        removeReconciledDurabilityMarker(store, marker);
+      }
       assertOwnedLock(store, lock);
       persistLedger(store, receipt.lane_id, ledger);
     }
@@ -1569,16 +1690,16 @@ export function createStoredLaneFromSourceSelection(store, receipt, sourceHandof
   return createStoredLane(store, receipt, options);
 }
 
-function stageLockedReceipt(ledger, receipt, allowAuthority) {
+function stageLockedReceipt(ledger, receipt, capability) {
   if (ledger.receipts.some((candidate) => candidate.receipt_id === receipt.receipt_id)) fail('ERR_DUPLICATE_RECEIPT', 'receipt_id already exists');
   if (receipt.expected_revision !== ledger.revision) fail('ERR_REVISION_CONFLICT', 'expected revision no longer matches');
-  validateLegalTransition(ledger.projection, receipt, { allowAuthority });
+  validateLegalTransition(ledger.projection, receipt, { capability });
   const receipts = [...ledger.receipts, structuredClone(receipt)];
   const projection = replayReceipts(receipts);
   return { ...ledger, revision: projection.revision, receipts, projection };
 }
 
-export function withLockedStoredLaneTransaction(store, laneId, operation, callback, options = {}, retryReceipt = null) {
+function lockedStoredLaneTransaction(store, laneId, operation, callback, options = {}, retryReceipt = null, capability = null) {
   validateLaneId(laneId);
   if (!['transition', 'authorize', 'side-effect'].includes(operation)) fail('ERR_INVALID_SCHEMA', 'stored lane operation is invalid');
   if (typeof callback !== 'function') fail('ERR_INVALID_SCHEMA', 'stored lane transaction callback is required');
@@ -1594,7 +1715,7 @@ export function withLockedStoredLaneTransaction(store, laneId, operation, callba
   try {
     const ledger = readStoredLedger(store, laneId);
     if (retryReceipt !== null) {
-      const reconciled = reconcilePublishedReceipt(store, laneId, ledger, retryReceipt);
+      const reconciled = reconcilePublishedReceipt(store, laneId, ledger, retryReceipt, capability);
       if (reconciled !== null) {
         active = false;
         try { releaseLock(store, lock); } catch {}
@@ -1609,7 +1730,7 @@ export function withLockedStoredLaneTransaction(store, laneId, operation, callba
       }
       assertReceipt(isObject(receipt), 'receipt must be an object');
       if (receipt.lane_id !== laneId) fail('ERR_INVALID_RECEIPT', 'receipt lane differs from locked lane');
-      stagedLedger = stageLockedReceipt(ledger, receipt, operation === 'authorize');
+      stagedLedger = stageLockedReceipt(ledger, receipt, capability);
       const snapshot = deepFreeze(structuredClone(stagedLedger));
       return { ledger: snapshot, projection: snapshot.projection, receipt };
     };
@@ -1645,6 +1766,20 @@ export function withLockedStoredLaneTransaction(store, laneId, operation, callba
   }
 }
 
+export function withLockedStoredLaneTransaction(store, laneId, operation, callback, options = {}, retryReceipt = null) {
+  if (operation !== 'transition') fail('ERR_INVALID_SCHEMA', 'generic transactions only support transition');
+  return lockedStoredLaneTransaction(store, laneId, operation, callback, options, retryReceipt);
+}
+
+function withLockedStoredLaneSideEffectTransaction(store, laneId, callback, options = {}, retryReceipt = null) {
+  return lockedStoredLaneTransaction(store, laneId, 'side-effect', callback, options, retryReceipt, SIDE_EFFECT_CAPABILITY);
+}
+
+export function withTestLockedStoredLaneSideEffectTransaction(store, laneId, callback, options = {}, retryReceipt = null) {
+  if (!TEST_STORE_HOOKS.has(store)) fail('ERR_INVALID_SCHEMA', 'test side-effect transactions require a test ledger store');
+  return withLockedStoredLaneSideEffectTransaction(store, laneId, callback, options, retryReceipt);
+}
+
 export function withRuntimeLockedStoredLaneTransaction(workspace, laneId, operation, callback, options = {}) {
   const store = openRuntimeLedgerStore(workspace);
   const closeSuccess = (value) => {
@@ -1664,15 +1799,65 @@ export function withRuntimeLockedStoredLaneTransaction(workspace, laneId, operat
   }
 }
 
+export async function executeRuntimeWorkflowSideEffect(input) {
+  const workspace = discoverWorkspaceRoot();
+  const store = openRuntimeLedgerStore(workspace);
+  try {
+    const { runWorkflowSideEffect } = await import('./workflow-side-effect.mjs');
+    return await runWorkflowSideEffect(input, {
+      ledger: {
+        withLockedLane(laneId, callback) {
+          return withLockedStoredLaneSideEffectTransaction(store, laneId, callback);
+        },
+      },
+    });
+  } finally {
+    try { store.close(); } catch {}
+  }
+}
+
 export function transitionStoredLane(store, receipt, options = {}) {
   assertReceipt(isObject(receipt), 'receipt must be an object');
   return withLockedStoredLaneTransaction(store, receipt.lane_id, 'transition', ({ append }) => append(receipt).ledger, options, receipt);
 }
 
-export function authorizeStoredLane(store, receipt, options = {}) {
+function authorizeStoredLane(store, receipt, options = {}) {
   assertReceipt(isObject(receipt), 'receipt must be an object');
   if (receipt.event !== 'authority.granted') fail('ERR_ILLEGAL_TRANSITION', 'dedicated authority operation requires authority.granted');
-  return withLockedStoredLaneTransaction(store, receipt.lane_id, 'authorize', ({ append }) => append(receipt).ledger, options, receipt);
+  return lockedStoredLaneTransaction(store, receipt.lane_id, 'authorize', ({ append }) => append(receipt).ledger, options, receipt, AUTHORIZE_CAPABILITY);
+}
+
+export function authorizeTestStoredLane(store, receipt, options = {}) {
+  if (!TEST_STORE_HOOKS.has(store)) fail('ERR_INVALID_SCHEMA', 'test authorization requires a test ledger store');
+  return authorizeStoredLane(store, receipt, options);
+}
+
+export function authorizeRuntimeStoredLane(store, input) {
+  if (store.kind === 'test-path') fail('ERR_INVALID_SCHEMA', 'runtime authorization requires a runtime ledger store');
+  const ledger = validateStoredLane(store, input.laneId);
+  const now = new Date().toISOString();
+  return authorizeStoredLane(store, {
+    version: 1,
+    receipt_id: `authority-${randomUUID()}`,
+    event: 'authority.granted',
+    lane_id: input.laneId,
+    item_id: null,
+    attempt: 0,
+    dispatch_id: null,
+    producer: 'dedicated native-approval-gated authorize operation',
+    expected_revision: input.expectedRevision,
+    repository: input.repository,
+    base_branch: ledger.projection.base_branch,
+    created_at: now,
+    payload: {
+      repository: input.repository,
+      lane_id: input.laneId,
+      issues: input.issues,
+      operations: input.operations,
+      squash_method: input.squashMethod,
+      approved_at: now,
+    },
+  });
 }
 
 export function validateStoredLane(store, laneId) {

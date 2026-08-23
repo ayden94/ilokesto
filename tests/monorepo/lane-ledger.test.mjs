@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from 'node:fs';
 import { lstat, mkdtemp, mkdir, readFile, realpath, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,7 +10,7 @@ import test from 'node:test';
 import {
   LaneLedgerError,
   WORKFLOW_CONTRACT,
-  authorizeStoredLane,
+  authorizeTestStoredLane,
   canonicalPayloadEvents,
   createLedger,
   createReceipt,
@@ -31,6 +31,7 @@ import {
   validateSourceSelectionHandoff,
   validateStoredLane,
   withLockedStoredLaneTransaction,
+  withTestLockedStoredLaneSideEffectTransaction,
 } from '../../scripts/workflow/lane-ledger.mjs';
 
 test('receipt constructors expose canonical payload and source handoff validation seams', () => {
@@ -108,7 +109,7 @@ const reviewPayload = (outcome = 'merge', headSha = SHA_A, docsReleaseRequired =
   checks: checks(headSha),
   blocker_signatures: outcome === 'block' ? ['code:stable-blocker'] : [],
   fix_back_eligible: outcome === 'block',
-  remaining_fix_back_attempts: outcome === 'block' ? 2 : 0,
+  remaining_fix_back_attempts: outcome === 'block' ? 3 : 0,
   non_fixable_evidence: outcome === 'needs-human-check' ? [evidence('non-fixable-review')] : [],
 });
 const workerPayload = (headSha = SHA_A, changedFiles = ['scripts/example.mjs']) => ({ ...issueWorktree, committed_head_sha: headSha, changed_files: changedFiles, verification: [verification(headSha)], changeset_decision: 'not-required', remaining_blockers: [] });
@@ -173,12 +174,14 @@ async function fullHistory() {
     nextReceipt('pr.opened', 5, { pr_number: 101, head_sha: SHA_A, payload: { ...issueWorktree, committed_head_sha: SHA_A } }),
     nextReceipt('review.started', 6, { pr_number: 101, head_sha: SHA_A, payload: { ...issueWorktree, checks: checks() } }),
     nextReceipt('review.completed', 7, { pr_number: 101, head_sha: SHA_A, payload: reviewPayload() }),
-    nextReceipt('authority.granted', 8, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge', 'cleanup', 'root-sync'], issues: [101], squash_method: 'squash', approved_at: '2026-08-18T00:00:08.000Z' } }),
+    nextReceipt('authority.granted', 8, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge'], issues: [101], squash_method: 'squash', approved_at: '2026-08-18T00:00:08.000Z' } }),
     nextReceipt('merge.completed', 9, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: 'receipt-9-authority-granted', review_receipt_id: 'receipt-8-review-completed', checks: checks(), merge_sha: SHA_B, method: 'squash' } }),
-    nextReceipt('cleanup.started', 10, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: 'receipt-9-authority-granted', merge_sha: SHA_B, branch: BRANCH, worktree: WORKTREE, tracked_baseline: [], untracked_baseline: [] } }),
-    nextReceipt('cleanup.completed', 11, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-9-authority-granted', branch: BRANCH, worktree: WORKTREE, worktree_removed: true, local_branch_deleted: true, remote_branch_deleted: true } }),
-    nextReceipt('root_sync.completed', 12, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-9-authority-granted', head_sha: SHA_B, method: 'ff-only' } }),
-    nextReceipt('workflow.completed', 13, { attempt: 0, dispatch_id: null, payload: { root_sync_receipt_id: 'receipt-13-root_sync-completed' } }),
+    nextReceipt('authority.granted', 10, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['cleanup'], issues: [101], squash_method: 'squash', approved_at: '2026-08-18T00:00:10.000Z' } }),
+    nextReceipt('cleanup.started', 11, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: 'receipt-11-authority-granted', merge_sha: SHA_B, branch: BRANCH, worktree: WORKTREE, tracked_baseline: [], untracked_baseline: [] } }),
+    nextReceipt('cleanup.completed', 12, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-11-authority-granted', branch: BRANCH, worktree: WORKTREE, worktree_removed: true, local_branch_deleted: true, remote_branch_deleted: true } }),
+    nextReceipt('authority.granted', 13, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['root-sync'], issues: [], squash_method: 'squash', approved_at: '2026-08-18T00:00:13.000Z' } }),
+    nextReceipt('root_sync.completed', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', head_sha: SHA_B, method: 'ff-only' } }),
+    nextReceipt('workflow.completed', 15, { attempt: 0, dispatch_id: null, payload: { root_sync_receipt_id: 'receipt-15-root_sync-completed' } }),
   ];
 }
 
@@ -301,7 +304,7 @@ function runtimeCliScenario(created, started) {
         '--expected-revision', '1',
         '--repository', created.repository,
         '--issues', issueNumbers.join(','),
-        '--operations', 'merge,cleanup,root-sync',
+        '--operations', 'merge',
         '--squash-method', 'squash',
       ],
     },
@@ -321,6 +324,15 @@ async function readLedgerBytes(root) {
     if (error?.code === 'ENOENT') return null;
     throw error;
   }
+}
+
+const wrapperEvents = new Set(['merge.completed', 'cleanup.completed', 'cleanup.skipped', 'cleanup.blocked', 'root_sync.completed', 'root_sync.skipped', 'root_sync.blocked']);
+
+function persistCanonicalReceipt(store, receipt, index) {
+  if (index === 0) return createStoredLane(store, receipt);
+  if (receipt.event === 'authority.granted') return authorizeTestStoredLane(store, receipt);
+  if (wrapperEvents.has(receipt.event)) return withTestLockedStoredLaneSideEffectTransaction(store, receipt.lane_id, ({ append }) => append(receipt).ledger);
+  return transitionStoredLane(store, receipt);
 }
 
 function persistSetupWithModule(root, receipts) {
@@ -460,52 +472,106 @@ test('receipt: evidence invalidation requires real unique pending review identit
   assert.throws(() => validateReceipt(duplicateSupersession), assertCode('ERR_INVALID_RECEIPT'));
 });
 
+test('receipt: evidence invalidation supersedes exactly the evidence present in pr-open and in-review', async () => {
+  const history = await fullHistory();
+  const prOpen = replayReceipts(history.slice(0, 6));
+  const fromPrOpen = nextReceipt('evidence.invalidated', 6, {
+    pr_number: 101,
+    head_sha: SHA_B,
+    payload: {
+      previous_head_sha: SHA_A,
+      new_head_sha: SHA_B,
+      superseded_review_receipt_ids: [],
+      superseded_check_run_ids: [],
+    },
+  });
+  assert.doesNotThrow(() => validateLegalTransition(prOpen, fromPrOpen));
+
+  const inReview = replayReceipts(history.slice(0, 7));
+  const fromInReview = nextReceipt('evidence.invalidated', 7, {
+    pr_number: 101,
+    head_sha: SHA_B,
+    payload: {
+      previous_head_sha: SHA_A,
+      new_head_sha: SHA_B,
+      superseded_review_receipt_ids: ['receipt-7-review-started'],
+      superseded_check_run_ids: [7001],
+    },
+  });
+  assert.doesNotThrow(() => validateLegalTransition(inReview, fromInReview));
+});
+
 test('receipt: blocked root sync cannot repeat after root sync is terminal', async () => {
   const history = await fullHistory();
-  const terminalRoot = replayReceipts(history.slice(0, 13));
-  const repeated = nextReceipt('root_sync.blocked', 13, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-9-authority-granted', reason: 'non-ff', evidence: evidence('root-repeat') } });
+  const terminalRoot = replayReceipts(history.slice(0, 15));
+  const repeated = nextReceipt('root_sync.blocked', 15, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', reason: 'non-ff', evidence: evidence('root-repeat') } });
   assert.throws(() => validateLegalTransition(terminalRoot, repeated), assertCode('ERR_ILLEGAL_TRANSITION'));
 });
 
-test('receipt: merge and cleanup authority consumption is per issue', async () => {
+test('receipt: generic transition validation cannot append wrapper-owned outcomes', async () => {
+  const history = await fullHistory();
+  const cases = [
+    [replayReceipts(history.slice(0, 9)), history[9]],
+    [replayReceipts(history.slice(0, 12)), history[12]],
+    [replayReceipts(history.slice(0, 14)), history[14]],
+    [replayReceipts(history.slice(0, 14)), nextReceipt('root_sync.skipped', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', reason: 'already-current' } })],
+    [replayReceipts(history.slice(0, 14)), nextReceipt('root_sync.blocked', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', reason: 'non-ff', evidence: evidence('root-wrapper-only') } })],
+    [replayReceipts(history.slice(0, 12)), nextReceipt('cleanup.skipped', 12, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-11-authority-granted', branch: BRANCH, worktree: WORKTREE, reason: 'already-removed' } })],
+    [replayReceipts(history.slice(0, 12)), nextReceipt('cleanup.blocked', 12, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-11-authority-granted', branch: BRANCH, worktree: WORKTREE, tracked_conflicts: ['late.txt'], untracked_conflicts: [] } })],
+  ];
+  for (const [projection, receipt] of cases) {
+    assert.throws(() => validateLegalTransition(projection, receipt), assertCode('ERR_ILLEGAL_TRANSITION'), receipt.event);
+  }
+});
+
+test('receipt: broad multi-operation or multi-issue authority cannot enter projection', async () => {
   const created = await readFixture('create-receipt.json');
   created.payload.items.push({ item_id: 'issue-102', issue_number: 102, issue_url: issueWorktree2.issue_url, hard_dependencies: [], ordering_dependencies: [] });
-  const itemReceipt = (event, revision, itemId, dispatchId, payload, extra = {}) => nextReceipt(event, revision, { item_id: itemId, dispatch_id: dispatchId, payload, ...extra });
-  const checks2 = [{ name: 'ci', run_id: 7002, status: 'PASS', head_sha: SHA_A }];
-  const review2 = { ...reviewPayload(), checks: checks2 };
-  const receipts = [
-    created,
-    nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }),
-    itemReceipt('item.dispatched', 2, 'issue-101', 'dispatch-1', { base_sha: SHA_A, required_merge_shas: [], base_contains_merge_shas: true }, { attempt: 0 }),
-    itemReceipt('worker.started', 3, 'issue-101', 'dispatch-1', issueWorktree),
-    itemReceipt('worker.completed', 4, 'issue-101', 'dispatch-1', workerPayload()),
-    itemReceipt('pr.opened', 5, 'issue-101', 'dispatch-1', { ...issueWorktree, committed_head_sha: SHA_A }, { pr_number: 101, head_sha: SHA_A }),
-    itemReceipt('review.started', 6, 'issue-101', 'dispatch-1', { ...issueWorktree, checks: checks() }, { pr_number: 101, head_sha: SHA_A }),
-    itemReceipt('review.completed', 7, 'issue-101', 'dispatch-1', reviewPayload(), { pr_number: 101, head_sha: SHA_A }),
-    itemReceipt('item.dispatched', 8, 'issue-102', 'dispatch-2', { base_sha: SHA_A, required_merge_shas: [], base_contains_merge_shas: true }, { attempt: 0 }),
-    itemReceipt('worker.started', 9, 'issue-102', 'dispatch-2', issueWorktree2),
-    itemReceipt('worker.completed', 10, 'issue-102', 'dispatch-2', { ...issueWorktree2, committed_head_sha: SHA_A, changed_files: ['scripts/second.mjs'], verification: [verification()], changeset_decision: 'not-required', remaining_blockers: [] }),
-    itemReceipt('pr.opened', 11, 'issue-102', 'dispatch-2', { ...issueWorktree2, committed_head_sha: SHA_A }, { pr_number: 102, head_sha: SHA_A }),
-    itemReceipt('review.started', 12, 'issue-102', 'dispatch-2', { ...issueWorktree2, checks: checks2 }, { pr_number: 102, head_sha: SHA_A }),
-    itemReceipt('review.completed', 13, 'issue-102', 'dispatch-2', review2, { pr_number: 102, head_sha: SHA_A }),
-    nextReceipt('authority.granted', 14, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge', 'cleanup'], issues: [101, 102], squash_method: 'squash', approved_at: '2026-08-18T00:00:14.000Z' } }),
-    itemReceipt('merge.completed', 15, 'issue-101', 'dispatch-1', { issue_number: 101, authority_receipt_id: 'receipt-15-authority-granted', review_receipt_id: 'receipt-8-review-completed', checks: checks(), merge_sha: SHA_B, method: 'squash' }, { pr_number: 101, head_sha: SHA_A }),
-    itemReceipt('merge.completed', 16, 'issue-102', 'dispatch-2', { issue_number: 102, authority_receipt_id: 'receipt-15-authority-granted', review_receipt_id: 'receipt-14-review-completed', checks: checks2, merge_sha: SHA_C, method: 'squash' }, { pr_number: 102, head_sha: SHA_A }),
-    itemReceipt('cleanup.started', 17, 'issue-101', 'dispatch-1', { issue_number: 101, authority_receipt_id: 'receipt-15-authority-granted', merge_sha: SHA_B, branch: BRANCH, worktree: WORKTREE, tracked_baseline: [], untracked_baseline: [] }, { pr_number: 101, head_sha: SHA_A }),
-    itemReceipt('cleanup.completed', 18, 'issue-101', 'dispatch-1', { authority_receipt_id: 'receipt-15-authority-granted', branch: BRANCH, worktree: WORKTREE, worktree_removed: true, local_branch_deleted: true, remote_branch_deleted: true }, { pr_number: 101, head_sha: SHA_A }),
-    itemReceipt('cleanup.started', 19, 'issue-102', 'dispatch-2', { issue_number: 102, authority_receipt_id: 'receipt-15-authority-granted', merge_sha: SHA_C, branch: issueWorktree2.branch, worktree: issueWorktree2.worktree, tracked_baseline: [], untracked_baseline: [] }, { pr_number: 102, head_sha: SHA_A }),
-    itemReceipt('cleanup.completed', 20, 'issue-102', 'dispatch-2', { authority_receipt_id: 'receipt-15-authority-granted', branch: issueWorktree2.branch, worktree: issueWorktree2.worktree, worktree_removed: true, local_branch_deleted: true, remote_branch_deleted: true }, { pr_number: 102, head_sha: SHA_A }),
-  ];
-  const afterFirstMerge = replayReceipts(receipts.slice(0, 16));
-  const replacementAuthority = nextReceipt('authority.granted', 16, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge'], issues: [101, 102], squash_method: 'squash', approved_at: '2026-08-18T00:00:16.000Z' } });
-  assert.throws(() => validateLegalTransition(afterFirstMerge, replacementAuthority, { allowAuthority: true }), assertCode('ERR_AUTHORITY_MISMATCH'));
-  const legacyConsumption = structuredClone(afterFirstMerge);
-  legacyConsumption.authority.consumed_operations = ['merge'];
-  assert.throws(() => validateLegalTransition(legacyConsumption, receipts[16]), assertCode('ERR_AUTHORITY_MISMATCH'));
-  const projection = replayReceipts(receipts);
-  assert.equal(projection.items['issue-101'].state, 'done');
-  assert.equal(projection.items['issue-102'].state, 'done');
-  assert.deepEqual(projection.authority.consumed_operations, ['merge:101', 'merge:102', 'cleanup:101', 'cleanup:102']);
+  const projection = createLedger(created).projection;
+  const broadOperation = nextReceipt('authority.granted', 1, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge', 'cleanup'], issues: [101], squash_method: 'squash', approved_at: '2026-08-18T00:00:01.000Z' } });
+  const broadIssue = nextReceipt('authority.granted', 1, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge'], issues: [101, 102], squash_method: 'squash', approved_at: '2026-08-18T00:00:01.000Z' } });
+  assert.throws(() => replayReceipts([created, broadOperation]), assertCode('ERR_INVALID_RECEIPT'));
+  assert.throws(() => replayReceipts([created, broadIssue]), assertCode('ERR_INVALID_RECEIPT'));
+  assert.equal(projection.authority, null);
+});
+
+test('receipt: authority grants exactly one operation and one item-scoped issue', async () => {
+  const base = nextReceipt('authority.granted', 1, {
+    attempt: 0,
+    dispatch_id: null,
+    payload: {
+      repository: 'ilokesto/ilokesto',
+      lane_id: 'lane-test-1',
+      operations: ['merge'],
+      issues: [101],
+      squash_method: 'squash',
+      approved_at: '2026-08-18T00:00:01.000Z',
+    },
+  });
+  assert.doesNotThrow(() => validateReceipt(base));
+  assert.throws(() => validateReceipt({ ...base, payload: { ...base.payload, operations: ['merge', 'cleanup'] } }), assertCode('ERR_INVALID_RECEIPT'));
+  assert.throws(() => validateReceipt({ ...base, payload: { ...base.payload, issues: [101, 102] } }), assertCode('ERR_INVALID_RECEIPT'));
+  assert.doesNotThrow(() => validateReceipt({ ...base, payload: { ...base.payload, operations: ['root-sync'], issues: [] } }));
+  assert.throws(() => validateReceipt({ ...base, payload: { ...base.payload, operations: ['root-sync'], issues: [101] } }), assertCode('ERR_INVALID_RECEIPT'));
+});
+
+test('receipt: replay rejects merge and cleanup authority granted to a different lane issue', async () => {
+  const mergeHistory = await fullHistory();
+  mergeHistory[0].payload.items.push({
+    item_id: 'issue-102',
+    issue_number: 102,
+    issue_url: issueWorktree2.issue_url,
+    hard_dependencies: [],
+    ordering_dependencies: [],
+  });
+  mergeHistory[8].payload.issues = [102];
+
+  const cleanupHistory = await fullHistory();
+  cleanupHistory[0].payload.items.push(structuredClone(mergeHistory[0].payload.items[1]));
+  cleanupHistory[10].payload.issues = [102];
+
+  assert.throws(() => replayReceipts(mergeHistory.slice(0, 10)), assertCode('ERR_AUTHORITY_MISMATCH'));
+  assert.throws(() => replayReceipts(cleanupHistory.slice(0, 12)), assertCode('ERR_AUTHORITY_MISMATCH'));
 });
 
 test('receipt: workflow.blocked rejects any still-runnable lane item', async () => {
@@ -719,6 +785,74 @@ test('receipt: fix-back binds the existing PR branch worktree blockers and incre
   assert.throws(() => validateLegalTransition(projection, { ...valid, attempt: 1 }), assertCode('ERR_SIDE_EFFECT_PRECONDITION'));
 });
 
+test('receipt: every worktree branch uses lowercase kebab grammar and binds its issue number', () => {
+  const valid = nextReceipt('worker.started', 3, { payload: issueWorktree });
+  assert.doesNotThrow(() => validateReceipt(valid));
+  for (const branch of ['issue-101', 'issue-101-Upper', 'issue-101-two_parts', 'issue-101/two-parts', 'issue-102-test']) {
+    const invalid = { ...valid, payload: { ...valid.payload, branch, worktree: `.worktrees/${branch}` } };
+    assert.throws(() => validateReceipt(invalid), assertCode('ERR_INVALID_RECEIPT'), branch);
+  }
+});
+
+test('receipt: unsafe issue numbers cannot enter durable identity fields', async () => {
+  const unsafeIssueNumber = Number.MAX_SAFE_INTEGER + 1;
+  const unsafeIssueText = String(unsafeIssueNumber);
+  const collisionBranch = 'issue-9007199254740993-test';
+  const unsafeBinding = {
+    issue_number: unsafeIssueNumber,
+    issue_url: `https://github.com/ilokesto/ilokesto/issues/${unsafeIssueText}`,
+    branch: collisionBranch,
+    worktree: `.worktrees/${collisionBranch}`,
+  };
+
+  assert.throws(
+    () => validateReceipt(nextReceipt('worker.started', 3, { payload: unsafeBinding })),
+    assertCode('ERR_INVALID_RECEIPT'),
+  );
+
+  const created = await readFixture('create-receipt.json');
+  created.payload.items[0] = {
+    ...created.payload.items[0],
+    item_id: `issue-${unsafeIssueText}`,
+    issue_number: unsafeIssueNumber,
+    issue_url: `https://github.com/ilokesto/ilokesto/issues/${unsafeIssueText}`,
+  };
+  assert.throws(() => validateReceipt(created), assertCode('ERR_INVALID_RECEIPT'));
+
+  const source = {
+    version: 1,
+    handoff_id: 'unsafe-source-selection',
+    event: 'source.selected',
+    repository: 'ilokesto/ilokesto',
+    created_at: '2026-08-18T00:00:00.000Z',
+    issues: [{
+      issue_number: unsafeIssueNumber,
+      issue_url: `https://github.com/ilokesto/ilokesto/issues/${unsafeIssueText}`,
+      source: 'registered',
+      approval: 'explicit',
+      provenance: { kind: 'search-run', reference: 'unsafe-source-reference' },
+    }],
+  };
+  assert.throws(() => validateSourceSelectionHandoff(source), assertCode('ERR_INVALID_RECEIPT'));
+
+  const authority = nextReceipt('authority.granted', 1, {
+    attempt: 0,
+    dispatch_id: null,
+    payload: {
+      repository: 'ilokesto/ilokesto',
+      lane_id: 'lane-test-1',
+      issues: [unsafeIssueNumber],
+      operations: ['merge'],
+      squash_method: 'squash',
+      approved_at: '2026-08-18T00:00:00.000Z',
+    },
+  });
+  assert.throws(() => validateReceipt(authority), assertCode('ERR_INVALID_RECEIPT'));
+
+  const unsafePr = nextReceipt('pr.opened', 5, { pr_number: unsafeIssueNumber, head_sha: SHA_A, payload: { ...issueWorktree, committed_head_sha: SHA_A } });
+  assert.throws(() => validateReceipt(unsafePr), assertCode('ERR_INVALID_RECEIPT'));
+});
+
 test('receipt: reviewer roles identities and outcome statuses are exact', async () => {
   const merge = nextReceipt('review.completed', 7, { pr_number: 101, head_sha: SHA_A, payload: reviewPayload('merge') });
   assert.doesNotThrow(() => validateReceipt(merge));
@@ -830,20 +964,20 @@ test('receipt: PR and review bind the worker commit, current attempt, and dispat
 test('receipt: rejects parent cleanup baseline path reproduction', async () => {
   const history = await fullHistory();
   const cleanupWithAbsoluteBaseline = {
-    ...history[10],
-    payload: { ...history[10].payload, tracked_baseline: ['/Users/victim/secret'] },
+    ...history[11],
+    payload: { ...history[11].payload, tracked_baseline: ['/Users/victim/secret'] },
   };
   assert.throws(() => validateReceipt(cleanupWithAbsoluteBaseline), assertCode('ERR_PATH_OUTSIDE_ROOT'));
 });
 
 test('receipt: rejects parent blocked root-sync without authority reproduction', async () => {
   const history = await fullHistory();
-  const rootReadyWithoutAuthority = structuredClone(replayReceipts(history.slice(0, 12)));
+  const rootReadyWithoutAuthority = structuredClone(replayReceipts(history.slice(0, 14)));
   rootReadyWithoutAuthority.authority = null;
   const fakeBlockedRoot = {
-    ...nextReceipt('root_sync.blocked', 12, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'fake-authority', reason: 'non-ff', evidence: evidence('root-sync-block') } }),
+    ...nextReceipt('root_sync.blocked', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'fake-authority', reason: 'non-ff', evidence: evidence('root-sync-block') } }),
   };
-  assert.throws(() => validateLegalTransition(rootReadyWithoutAuthority, fakeBlockedRoot), assertCode('ERR_AUTHORITY_MISSING'));
+  assert.throws(() => validateLegalTransition(rootReadyWithoutAuthority, fakeBlockedRoot), assertCode('ERR_ILLEGAL_TRANSITION'));
 });
 
 test('receipt: rejects parent workflow recovery state mismatch reproduction', async () => {
@@ -857,7 +991,7 @@ test('receipt: rejects parent workflow recovery state mismatch reproduction', as
 
 test('receipt: rejects parent globally unbound workflow completion reproduction', async () => {
   const history = await fullHistory();
-  const readyToComplete = replayReceipts(history.slice(0, 13));
+  const readyToComplete = replayReceipts(history.slice(0, 15));
   const globallyUnboundCompletion = { ...history[13], attempt: 99, dispatch_id: 'unbound' };
   assert.throws(() => validateLegalTransition(readyToComplete, globallyUnboundCompletion), assertCode('ERR_INVALID_RECEIPT'));
 });
@@ -872,12 +1006,12 @@ test('receipt: rejects parent renamed review check identity reproduction', async
 
 test('receipt: cleanup baseline and conflict arrays reject hostile paths while preserving empty baselines', async () => {
   const history = await fullHistory();
-  assert.doesNotThrow(() => validateReceipt(history[10]));
+  assert.doesNotThrow(() => validateReceipt(history[11]));
   const pathFields = [
-    ['cleanup.started', 'tracked_baseline', history[10]],
-    ['cleanup.started', 'untracked_baseline', history[10]],
-    ['cleanup.blocked', 'tracked_conflicts', nextReceipt('cleanup.blocked', 11, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-9-authority-granted', branch: BRANCH, worktree: WORKTREE, tracked_conflicts: ['tracked.txt'], untracked_conflicts: [] } })],
-    ['cleanup.blocked', 'untracked_conflicts', nextReceipt('cleanup.blocked', 11, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-9-authority-granted', branch: BRANCH, worktree: WORKTREE, tracked_conflicts: [], untracked_conflicts: ['untracked.txt'] } })],
+    ['cleanup.started', 'tracked_baseline', history[11]],
+    ['cleanup.started', 'untracked_baseline', history[11]],
+    ['cleanup.blocked', 'tracked_conflicts', nextReceipt('cleanup.blocked', 12, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-11-authority-granted', branch: BRANCH, worktree: WORKTREE, tracked_conflicts: ['tracked.txt'], untracked_conflicts: [] } })],
+    ['cleanup.blocked', 'untracked_conflicts', nextReceipt('cleanup.blocked', 12, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-11-authority-granted', branch: BRANCH, worktree: WORKTREE, tracked_conflicts: [], untracked_conflicts: ['untracked.txt'] } })],
   ];
   for (const [, field, receipt] of pathFields) {
     for (const path of ['/tmp/escape', String.raw`C:\Users\victim\secret`, String.raw`\\server\share\secret`, '../escape']) {
@@ -893,15 +1027,13 @@ test('receipt: stored global identity rejection preserves exact ledger bytes', a
   const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-global-identity-'));
   context.after(() => rm(root, { recursive: true, force: true }));
   const history = await fullHistory();
-  for (const [index, receipt] of history.slice(0, 13).entries()) {
+  for (const [index, receipt] of history.slice(0, 15).entries()) {
     const store = openTestLedgerStore(root);
-    if (index === 0) createStoredLane(store, receipt);
-    else if (receipt.event === 'authority.granted') authorizeStoredLane(store, receipt);
-    else transitionStoredLane(store, receipt);
+    persistCanonicalReceipt(store, receipt, index);
     store.close();
   }
   const before = await readLedgerBytes(root);
-  const malformed = { ...history[13], attempt: 99, dispatch_id: 'unbound' };
+  const malformed = { ...history[15], attempt: 99, dispatch_id: 'unbound' };
   const store = openTestLedgerStore(root);
   assert.throws(() => transitionStoredLane(store, malformed), assertCode('ERR_INVALID_RECEIPT'));
   store.close();
@@ -915,10 +1047,11 @@ test('receipt: every global event rejects item attempt and dispatch identities',
     created,
     history[1],
     history[8],
-    history[12],
     history[13],
-    nextReceipt('root_sync.skipped', 12, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-9-authority-granted', reason: 'already-current' } }),
-    nextReceipt('root_sync.blocked', 12, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-9-authority-granted', reason: 'non-ff', evidence: evidence('root-sync-block') } }),
+    history[14],
+    history[15],
+    nextReceipt('root_sync.skipped', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', reason: 'already-current' } }),
+    nextReceipt('root_sync.blocked', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', reason: 'non-ff', evidence: evidence('root-sync-block') } }),
     nextReceipt('workflow.blocked', 3, { attempt: 0, dispatch_id: null, payload: { terminal_item_ids: ['issue-101'], no_runnable_recovery: true, recovery_evidence: [{ item_id: 'issue-101', error_state: 'blocked-child-contract-error', reason: 'no recovery' }] } }),
   ];
   for (const receipt of globalReceipts) {
@@ -930,32 +1063,61 @@ test('receipt: every global event rejects item attempt and dispatch identities',
 
 test('receipt: blocked root sync binds exact current unconsumed authority without consuming it', async () => {
   const history = await fullHistory();
-  const projection = replayReceipts(history.slice(0, 12));
-  const blocked = nextReceipt('root_sync.blocked', 12, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-9-authority-granted', reason: 'non-ff', evidence: evidence('root-sync-block') } });
-  const blockedProjection = replayReceipts([...history.slice(0, 12), blocked]);
-  assert.deepEqual(blockedProjection.authority.consumed_operations, ['merge:101', 'cleanup:101']);
-  assert.throws(() => validateLegalTransition(projection, { ...blocked, payload: { ...blocked.payload, authority_receipt_id: 'other-authority' } }), assertCode('ERR_AUTHORITY_MISMATCH'));
-  const consumed = structuredClone(projection);
-  consumed.authority.consumed_operations.push('root-sync');
-  assert.throws(() => validateLegalTransition(consumed, blocked), assertCode('ERR_AUTHORITY_MISSING'));
-  const missingOperation = structuredClone(projection);
-  missingOperation.authority.operations = ['merge', 'cleanup'];
-  assert.throws(() => validateLegalTransition(missingOperation, blocked), assertCode('ERR_AUTHORITY_MISSING'));
+  const projection = replayReceipts(history.slice(0, 14));
+  const blocked = nextReceipt('root_sync.blocked', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', reason: 'non-ff', evidence: evidence('root-sync-block') } });
+  const blockedProjection = replayReceipts([...history.slice(0, 14), blocked]);
+  assert.deepEqual(blockedProjection.authority.consumed_operations, []);
+  assert.throws(() => validateLegalTransition(projection, blocked), assertCode('ERR_ILLEGAL_TRANSITION'));
+});
+
+test('receipt: item.blocked rejects every terminal item family', async () => {
+  const history = await fullHistory();
+  const done = replayReceipts(history.slice(0, 13));
+  const blockDone = nextReceipt('item.blocked', done.revision, {
+    payload: {
+      error_state: 'blocked-ledger-conflict',
+      error_code: 'ERR_INVALID_RECEIPT',
+      evidence: [evidence('done-regression')],
+    },
+  });
+  assert.throws(() => validateLegalTransition(done, blockDone), assertCode('ERR_ILLEGAL_TRANSITION'));
+
+  const created = await readFixture('create-receipt.json');
+  const release = nextReceipt('release_handoff.created', 1, {
+    attempt: 0,
+    dispatch_id: null,
+    payload: {
+      merged_shas: [SHA_A],
+      package: 'store',
+      changeset: 'included',
+      target_dist_tag: 'latest',
+      required_external_step: 'github-actions-release',
+    },
+  });
+  const released = replayReceipts([created, release]);
+  const blockRelease = nextReceipt('item.blocked', released.revision, {
+    attempt: 0,
+    dispatch_id: null,
+    payload: {
+      error_state: 'blocked-ledger-conflict',
+      error_code: 'ERR_INVALID_RECEIPT',
+      evidence: [evidence('release-regression')],
+    },
+  });
+  assert.throws(() => validateLegalTransition(released, blockRelease), assertCode('ERR_ILLEGAL_TRANSITION'));
 });
 
 test('receipt: stored cleanup path rejection preserves exact ledger bytes', async (context) => {
   const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-cleanup-path-'));
   context.after(() => rm(root, { recursive: true, force: true }));
   const history = await fullHistory();
-  for (const [index, receipt] of history.slice(0, 10).entries()) {
+  for (const [index, receipt] of history.slice(0, 11).entries()) {
     const store = openTestLedgerStore(root);
-    if (index === 0) createStoredLane(store, receipt);
-    else if (receipt.event === 'authority.granted') authorizeStoredLane(store, receipt);
-    else transitionStoredLane(store, receipt);
+    persistCanonicalReceipt(store, receipt, index);
     store.close();
   }
   const before = await readLedgerBytes(root);
-  const malicious = { ...history[10], payload: { ...history[10].payload, tracked_baseline: ['/Users/victim/secret'] } };
+  const malicious = { ...history[11], payload: { ...history[11].payload, tracked_baseline: ['/Users/victim/secret'] } };
   const store = openTestLedgerStore(root);
   assert.throws(() => transitionStoredLane(store, malicious), assertCode('ERR_PATH_OUTSIDE_ROOT'));
   store.close();
@@ -966,9 +1128,7 @@ test('receipt: stale review unbound fix-back and authorizing release preserve st
   const persist = (root, receipts) => {
     for (const [index, receipt] of receipts.entries()) {
       const store = openTestLedgerStore(root);
-      if (index === 0) createStoredLane(store, receipt);
-      else if (receipt.event === 'authority.granted') authorizeStoredLane(store, receipt);
-      else transitionStoredLane(store, receipt);
+      persistCanonicalReceipt(store, receipt, index);
       store.close();
     }
   };
@@ -1040,8 +1200,8 @@ test('receipt: replays review recovery invalidation release and blocked terminal
   const blockedItem = nextReceipt('item.blocked', 2, { attempt: 0, dispatch_id: null, payload: { error_state: 'blocked-child-contract-error', error_code: 'ERR_INVALID_RECEIPT', evidence: [evidence('child-contract-error')] } });
   const blockedWorkflow = nextReceipt('workflow.blocked', 3, { attempt: 0, dispatch_id: null, payload: { terminal_item_ids: ['issue-101'], no_runnable_recovery: true, recovery_evidence: [{ item_id: 'issue-101', error_state: 'blocked-child-contract-error', reason: 'child receipt is missing' }] } });
   const blocked = replayReceipts([created, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), blockedItem, blockedWorkflow]);
-  const cleanupBlocked = replayReceipts([...happy.slice(0, 11), nextReceipt('cleanup.blocked', 11, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-9-authority-granted', branch: BRANCH, worktree: WORKTREE, tracked_conflicts: [], untracked_conflicts: ['untracked.txt'] } })]);
-  const rootBlocked = replayReceipts([...happy.slice(0, 12), nextReceipt('root_sync.blocked', 12, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-9-authority-granted', reason: 'non-ff', evidence: evidence('root-sync-block') } })]);
+  const cleanupBlocked = replayReceipts([...happy.slice(0, 12), nextReceipt('cleanup.blocked', 12, { pr_number: 101, head_sha: SHA_A, payload: { authority_receipt_id: 'receipt-11-authority-granted', branch: BRANCH, worktree: WORKTREE, tracked_conflicts: [], untracked_conflicts: ['untracked.txt'] } })]);
+  const rootBlocked = replayReceipts([...happy.slice(0, 14), nextReceipt('root_sync.blocked', 14, { attempt: 0, dispatch_id: null, payload: { authority_receipt_id: 'receipt-14-authority-granted', reason: 'non-ff', evidence: evidence('root-sync-block') } })]);
 
   // Then
   assert.equal(recovery.items['issue-101'].state, 'fix-back');
@@ -1145,7 +1305,7 @@ test('rejects null receipts at replay, parse, stored operations, and CLI boundar
   const before = await readLedgerBytes(root);
   for (const malformed of [null, 0, 'receipt', []]) {
     assert.throws(() => transitionStoredLane(store, malformed), assertCode('ERR_INVALID_RECEIPT'));
-    assert.throws(() => authorizeStoredLane(store, malformed), assertCode('ERR_INVALID_RECEIPT'));
+    assert.throws(() => authorizeTestStoredLane(store, malformed), assertCode('ERR_INVALID_RECEIPT'));
   }
   assert.equal(await readLedgerBytes(root), before);
   assert.equal(await readFile(marker, 'utf8'), 'unchanged');
@@ -1181,7 +1341,7 @@ test('preserves duplicate receipt ID precedence before legal-transition validati
   store.close();
 });
 
-test('rejects final-ledger and lock-owner FIFOs without blocking or mutation', async (context) => {
+test('rejects final-ledger and canonical-lock FIFOs without blocking or mutation', async (context) => {
   // Given
   const moduleUrl = new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url).href;
   const finalRoot = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-final-fifo-'));
@@ -1211,12 +1371,10 @@ test('rejects final-ledger and lock-owner FIFOs without blocking or mutation', a
   createStoredLane(lockStore, created);
   lockStore.close();
   const before = await readLedgerBytes(lockRoot);
-  const lockDirectory = join(lockRoot, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
-  const ownerFifo = join(lockDirectory, 'owner.json');
+  const lockFifo = join(lockRoot, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
   const lockMarker = join(lockRoot, 'unrelated.txt');
-  await mkdir(lockDirectory);
   await writeFile(lockMarker, 'unchanged');
-  assert.equal(spawnSync('mkfifo', [ownerFifo]).status, 0);
+  assert.equal(spawnSync('mkfifo', [lockFifo]).status, 0);
   const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
   const lockWorker = `import{openTestLedgerStore,transitionStoredLane}from ${JSON.stringify(moduleUrl)};const receipt=JSON.parse(process.argv[1]);try{transitionStoredLane(openTestLedgerStore(process.argv[2]),receipt,{lockTimeoutMs:1})}catch(e){console.error(e.code);process.exit(1)}`;
 
@@ -1226,8 +1384,7 @@ test('rejects final-ledger and lock-owner FIFOs without blocking or mutation', a
 
   assertBoundedChildFailure(lockResult, 'ERR_INVALID_TARGET_TYPE');
   assert.equal(await readLedgerBytes(lockRoot), before);
-  assert.equal((await lstat(lockDirectory)).isDirectory(), true);
-  assert.equal((await lstat(ownerFifo)).isFIFO(), true);
+  assert.equal((await lstat(lockFifo)).isFIFO(), true);
   assert.equal(await readFile(lockMarker, 'utf8'), 'unchanged');
 });
 
@@ -1244,7 +1401,7 @@ test('enforces dependency ancestry, retry budget, and dedicated authority owners
   const authority = nextReceipt('authority.granted', 1, {
     attempt: 0,
     dispatch_id: null,
-    payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge'], issues: [101, 102], squash_method: 'squash', approved_at: '2026-08-18T00:00:01.000Z' },
+    payload: { repository: 'ilokesto/ilokesto', lane_id: 'lane-test-1', operations: ['merge'], issues: [101], squash_method: 'squash', approved_at: '2026-08-18T00:00:01.000Z' },
   });
   const retryProjection = structuredClone(projection);
   retryProjection.items['issue-101'] = { ...retryProjection.items['issue-101'], state: 'fix-back-pending', attempt: 3, pr_number: 101, head_sha: SHA_A, branch: BRANCH, worktree: WORKTREE, review: { receipt_id: 'review-1', blocker_signatures: ['code:stable-blocker'] } };
@@ -1252,7 +1409,60 @@ test('enforces dependency ancestry, retry budget, and dedicated authority owners
   // When / Then
   assert.throws(() => validateLegalTransition(projection, dependentDispatch), assertCode('ERR_SIDE_EFFECT_PRECONDITION'));
   assert.throws(() => validateLegalTransition(projection, authority), assertCode('ERR_ILLEGAL_TRANSITION'));
-  assert.throws(() => validateLegalTransition(retryProjection, nextReceipt('fix_back.started', 1, { attempt: 4, pr_number: 101, head_sha: SHA_A, payload: { ...issueWorktree, blocker_signatures: ['code:stable-blocker'], review_receipt_id: 'review-1' } })), assertCode('ERR_SIDE_EFFECT_PRECONDITION'));
+  assert.throws(() => validateLegalTransition(retryProjection, nextReceipt('fix_back.started', 1, { attempt: 5, pr_number: 101, head_sha: SHA_A, payload: { ...issueWorktree, blocker_signatures: ['code:stable-blocker'], review_receipt_id: 'review-1' } })), assertCode('ERR_SIDE_EFFECT_PRECONDITION'));
+});
+
+test('retry budget allows three fix-backs after initial implementation and rejects the fourth request', async () => {
+  const created = await readFixture('create-receipt.json');
+  const base = createLedger(created).projection;
+  for (const [currentAttempt, expectedRemaining] of [[1, 3], [2, 2], [3, 1]]) {
+    const projection = structuredClone(base);
+    projection.revision = 7;
+    projection.items['issue-101'] = {
+      ...projection.items['issue-101'],
+      state: 'in-review',
+      attempt: currentAttempt,
+      dispatch_id: 'dispatch-1',
+      pr_number: 101,
+      head_sha: SHA_A,
+      pending_review: { receipt_id: 'review-start', checks: [{ name: 'ci', run_id: 7001, head_sha: SHA_A }] },
+    };
+    const block = nextReceipt('review.completed', 7, {
+      attempt: currentAttempt,
+      pr_number: 101,
+      head_sha: SHA_A,
+      payload: { ...reviewPayload('block'), remaining_fix_back_attempts: expectedRemaining },
+    });
+    assert.doesNotThrow(() => validateLegalTransition(projection, block));
+  }
+
+  const thirdPending = structuredClone(base);
+  thirdPending.revision = 8;
+  thirdPending.items['issue-101'] = {
+    ...thirdPending.items['issue-101'],
+    state: 'fix-back-pending',
+    attempt: 3,
+    dispatch_id: 'dispatch-1',
+    pr_number: 101,
+    head_sha: SHA_A,
+    branch: BRANCH,
+    worktree: WORKTREE,
+    review: { receipt_id: 'review-third', blocker_signatures: ['code:stable-blocker'] },
+  };
+  const thirdFixBack = nextReceipt('fix_back.started', 8, {
+    attempt: 4,
+    pr_number: 101,
+    head_sha: SHA_A,
+    payload: { ...issueWorktree, blocker_signatures: ['code:stable-blocker'], review_receipt_id: 'review-third' },
+  });
+  assert.doesNotThrow(() => validateLegalTransition(thirdPending, thirdFixBack));
+
+  const exhausted = structuredClone(thirdPending);
+  exhausted.items['issue-101'].attempt = 4;
+  assert.throws(
+    () => validateLegalTransition(exhausted, { ...thirdFixBack, attempt: 5 }),
+    assertCode('ERR_SIDE_EFFECT_PRECONDITION'),
+  );
 });
 
 test('item dispatch accepts a merged hard prerequisite after cleanup blocks and rejects malformed merge ancestry', async () => {
@@ -1358,8 +1568,7 @@ test('persists the full successful lifecycle through close-reopen validation and
   store.close();
   for (const receipt of receipts.slice(1)) {
     store = openTestLedgerStore(root);
-    if (receipt.event === 'authority.granted') authorizeStoredLane(store, receipt);
-    else transitionStoredLane(store, receipt);
+    persistCanonicalReceipt(store, receipt, 1);
     store.close();
     store = openTestLedgerStore(root);
     const validated = validateStoredLane(store, receipt.lane_id);
@@ -1411,7 +1620,7 @@ test('serializes simultaneous same-revision processes to one winner and one non-
   assert.equal(receipts.filter((receipt) => !persisted.receipts.some((candidate) => candidate.receipt_id === receipt.receipt_id)).length, 1);
 });
 
-test('Linux runtime canonical lock replacement admits at most one revision and cannot overwrite the second writer', async (context) => {
+test('a displaced lock owner cannot overwrite the replacement writer revision', async (context) => {
   const root = await mkdtemp(join(tmpdir(), 'ilokesto-lock-replacement-'));
   context.after(() => rm(root, { recursive: true, force: true }));
   await mkdir(join(root, '.omo', 'lanes'), { recursive: true });
@@ -1445,6 +1654,7 @@ test('Linux runtime canonical lock replacement admits at most one revision and c
   assert.equal(persisted.revision, 2);
   assert.equal(persisted.receipts.at(-1).receipt_id, second.receipt_id);
   assert.equal(persisted.receipts.some(({ receipt_id: receiptId }) => receiptId === first.receipt_id), false);
+  assert.equal(persisted.receipts.some(({ receipt_id: receiptId }) => receiptId === second.receipt_id), true);
   assert.equal(existsSync(displacedLock), true);
   store.close();
 });
@@ -1473,26 +1683,55 @@ test('transaction-local append leaves bytes unchanged when sync callback throws 
   store.close();
 });
 
-test('transaction-local append leaves bytes unchanged when async side-effect or authorize callback rejects', async (context) => {
-  for (const operation of ['side-effect', 'authorize']) {
+test('transaction-local append leaves bytes unchanged when an async side-effect callback rejects', async (context) => {
+  for (const operation of ['side-effect']) {
     const root = await mkdtemp(join(tmpdir(), `ilokesto-transaction-${operation}-abort-`));
     context.after(() => rm(root, { recursive: true, force: true }));
     const store = openTestLedgerStore(root);
     const created = await readFixture('create-receipt.json');
     createStoredLane(store, created);
     const before = await readLedgerBytes(root);
-    const candidate = operation === 'authorize'
-      ? nextReceipt('authority.granted', 1, { attempt: 0, dispatch_id: null, payload: { repository: 'ilokesto/ilokesto', lane_id: created.lane_id, operations: ['merge'], issues: [101], squash_method: 'squash', approved_at: '2026-08-18T00:00:01.000Z' } })
-      : nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+    const candidate = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
 
-    await assert.rejects(withLockedStoredLaneTransaction(store, created.lane_id, operation, async ({ append }) => {
+    const transaction = withTestLockedStoredLaneSideEffectTransaction(store, created.lane_id, async ({ append }) => {
       append(candidate);
       await Promise.resolve();
       throw new Error(`${operation} callback failed`);
-    }), new RegExp(`${operation} callback failed`, 'u'));
+    });
+    await assert.rejects(transaction, new RegExp(`${operation} callback failed`, 'u'));
     assert.equal(await readLedgerBytes(root), before);
     store.close();
   }
+});
+
+test('generic transactions cannot mint authority or append wrapper outcomes', async (context) => {
+  const authorityRoot = await mkdtemp(join(tmpdir(), 'ilokesto-generic-authority-capability-'));
+  const sideEffectRoot = await mkdtemp(join(tmpdir(), 'ilokesto-generic-side-effect-capability-'));
+  context.after(() => Promise.all([authorityRoot, sideEffectRoot].map((root) => rm(root, { recursive: true, force: true }))));
+  const history = await fullHistory();
+
+  const authorityStore = openTestLedgerStore(authorityRoot);
+  for (const [index, receipt] of history.slice(0, 8).entries()) persistCanonicalReceipt(authorityStore, receipt, index);
+  const authorityBefore = await readLedgerBytes(authorityRoot);
+  assert.throws(
+    () => withLockedStoredLaneTransaction(authorityStore, history[0].lane_id, 'authorize', ({ append }) => append(history[8]).ledger),
+    assertCode('ERR_INVALID_SCHEMA'),
+  );
+  assert.equal(await readLedgerBytes(authorityRoot), authorityBefore);
+  authorityStore.close();
+
+  const sideEffectStore = openTestLedgerStore(sideEffectRoot);
+  for (const [index, receipt] of history.slice(0, 9).entries()) persistCanonicalReceipt(sideEffectStore, receipt, index);
+  const sideEffectBefore = await readLedgerBytes(sideEffectRoot);
+  assert.equal('withLockedStoredLaneSideEffectTransaction' in await import('../../scripts/workflow/lane-ledger.mjs'), false);
+  const runtimeStore = openRuntimeLedgerStore(await realpath(sideEffectRoot));
+  assert.throws(
+    () => withTestLockedStoredLaneSideEffectTransaction(runtimeStore, history[0].lane_id, () => null),
+    assertCode('ERR_INVALID_SCHEMA'),
+  );
+  runtimeStore.close();
+  assert.equal(await readLedgerBytes(sideEffectRoot), sideEffectBefore);
+  sideEffectStore.close();
 });
 
 test('transaction rechecks the stored revision immediately before persistence', async (context) => {
@@ -1584,6 +1823,55 @@ test('post-rename parent fsync failure is uncertain and exact transition retry r
   store.close();
 });
 
+test('post-rename uncertainty reconciles the exact receipt after closing and reopening the store', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-post-rename-restart-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  let injectFailure = false;
+  let store = openTestLedgerStore(root, { afterLedgerRename() {
+    if (!injectFailure) return;
+    injectFailure = false;
+    throw new Error('simulated crash-window parent fsync failure');
+  } });
+  const created = await readFixture('create-receipt.json');
+  createStoredLane(store, created);
+  const receipt = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  injectFailure = true;
+  assert.throws(() => transitionStoredLane(store, receipt), assertCode('ERR_DURABILITY_UNCERTAIN'));
+  store.close();
+
+  store = openTestLedgerStore(root);
+  const reconciled = transitionStoredLane(store, receipt);
+  assert.equal(reconciled.revision, 2);
+  assert.equal(reconciled.receipts.filter(({ receipt_id: receiptId }) => receiptId === receipt.receipt_id).length, 1);
+  store.close();
+});
+
+test('post-commit marker cleanup failure preserves fresh-process exact-retry evidence', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-post-commit-marker-cleanup-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  let failCleanup = false;
+  const store = openTestLedgerStore(root, { afterDurabilityMarkerQuarantineFinalCheck() {
+    if (!failCleanup) return;
+    failCleanup = false;
+    throw new Error('simulated marker cleanup failure');
+  } });
+  const created = await readFixture('create-receipt.json');
+  createStoredLane(store, created);
+  const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  failCleanup = true;
+
+  assert.throws(() => transitionStoredLane(store, started), assertCode('ERR_DURABILITY_UNCERTAIN'));
+  assert.equal(JSON.parse(await readLedgerBytes(root)).revision, 2);
+  assert.equal((await lstat(join(root, '.omo', 'lanes', '.lane-test-1.durability.json'))).isFile(), true);
+  store.close();
+
+  const restartedStore = openTestLedgerStore(root);
+  const recovered = transitionStoredLane(restartedStore, started, { lockTimeoutMs: 1 });
+  assert.equal(recovered.revision, 2);
+  assert.equal(recovered.receipts.filter(({ receipt_id: receiptId }) => receiptId === started.receipt_id).length, 1);
+  restartedStore.close();
+});
+
 test('exact create and authorize retries reconcile uncertain published ledgers without duplicate receipts', async (context) => {
   const createRoot = await mkdtemp(join(tmpdir(), 'ilokesto-create-durability-retry-'));
   const authorizeRoot = await mkdtemp(join(tmpdir(), 'ilokesto-authorize-durability-retry-'));
@@ -1611,8 +1899,8 @@ test('exact create and authorize retries reconcile uncertain published ledgers w
   createStoredLane(authorizeStore, created);
   const authority = nextReceipt('authority.granted', 1, { attempt: 0, dispatch_id: null, payload: { repository: created.repository, lane_id: created.lane_id, operations: ['merge'], issues: [101], squash_method: 'squash', approved_at: '2026-08-18T00:00:01.000Z' } });
   authorizeFault = true;
-  assert.throws(() => authorizeStoredLane(authorizeStore, authority), assertCode('ERR_DURABILITY_UNCERTAIN'));
-  assert.equal(authorizeStoredLane(authorizeStore, authority).revision, 2);
+  assert.throws(() => authorizeTestStoredLane(authorizeStore, authority), assertCode('ERR_DURABILITY_UNCERTAIN'));
+  assert.equal(authorizeTestStoredLane(authorizeStore, authority).revision, 2);
   assert.equal(validateStoredLane(authorizeStore, created.lane_id).receipts.filter(({ receipt_id: receiptId }) => receiptId === authority.receipt_id).length, 1);
   authorizeStore.close();
 });
@@ -1633,7 +1921,7 @@ test('uncertain side-effect commit executes its callback once and never reports 
   const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
   let callbacks = 0;
 
-  assert.throws(() => withLockedStoredLaneTransaction(store, created.lane_id, 'side-effect', ({ append }) => {
+  assert.throws(() => withTestLockedStoredLaneSideEffectTransaction(store, created.lane_id, ({ append }) => {
     callbacks += 1;
     return append(started).ledger;
   }), assertCode('ERR_DURABILITY_UNCERTAIN'));
@@ -1670,6 +1958,142 @@ test('uncertain retry keeps duplicate-receipt and advanced-revision conflict pre
   store.close();
 });
 
+test('fresh process recovers a crash after durability marker fsync and before publication', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-durability-pre-publication-crash-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const created = await readFixture('create-receipt.json');
+  const initialStore = openTestLedgerStore(root);
+  createStoredLane(initialStore, created);
+  initialStore.close();
+  const oldLedgerBytes = await readLedgerBytes(root);
+  const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  const moduleUrl = new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url).href;
+  const worker = `import{openTestLedgerStore,transitionStoredLane}from ${JSON.stringify(moduleUrl)};const receipt=JSON.parse(process.argv[1]);const store=openTestLedgerStore(process.argv[2],{beforeLedgerRename(){process.kill(process.pid,'SIGKILL')}});transitionStoredLane(store,receipt)`;
+
+  const crashed = spawnSync(process.execPath, ['--input-type=module', '-e', worker, JSON.stringify(started), root], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    timeout: 2000,
+    killSignal: 'SIGKILL',
+  });
+
+  assert.equal(crashed.signal, 'SIGKILL');
+  assert.equal(await readLedgerBytes(root), oldLedgerBytes);
+  assert.equal((await lstat(join(root, '.omo', 'lanes', '.lane-test-1.durability.json'))).isFile(), true);
+
+  const restartedStore = openTestLedgerStore(root);
+  const recovered = transitionStoredLane(restartedStore, started, { lockTimeoutMs: 1 });
+  assert.equal(recovered.revision, 2);
+  assert.deepEqual(recovered.receipts.at(-1), started);
+  assert.equal(existsSync(join(root, '.omo', 'lanes', '.lane-test-1.durability.json')), false);
+  restartedStore.close();
+});
+
+test('fresh process recovers a crash immediately after atomic ledger replacement', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-durability-post-commit-crash-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const created = await readFixture('create-receipt.json');
+  const initialStore = openTestLedgerStore(root);
+  createStoredLane(initialStore, created);
+  initialStore.close();
+  const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  const expectedReceipts = [created, started];
+  const expectedNewLedgerBytes = `${JSON.stringify({
+    version: 1,
+    lane_id: created.lane_id,
+    revision: 2,
+    repository: created.repository,
+    receipts: expectedReceipts,
+    projection: replayReceipts(expectedReceipts),
+  }, null, 2)}\n`;
+  const moduleUrl = new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url).href;
+  const worker = `import{openTestLedgerStore,transitionStoredLane}from ${JSON.stringify(moduleUrl)};const receipt=JSON.parse(process.argv[1]);const store=openTestLedgerStore(process.argv[2],{afterLedgerRename(){process.kill(process.pid,'SIGKILL')}});transitionStoredLane(store,receipt)`;
+
+  const crashed = spawnSync(process.execPath, ['--input-type=module', '-e', worker, JSON.stringify(started), root], { cwd: process.cwd(), encoding: 'utf8', timeout: 2000, killSignal: 'SIGKILL' });
+
+  assert.equal(crashed.signal, 'SIGKILL');
+  assert.equal(await readLedgerBytes(root), expectedNewLedgerBytes);
+  assert.equal((await lstat(join(root, '.omo', 'lanes', '.lane-test-1.durability.json'))).isFile(), true);
+  const restartedStore = openTestLedgerStore(root);
+  const recovered = transitionStoredLane(restartedStore, started, { lockTimeoutMs: 1 });
+  assert.equal(recovered.revision, 2);
+  assert.equal(recovered.receipts.filter(({ receipt_id: receiptId }) => receiptId === started.receipt_id).length, 1);
+  assert.equal(await readLedgerBytes(root), expectedNewLedgerBytes);
+  restartedStore.close();
+});
+
+test('orphan durability markers that are stale future or conflicting fail closed without deletion', async (context) => {
+  const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  const variants = [
+    ['malformed', '{not-json}\n'],
+    ['stale', `${JSON.stringify({ lane_id: 'lane-test-1', revision: 1, receipt_id: 'lane-created-1', ledger_sha256: 'a'.repeat(64) })}\n`],
+    ['future', `${JSON.stringify({ lane_id: 'lane-test-1', revision: 3, receipt_id: 'future-receipt', ledger_sha256: 'b'.repeat(64) })}\n`],
+    ['conflicting', `${JSON.stringify({ lane_id: 'lane-test-1', revision: 2, receipt_id: started.receipt_id, ledger_sha256: 'c'.repeat(64) })}\n`],
+  ];
+  for (const [name, markerBytes] of variants) {
+    const root = await mkdtemp(join(tmpdir(), `ilokesto-durability-${name}-marker-`));
+    context.after(() => rm(root, { recursive: true, force: true }));
+    const store = openTestLedgerStore(root);
+    createStoredLane(store, await readFixture('create-receipt.json'));
+    const markerPath = join(root, '.omo', 'lanes', '.lane-test-1.durability.json');
+    await writeFile(markerPath, markerBytes);
+
+    assert.throws(() => transitionStoredLane(store, started), assertCode('ERR_DURABILITY_UNCERTAIN'));
+    assert.equal(await readFile(markerPath, 'utf8'), markerBytes);
+    assert.equal(JSON.parse(await readLedgerBytes(root)).revision, 1);
+    store.close();
+  }
+});
+
+test('orphan marker reconciliation preserves a replacement introduced before removal', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-durability-marker-removal-race-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const created = await readFixture('create-receipt.json');
+  const initialStore = openTestLedgerStore(root);
+  createStoredLane(initialStore, created);
+  initialStore.close();
+  const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  const moduleUrl = new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url).href;
+  const worker = `import{openTestLedgerStore,transitionStoredLane}from ${JSON.stringify(moduleUrl)};const receipt=JSON.parse(process.argv[1]);const store=openTestLedgerStore(process.argv[2],{beforeLedgerRename(){process.kill(process.pid,'SIGKILL')}});transitionStoredLane(store,receipt)`;
+  const crashed = spawnSync(process.execPath, ['--input-type=module', '-e', worker, JSON.stringify(started), root], { cwd: process.cwd(), encoding: 'utf8', timeout: 2000, killSignal: 'SIGKILL' });
+  assert.equal(crashed.signal, 'SIGKILL');
+  let replacementBytes;
+  const store = openTestLedgerStore(root, { beforeDurabilityMarkerRemoval({ path }) {
+    renameSync(path, `${path}.original`);
+    replacementBytes = `${JSON.stringify({ lane_id: 'lane-test-1', revision: 3, receipt_id: 'replacement-receipt', ledger_sha256: 'd'.repeat(64) })}\n`;
+    writeFileSync(path, replacementBytes);
+  } });
+
+  assert.throws(() => transitionStoredLane(store, started, { lockTimeoutMs: 1 }), assertCode('ERR_DURABILITY_UNCERTAIN'));
+  const markerPath = join(root, '.omo', 'lanes', '.lane-test-1.durability.json');
+  assert.equal(await readFile(markerPath, 'utf8'), replacementBytes);
+  assert.equal((await lstat(`${markerPath}.original`)).isFile(), true);
+  assert.equal(JSON.parse(await readLedgerBytes(root)).revision, 1);
+  store.close();
+});
+
+test('durability marker cleanup never unlinks a replacement after quarantine validation', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-marker-final-unlink-race-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const created = await readFixture('create-receipt.json');
+  const initialStore = openTestLedgerStore(root);
+  createStoredLane(initialStore, created);
+  initialStore.close();
+  const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  let replacementPath;
+  const store = openTestLedgerStore(root, { afterDurabilityMarkerQuarantineFinalCheck({ quarantinePath }) {
+    renameSync(quarantinePath, `${quarantinePath}.original`);
+    writeFileSync(quarantinePath, 'foreign-marker-replacement');
+    replacementPath = quarantinePath;
+  } });
+
+  const result = transitionStoredLane(store, started);
+
+  assert.equal(result.revision, 2);
+  assert.equal(await readFile(replacementPath, 'utf8'), 'foreign-marker-replacement');
+  store.close();
+});
+
 test('pre-rename target substitution fails before publication and preserves replacement identity', async (context) => {
   const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-pre-rename-target-swap-'));
   context.after(() => rm(root, { recursive: true, force: true }));
@@ -1692,6 +2116,104 @@ test('pre-rename target substitution fails before publication and preserves repl
   assert.equal(await readLedgerBytes(root), 'replacement-before-rename');
   assert.deepEqual([currentIdentity.dev, currentIdentity.ino], [replacementIdentity.dev, replacementIdentity.ino]);
   assert.equal(JSON.parse(await readFile(displaced, 'utf8')).revision, 1);
+  store.close();
+});
+
+test('target substitution after the final identity check is preserved without publication', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-final-target-swap-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  let substitute = false;
+  let replacementIdentity;
+  const displaced = join(root, '.omo', 'lanes', 'final-checked-ledger.json');
+  const store = openTestLedgerStore(root, { afterLedgerFinalTargetCheck({ target }) {
+    if (!substitute) return;
+    substitute = false;
+    renameSync(target, displaced);
+    writeFileSync(target, 'replacement-after-final-check');
+    replacementIdentity = lstatSync(target);
+  } });
+  const created = await readFixture('create-receipt.json');
+  createStoredLane(store, created);
+  substitute = true;
+
+  assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null })), assertCode('ERR_PATH_OUTSIDE_ROOT'));
+  const target = join(root, '.omo', 'lanes', `${created.lane_id}.json`);
+  const current = await lstat(target);
+  assert.equal(await readFile(target, 'utf8'), 'replacement-after-final-check');
+  assert.deepEqual([current.dev, current.ino], [replacementIdentity.dev, replacementIdentity.ino]);
+  assert.equal(JSON.parse(await readFile(displaced, 'utf8')).revision, 1);
+  store.close();
+});
+
+test('raw-path readers observe complete old or new ledger JSON without ENOENT across publication', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-gapless-publication-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const store = openTestLedgerStore(root, { beforeLedgerRename() {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
+  }, afterLedgerRename() {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 30);
+  } });
+  const created = await readFixture('create-receipt.json');
+  createStoredLane(store, created);
+  const target = join(root, '.omo', 'lanes', `${created.lane_id}.json`);
+  const observations = join(root, 'observations.json');
+  const ready = join(root, 'ready');
+  const stop = join(root, 'stop');
+  const reader = spawn(process.execPath, ['--input-type=module', '-e', `import{readFileSync,writeFileSync,existsSync}from'node:fs';const seen=[];writeFileSync(process.argv[2],'ready');while(!existsSync(process.argv[3])){try{const value=JSON.parse(readFileSync(process.argv[1],'utf8'));seen.push(value.revision)}catch(error){seen.push(error.code??error.name)}}writeFileSync(process.argv[4],JSON.stringify(seen))`, target, ready, stop, observations]);
+  while (!existsSync(ready)) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 5);
+  const transitioned = transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }));
+  writeFileSync(stop, 'stop');
+  await new Promise((resolveExit) => reader.once('exit', resolveExit));
+
+  const seen = JSON.parse(await readFile(observations, 'utf8'));
+  assert.equal(transitioned.revision, 2);
+  assert.equal(seen.length > 0, true);
+  assert.deepEqual([...new Set(seen)].sort(), [1, 2]);
+  const source = await readFile(new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url), 'utf8');
+  assert.equal(source.match(/renameSync\(temporary, target\)/gu)?.length, 1);
+  assert.doesNotMatch(source, /renameSync\(target,|linkSync\(temporary, target\)/u);
+  store.close();
+});
+
+test('fresh process retains complete old ledger bytes after crashing immediately before rename', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-before-rename-crash-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const created = await readFixture('create-receipt.json');
+  const initialStore = openTestLedgerStore(root);
+  createStoredLane(initialStore, created);
+  initialStore.close();
+  const oldLedgerBytes = await readLedgerBytes(root);
+  const started = nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null });
+  const moduleUrl = new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url).href;
+  const worker = `import{openTestLedgerStore,transitionStoredLane}from ${JSON.stringify(moduleUrl)};const receipt=JSON.parse(process.argv[1]);transitionStoredLane(openTestLedgerStore(process.argv[2],{afterLedgerFinalTargetCheck(){process.kill(process.pid,'SIGKILL')}}),receipt)`;
+  const crashed = spawnSync(process.execPath, ['--input-type=module', '-e', worker, JSON.stringify(started), root], { cwd: process.cwd(), encoding: 'utf8', timeout: 2000, killSignal: 'SIGKILL' });
+  assert.equal(crashed.signal, 'SIGKILL');
+  assert.equal(await readLedgerBytes(root), oldLedgerBytes);
+
+  const restartedStore = openTestLedgerStore(root);
+  const recovered = transitionStoredLane(restartedStore, started, { lockTimeoutMs: 1 });
+  assert.equal(recovered.revision, 2);
+  assert.deepEqual(recovered.receipts.at(-1), started);
+  restartedStore.close();
+});
+
+test('temporary substitution at the last pre-commit hook preserves prior canonical bytes', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-temporary-final-swap-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  let substitute = false;
+  const store = openTestLedgerStore(root, { afterLedgerFinalTargetCheck({ temporary }) {
+    if (!substitute) return;
+    substitute = false;
+    renameSync(temporary, `${temporary}.original`);
+    writeFileSync(temporary, 'foreign-temporary-replacement');
+  } });
+  const created = await readFixture('create-receipt.json');
+  createStoredLane(store, created);
+  const before = await readLedgerBytes(root);
+  substitute = true;
+
+  assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null })), assertCode('ERR_PATH_OUTSIDE_ROOT'));
+  assert.equal(await readLedgerBytes(root), before);
   store.close();
 });
 
@@ -1832,6 +2354,124 @@ test('runtime store probes descriptor capability and rejects each reachable host
   }
 });
 
+test('crash before canonical lock link leaves only complete private regular-file metadata', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-ownerless-lock-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const created = await readFixture('create-receipt.json');
+  const moduleUrl = new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url).href;
+  const worker = `import{openTestLedgerStore,createStoredLane}from ${JSON.stringify(moduleUrl)};const receipt=JSON.parse(process.argv[1]);createStoredLane(openTestLedgerStore(process.argv[2],{beforeLockPublish(){process.kill(process.pid,'SIGKILL')}}),receipt)`;
+  const crashed = spawnSync(process.execPath, ['--input-type=module', '-e', worker, JSON.stringify(created), root], { cwd: process.cwd(), encoding: 'utf8', timeout: 2000, killSignal: 'SIGKILL' });
+  const lock = join(root, '.omo', 'lanes', '.locks', `${created.lane_id}.lock`);
+
+  assert.equal(crashed.signal, 'SIGKILL');
+  assert.equal(existsSync(lock), false);
+  const entries = await (await import('node:fs/promises')).readdir(join(root, '.omo', 'lanes', '.locks'));
+  assert.equal(entries.length, 1);
+  assert.match(entries[0], /^\.lane-test-1\.lock\.claim-/u);
+  const privateClaim = join(root, '.omo', 'lanes', '.locks', entries[0]);
+  assert.equal((await lstat(privateClaim)).isFile(), true);
+  const retainedOwner = JSON.parse(await readFile(privateClaim, 'utf8'));
+  assert.deepEqual(Object.keys(retainedOwner).sort(), ['created_at', 'host', 'lane_id', 'owner_token', 'pid']);
+  assert.equal(retainedOwner.lane_id, created.lane_id);
+  assert.equal(typeof retainedOwner.host, 'string');
+  assert.equal(retainedOwner.host.length > 0, true);
+  assert.equal(Number.isInteger(retainedOwner.pid), true);
+  assert.equal(retainedOwner.pid > 0, true);
+  assert.equal(Number.isNaN(Date.parse(retainedOwner.created_at)), false);
+  assert.equal(typeof retainedOwner.owner_token, 'string');
+  assert.equal(retainedOwner.owner_token.length > 0, true);
+
+  const store = openTestLedgerStore(root);
+  createStoredLane(store, created);
+  const result = transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 });
+  assert.equal(result.revision, 2);
+  store.close();
+});
+
+test('crash immediately after canonical lock link leaves complete parseable owner metadata', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-linked-lock-crash-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const created = await readFixture('create-receipt.json');
+  const moduleUrl = new URL('../../scripts/workflow/lane-ledger.mjs', import.meta.url).href;
+  const worker = `import{openTestLedgerStore,createStoredLane}from ${JSON.stringify(moduleUrl)};const receipt=JSON.parse(process.argv[1]);createStoredLane(openTestLedgerStore(process.argv[2],{afterLockPublish(){process.kill(process.pid,'SIGKILL')}}),receipt)`;
+
+  const crashed = spawnSync(process.execPath, ['--input-type=module', '-e', worker, JSON.stringify(created), root], { cwd: process.cwd(), encoding: 'utf8', timeout: 2000, killSignal: 'SIGKILL' });
+
+  assert.equal(crashed.signal, 'SIGKILL');
+  const canonical = join(root, '.omo', 'lanes', '.locks', `${created.lane_id}.lock`);
+  assert.equal((await lstat(canonical)).isFile(), true);
+  const metadata = JSON.parse(await readFile(canonical, 'utf8'));
+  assert.equal(metadata.lane_id, created.lane_id);
+  assert.equal(typeof metadata.owner_token, 'string');
+  assert.equal(Number.isInteger(metadata.pid), true);
+});
+
+test('exclusive lock publication preserves a pre-existing empty canonical directory', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-empty-canonical-lock-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const store = openTestLedgerStore(root);
+  const created = await readFixture('create-receipt.json');
+  createStoredLane(store, created);
+  const lock = join(root, '.omo', 'lanes', '.locks', `${created.lane_id}.lock`);
+  await mkdir(lock);
+  const identity = await lstat(lock);
+
+  assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode('ERR_INVALID_TARGET_TYPE'));
+  const preserved = await lstat(lock);
+  assert.deepEqual([preserved.dev, preserved.ino], [identity.dev, identity.ino]);
+  assert.deepEqual(await (await import('node:fs/promises')).readdir(lock), []);
+  assert.equal(JSON.parse(await readLedgerBytes(root)).revision, 1);
+  store.close();
+});
+
+test('exclusive lock publication preserves an empty directory introduced at the final publication check', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-final-empty-canonical-lock-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  let replacementIdentity;
+  const store = openTestLedgerStore(root, { afterLockFinalTargetCheck({ canonicalPath }) {
+    mkdirSync(canonicalPath);
+    replacementIdentity = lstatSync(canonicalPath);
+  } });
+  const created = await readFixture('create-receipt.json');
+  const lock = join(root, '.omo', 'lanes', '.locks', `${created.lane_id}.lock`);
+
+  assert.throws(() => createStoredLane(store, created, { lockTimeoutMs: 1 }), assertCode('ERR_INVALID_TARGET_TYPE'));
+  const preserved = await lstat(lock);
+  assert.deepEqual([preserved.dev, preserved.ino], [replacementIdentity.dev, replacementIdentity.ino]);
+  assert.deepEqual(await (await import('node:fs/promises')).readdir(lock), []);
+  assert.equal(await readLedgerBytes(root), null);
+  store.close();
+});
+
+test('canonical lock hard-link publication preserves every final-boundary foreign target type', async (context) => {
+  for (const [kind, expectedCode] of [['file', 'ERR_LOCK_BUSY'], ['directory', 'ERR_INVALID_TARGET_TYPE'], ['symlink', 'ERR_PATH_SYMLINK'], ['fifo', 'ERR_INVALID_TARGET_TYPE']]) {
+    const root = await mkdtemp(join(tmpdir(), `ilokesto-final-lock-${kind}-`));
+    context.after(() => rm(root, { recursive: true, force: true }));
+    const created = await readFixture('create-receipt.json');
+    const initialStore = openTestLedgerStore(root);
+    createStoredLane(initialStore, created);
+    initialStore.close();
+    let foreignIdentity;
+    let inject = true;
+    const store = openTestLedgerStore(root, { afterLockFinalTargetCheck({ canonicalPath }) {
+      if (!inject) return;
+      inject = false;
+      if (kind === 'file') writeFileSync(canonicalPath, 'foreign-file');
+      else if (kind === 'directory') mkdirSync(canonicalPath);
+      else if (kind === 'symlink') symlinkSync('/dev/null', canonicalPath);
+      else assert.equal(spawnSync('mkfifo', [canonicalPath]).status, 0);
+      foreignIdentity = lstatSync(canonicalPath);
+    } });
+    const canonical = join(root, '.omo', 'lanes', '.locks', `${created.lane_id}.lock`);
+
+    assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode(expectedCode));
+    const preserved = await lstat(canonical);
+    assert.deepEqual([preserved.dev, preserved.ino], [foreignIdentity.dev, foreignIdentity.ino]);
+    assert.equal(JSON.parse(await readLedgerBytes(root)).revision, 1);
+    store.close();
+  }
+});
+
 if (process.platform === 'darwin') {
   test('Darwin runtime store rejects symlinked or non-directory workspace ancestors', async (context) => {
     const roots = [];
@@ -1897,11 +2537,10 @@ if (process.platform === 'darwin') {
     await symlink(outside, join(locks, `${created.lane_id}.lock`));
     assert.throws(() => createStoredLane(store, created, { lockTimeoutMs: 1 }), assertCode('ERR_PATH_SYMLINK'));
     await rm(join(locks, `${created.lane_id}.lock`));
-    await mkdir(join(locks, `${created.lane_id}.lock`));
-    assert.equal(spawnSync('mkfifo', [join(locks, `${created.lane_id}.lock`, 'owner.json')]).status, 0);
+    assert.equal(spawnSync('mkfifo', [join(locks, `${created.lane_id}.lock`)]).status, 0);
     assert.throws(() => createStoredLane(store, created, { lockTimeoutMs: 1 }), assertCode('ERR_INVALID_TARGET_TYPE'));
-    await rm(join(locks, `${created.lane_id}.lock`, 'owner.json'));
-    await symlink('/dev/null', join(locks, `${created.lane_id}.lock`, 'owner.json'));
+    await rm(join(locks, `${created.lane_id}.lock`));
+    await symlink('/dev/null', join(locks, `${created.lane_id}.lock`));
     assert.throws(() => createStoredLane(store, created, { lockTimeoutMs: 1 }), assertCode('ERR_PATH_SYMLINK'));
     assert.equal(await readLedgerBytes(root), null);
     store.close();
@@ -1936,7 +2575,7 @@ if (process.platform === 'darwin') {
       bytesChanged: after !== before,
       revision: JSON.parse(after).revision,
       replacementPreserved: await readFile(replacementMarker, 'utf8') === 'replacement',
-    }, { error: 'ERR_LOCK_BUSY', bytesChanged: false, revision: 1, replacementPreserved: true });
+    }, { error: 'ERR_INVALID_TARGET_TYPE', bytesChanged: false, revision: 1, replacementPreserved: true });
     store.close();
   });
 }
@@ -1948,15 +2587,16 @@ test('reclaims an exact dead same-host lock through quarantine and continues the
   const store = openTestLedgerStore(root);
   createStoredLane(store, await readFixture('create-receipt.json'));
   const lock = join(root, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
-  await mkdir(lock);
-  await writeFile(join(lock, 'owner.json'), JSON.stringify({ lane_id: 'lane-test-1', host: (await import('node:os')).hostname(), pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
+  await writeFile(lock, JSON.stringify({ lane_id: 'lane-test-1', host: (await import('node:os')).hostname(), pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
 
   // When / Then
   const result = transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 });
   assert.equal(result.revision, 2);
   assert.equal(existsSync(lock), false);
   const entries = await (await import('node:fs/promises')).readdir(join(root, '.omo', 'lanes', '.locks'));
-  assert.deepEqual(entries.filter((entry) => entry.includes('.quarantine-')), []);
+  const quarantines = entries.filter((entry) => entry.includes('.quarantine-'));
+  assert.equal(quarantines.length > 0, true);
+  for (const quarantine of quarantines) assert.equal((await lstat(join(root, '.omo', 'lanes', '.locks', quarantine))).isFile(), true);
   store.close();
 });
 
@@ -1973,10 +2613,9 @@ test('maps dead unreclaimable locks to stale while live and foreign locks remain
     const store = openTestLedgerStore(root);
     createStoredLane(store, await readFixture('create-receipt.json'));
     const lock = join(root, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
-    await mkdir(lock);
-    await writeFile(join(lock, 'owner.json'), JSON.stringify(metadata));
+    await writeFile(lock, JSON.stringify(metadata));
     assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode(expectedCode));
-    assert.deepEqual(JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8')), metadata);
+    assert.deepEqual(JSON.parse(await readFile(lock, 'utf8')), metadata);
     store.close();
   }
 
@@ -1988,11 +2627,10 @@ test('maps dead unreclaimable locks to stale while live and foreign locks remain
   } });
   createStoredLane(store, await readFixture('create-receipt.json'));
   const lock = join(root, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
-  await mkdir(lock);
-  await writeFile(join(lock, 'owner.json'), JSON.stringify({ lane_id: 'lane-test-1', host: (await import('node:os')).hostname(), pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
+  await writeFile(lock, JSON.stringify({ lane_id: 'lane-test-1', host: (await import('node:os')).hostname(), pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
   mutateOwner = true;
   assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode('ERR_STALE_LOCK'));
-  assert.equal(JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8')).owner_token, 'replacement-token');
+  assert.equal(JSON.parse(await readFile(lock, 'utf8')).owner_token, 'replacement-token');
   store.close();
 });
 
@@ -2005,11 +2643,10 @@ test('EPERM liveness result is not dead proof and preserves the exact lock', asy
   createStoredLane(store, await readFixture('create-receipt.json'));
   const lock = join(root, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
   const metadata = { lane_id: 'lane-test-1', host: (await import('node:os')).hostname(), pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'eperm-owner-token' };
-  await mkdir(lock);
-  await writeFile(join(lock, 'owner.json'), JSON.stringify(metadata));
+  await writeFile(lock, JSON.stringify(metadata));
 
   assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode('ERR_LOCK_BUSY'));
-  assert.deepEqual(JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8')), metadata);
+  assert.deepEqual(JSON.parse(await readFile(lock, 'utf8')), metadata);
   store.close();
 });
 
@@ -2021,42 +2658,85 @@ test('stale reclaim deletes only its quarantine and preserves a replacement cano
   const store = openTestLedgerStore(root, { afterLockQuarantineRename({ canonicalPath }) {
     if (!replaceCanonical) return;
     replaceCanonical = false;
-    mkdirSync(canonicalPath);
-    writeFileSync(join(canonicalPath, 'owner.json'), `${JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: process.pid, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'replacement-owner-token' })}\n`);
+    writeFileSync(canonicalPath, `${JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: process.pid, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'replacement-owner-token' })}\n`);
   } });
   createStoredLane(store, await readFixture('create-receipt.json'));
   const lock = join(root, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
-  await mkdir(lock);
-  await writeFile(join(lock, 'owner.json'), JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
+  await writeFile(lock, JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
   replaceCanonical = true;
 
   assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode('ERR_LOCK_BUSY'));
-  assert.equal(JSON.parse(await readFile(join(lock, 'owner.json'), 'utf8')).owner_token, 'replacement-owner-token');
+  assert.equal(JSON.parse(await readFile(lock, 'utf8')).owner_token, 'replacement-owner-token');
   store.close();
 });
 
-test('stale reclaim preserves a replaced quarantined owner and deletes nothing', async (context) => {
+test('stale reclaim preserves a replaced quarantine file and the displaced owned claim', async (context) => {
   const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-quarantine-owner-swap-'));
   context.after(() => rm(root, { recursive: true, force: true }));
   const currentHost = (await import('node:os')).hostname();
   let replaceOwner = false;
   let quarantinePath;
-  const store = openTestLedgerStore(root, { beforeQuarantineOwnerUnlink(contextValue) {
+  let displacedQuarantine;
+  const store = openTestLedgerStore(root, { afterLockQuarantineRename(contextValue) {
     if (!replaceOwner) return;
     replaceOwner = false;
     quarantinePath = contextValue.quarantinePath;
-    renameSync(contextValue.ownerPath, `${contextValue.ownerPath}.original`);
-    writeFileSync(contextValue.ownerPath, `${JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: process.pid, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'replacement-owner-token' })}\n`);
+    displacedQuarantine = `${quarantinePath}.original`;
+    renameSync(quarantinePath, displacedQuarantine);
+    writeFileSync(quarantinePath, `${JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: process.pid, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'replacement-owner-token' })}\n`);
   } });
   createStoredLane(store, await readFixture('create-receipt.json'));
   const lock = join(root, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
-  await mkdir(lock);
-  await writeFile(join(lock, 'owner.json'), JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
+  await writeFile(lock, JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
   replaceOwner = true;
 
   assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode('ERR_STALE_LOCK'));
-  assert.equal(JSON.parse(await readFile(join(quarantinePath, 'owner.json'), 'utf8')).owner_token, 'replacement-owner-token');
-  assert.equal(JSON.parse(await readFile(join(quarantinePath, 'owner.json.original'), 'utf8')).owner_token, 'dead-owner-token');
+  assert.equal(JSON.parse(await readFile(quarantinePath, 'utf8')).owner_token, 'replacement-owner-token');
+  assert.equal(JSON.parse(await readFile(displacedQuarantine, 'utf8')).owner_token, 'dead-owner-token');
+  store.close();
+});
+
+test('canonical lock substitution before quarantine is preserved and not moved', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-ledger-owner-final-swap-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const currentHost = (await import('node:os')).hostname();
+  let replaceOwner = false;
+  let replacementPath;
+  const store = openTestLedgerStore(root, { beforeLockQuarantineRename({ canonicalPath }) {
+    if (!replaceOwner) return;
+    replaceOwner = false;
+    renameSync(canonicalPath, `${canonicalPath}.original`);
+    writeFileSync(canonicalPath, `${JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: process.pid, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'final-replacement-token' })}\n`);
+    replacementPath = canonicalPath;
+  } });
+  createStoredLane(store, await readFixture('create-receipt.json'));
+  replaceOwner = true;
+
+  assert.throws(() => withLockedStoredLaneTransaction(store, 'lane-test-1', 'transition', () => null), assertCode('ERR_LOCK_BUSY'));
+  assert.equal(JSON.parse(await readFile(replacementPath, 'utf8')).owner_token, 'final-replacement-token');
+  assert.equal(JSON.parse(await readFile(`${replacementPath}.original`, 'utf8')).lane_id, 'lane-test-1');
+  store.close();
+});
+
+test('committed release never deletes a replacement quarantine file', async (context) => {
+  const root = await mkdtemp(join(tmpdir(), 'ilokesto-owner-final-unlink-race-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  let replaceOwner = false;
+  let replacementPath;
+  const store = openTestLedgerStore(root, { afterLockQuarantineRename({ quarantinePath }) {
+    if (!replaceOwner) return;
+    replaceOwner = false;
+    renameSync(quarantinePath, `${quarantinePath}.original`);
+    writeFileSync(quarantinePath, 'foreign-owner-replacement');
+    replacementPath = quarantinePath;
+  } });
+  createStoredLane(store, await readFixture('create-receipt.json'));
+  replaceOwner = true;
+
+  const result = transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }));
+
+  assert.equal(result.revision, 2);
+  assert.equal(await readFile(replacementPath, 'utf8'), 'foreign-owner-replacement');
   store.close();
 });
 
@@ -2074,17 +2754,16 @@ test('stale reclaim preserves a replacement quarantine directory after rename re
     displacedQuarantine = `${quarantinePath}.original`;
     renameSync(quarantinePath, displacedQuarantine);
     mkdirSync(quarantinePath);
-    writeFileSync(join(quarantinePath, 'owner.json'), `${JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: process.pid, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'replacement-quarantine-token' })}\n`);
+    writeFileSync(join(quarantinePath, 'replacement.json'), `${JSON.stringify({ owner_token: 'replacement-quarantine-token' })}\n`);
   } });
   createStoredLane(store, await readFixture('create-receipt.json'));
   const lock = join(root, '.omo', 'lanes', '.locks', 'lane-test-1.lock');
-  await mkdir(lock);
-  await writeFile(join(lock, 'owner.json'), JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
+  await writeFile(lock, JSON.stringify({ lane_id: 'lane-test-1', host: currentHost, pid: 2147483647, created_at: '2026-08-18T00:00:00.000Z', owner_token: 'dead-owner-token' }));
   replaceQuarantine = true;
 
   assert.throws(() => transitionStoredLane(store, nextReceipt('workflow.started', 1, { attempt: 0, dispatch_id: null }), { lockTimeoutMs: 1 }), assertCode('ERR_STALE_LOCK'));
-  assert.equal(JSON.parse(await readFile(join(quarantinePath, 'owner.json'), 'utf8')).owner_token, 'replacement-quarantine-token');
-  assert.equal(JSON.parse(await readFile(join(displacedQuarantine, 'owner.json'), 'utf8')).owner_token, 'dead-owner-token');
+  assert.equal(JSON.parse(await readFile(join(quarantinePath, 'replacement.json'), 'utf8')).owner_token, 'replacement-quarantine-token');
+  assert.equal(JSON.parse(await readFile(displacedQuarantine, 'utf8')).owner_token, 'dead-owner-token');
   store.close();
 });
 
@@ -2132,7 +2811,7 @@ test('runtime CLI supported scenario uses the exact create envelope and dedicate
     '--expected-revision', '1',
     '--repository', 'ilokesto/ilokesto',
     '--issues', '101',
-    '--operations', 'merge,cleanup,root-sync',
+    '--operations', 'merge',
     '--squash-method', 'squash',
   ]);
   assert.deepEqual(scenario.transition.args, ['transition', 'lane-test-1', '--expected-revision', '2']);
@@ -2184,7 +2863,7 @@ test('real CLI exposes lane-ID create, transition, authorize, validate, and proj
     assert.equal(validated.revision, 2);
     assert.equal(validated.receipts.at(-1).payload.squash_method, 'squash');
     assert.deepEqual(projected.authority.issues, [101]);
-    assert.deepEqual(projected.authority.operations, ['merge', 'cleanup', 'root-sync']);
+    assert.deepEqual(projected.authority.operations, ['merge']);
     assert.equal(projected.authority.repository, 'ilokesto/ilokesto');
     assert.equal(projected.authority.lane_id, 'lane-test-1');
 
