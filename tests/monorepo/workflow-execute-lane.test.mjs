@@ -203,10 +203,10 @@ test('planner invalidates the exact pending review and check identities on chang
   });
 });
 
-test('planner makes third-attempt and repeated blockers terminal on the same PR', () => {
+test('planner makes a repeated blocker terminal immediately on the same PR', () => {
   // Given
   const current = projection({
-    'issue-101': item({ state: 'in-review', attempt: 3, dispatch_id: 'dispatch-101', branch: 'issue-101-a', worktree: '.worktrees/issue-101-a', pr_number: 501, head_sha: SHA_A, pending_review: { receipt_id: 'review-start-3', checks: [{ name: 'ci', run_id: 7003, head_sha: SHA_A }] } }),
+    'issue-101': item({ state: 'in-review', attempt: 2, dispatch_id: 'dispatch-101', branch: 'issue-101-a', worktree: '.worktrees/issue-101-a', pr_number: 501, head_sha: SHA_A, pending_review: { receipt_id: 'review-start-2', checks: [{ name: 'ci', run_id: 7003, head_sha: SHA_A }] } }),
   });
   const receipts = [{ event: 'review.completed', item_id: 'issue-101', payload: { outcome: 'block', blocker_signatures: ['code:repeat'] } }];
   const pr = { number: 501, issue_number: 101, branch: 'issue-101-a', head_sha: SHA_A, checks: [{ name: 'ci', run_id: 7003, status: 'PASS', head_sha: SHA_A }], merged: false, merge_sha: null };
@@ -215,7 +215,23 @@ test('planner makes third-attempt and repeated blockers terminal on the same PR'
   const actions = planExecuteLaneStep({ projection: current, receipts, facts: { root: { tracked: [], untracked: [], head_sha: SHA_A }, items: { 'issue-101': facts({ pr, review_result: { outcome: 'block', blocker_signatures: ['code:repeat'] } }) } } });
 
   // Then
-  assert.deepEqual(actions[0], { action: 'append', event: 'item.blocked', item_id: 'issue-101', expected_revision: 10, error_state: 'blocked-retry-exhausted', error_code: 'ERR_SIDE_EFFECT_PRECONDITION', reason: 'repeated-blocker-after-third-attempt' });
+  assert.deepEqual(actions[0], { action: 'append', event: 'item.blocked', item_id: 'issue-101', expected_revision: 10, error_state: 'blocked-retry-exhausted', error_code: 'ERR_SIDE_EFFECT_PRECONDITION', reason: 'repeated-blocker-signature' });
+});
+
+test('planner permits the third fix-back by advancing attempt 3 to attempt 4', () => {
+  const pr = { number: 501, issue_number: 101, branch: 'issue-101-a', head_sha: SHA_A, checks: [{ name: 'ci', run_id: 7003, status: 'PASS', head_sha: SHA_A }], merged: false, merge_sha: null };
+  const pendingReview = projection({
+    'issue-101': item({ state: 'in-review', attempt: 3, dispatch_id: 'dispatch-101', branch: 'issue-101-a', worktree: '.worktrees/issue-101-a', pr_number: 501, head_sha: SHA_A, pending_review: { receipt_id: 'review-start-3', checks: [{ name: 'ci', run_id: 7003, head_sha: SHA_A }] } }),
+  });
+  const fixBackPending = projection({
+    'issue-101': item({ state: 'fix-back-pending', attempt: 3, dispatch_id: 'dispatch-101', branch: 'issue-101-a', worktree: '.worktrees/issue-101-a', pr_number: 501, head_sha: SHA_A, review: { receipt_id: 'review-block-3', blocker_signatures: ['code:new'] } }),
+  });
+
+  const review = planExecuteLaneStep({ projection: pendingReview, receipts: [], facts: { root: { tracked: [], untracked: [], head_sha: SHA_A }, items: { 'issue-101': facts({ pr, review_result: { outcome: 'block', blocker_signatures: ['code:new'] } }) } } });
+  const fixBack = planExecuteLaneStep({ projection: fixBackPending, receipts: [], facts: { root: { tracked: [], untracked: [], head_sha: SHA_A }, items: { 'issue-101': facts({ pr }) } } });
+
+  assert.equal(review[0].event, 'review.completed');
+  assert.deepEqual(fixBack[0], { action: 'external', operation: 'fix-back', item_id: 'issue-101', expected_revision: 10, attempt: 4, blocker_signatures: ['code:new'] });
 });
 
 test('planner gates merge cleanup and root sync through exact wrapper operations and authority keys', () => {

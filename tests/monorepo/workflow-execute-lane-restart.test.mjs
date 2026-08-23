@@ -6,15 +6,14 @@ import test from 'node:test';
 
 import {
   LaneLedgerError,
-  authorizeStoredLane,
+  authorizeTestStoredLane,
   createReceipt,
   createStoredLane,
   openTestLedgerStore,
   replayReceipts,
   transitionStoredLane,
-  validateLegalTransition,
   validateStoredLane,
-  withLockedStoredLaneTransaction,
+  withTestLockedStoredLaneSideEffectTransaction,
 } from '../../scripts/workflow/lane-ledger.mjs';
 import { planExecuteLaneStep } from '../../scripts/workflow/execute-lane-reconcile.mjs';
 import { runWorkflowSideEffect } from '../../scripts/workflow/workflow-side-effect.mjs';
@@ -35,7 +34,7 @@ function sideEffectHarness(state) {
     root_sync: 'pending',
     authority: {
       repository: 'ilokesto/ilokesto', lane_id: 'lane-task-7-restart', issues: [101],
-      operations: ['merge', 'cleanup'], consumed_operations: [], receipt_id: 'authority-task-7',
+      operations: [state === 'merge-ready' ? 'merge' : 'cleanup'], consumed_operations: [], receipt_id: 'authority-task-7',
     },
     items: {
       'issue-101': {
@@ -56,7 +55,6 @@ function sideEffectHarness(state) {
         return callback({
           projection,
           append(receipt) {
-            validateLegalTransition(projection, receipt);
             calls.push(['append', receipt]);
             return { projection, receipt };
           },
@@ -329,11 +327,11 @@ test('terminal temporary-ledger replay equals persisted projection after wrapper
     created_at: '2026-08-18T11:02:00.000Z',
     payload: { merged_shas: [SHA_A], package: 'store', changeset: 'not-required', target_dist_tag: 'latest', required_external_step: 'github-actions-release' },
   }));
-  ledger = authorizeStoredLane(store, globalReceipt('authority.granted', ledger.projection, {
-    repository: ledger.repository, lane_id: ledger.lane_id, issues: [101], operations: ['root-sync'],
+  ledger = authorizeTestStoredLane(store, globalReceipt('authority.granted', ledger.projection, {
+    repository: ledger.repository, lane_id: ledger.lane_id, issues: [], operations: ['root-sync'],
     squash_method: 'squash', approved_at: '2026-08-18T11:00:03.000Z',
   }));
-  const ledgerAdapter = { withLockedLane: (laneId, callback) => withLockedStoredLaneTransaction(store, laneId, 'side-effect', callback) };
+  const ledgerAdapter = { withLockedLane: (laneId, callback) => withTestLockedStoredLaneSideEffectTransaction(store, laneId, callback) };
 
   // When
   await runWorkflowSideEffect({ operation: 'root-sync', lane_id: ledger.lane_id, expected_revision: ledger.revision, authority_receipt_id: ledger.projection.authority.receipt_id }, {

@@ -116,13 +116,13 @@ function reviewDecision(projection, receipts, itemId, item, observed) {
     && receipt.item_id === itemId
     && receipt.payload.outcome === 'block'
     && receipt.payload.blocker_signatures.some((signature) => observed.review_result.blocker_signatures.includes(signature)));
-  if (item.attempt >= 3) {
+  if (previous || item.attempt >= 4) {
     return action(projection, itemId, {
       action: 'append',
       event: 'item.blocked',
       error_state: 'blocked-retry-exhausted',
       error_code: 'ERR_SIDE_EFFECT_PRECONDITION',
-      reason: previous ? 'repeated-blocker-after-third-attempt' : 'fix-back-attempt-budget-exhausted',
+      reason: previous ? 'repeated-blocker-signature' : 'fix-back-attempt-budget-exhausted',
     });
   }
   return action(projection, itemId, { action: 'append', event: 'review.completed', outcome: 'block', review_result: structuredClone(observed.review_result) });
@@ -152,7 +152,7 @@ function itemDecision(projection, receipts, itemId, item, observed) {
       if (observed.pr === null || Array.isArray(observed.pr) || !prIdentityMatches(item, observed.pr) || observed.pr.head_sha !== item.head_sha) {
         return block(projection, itemId, 'external-identity-conflict');
       }
-      return item.attempt >= 3
+      return item.attempt >= 4
         ? action(projection, itemId, { action: 'append', event: 'item.blocked', error_state: 'blocked-retry-exhausted', error_code: 'ERR_SIDE_EFFECT_PRECONDITION', reason: 'fix-back-attempt-budget-exhausted' })
         : action(projection, itemId, { action: 'external', operation: 'fix-back', attempt: item.attempt + 1, blocker_signatures: item.review.blocker_signatures });
     case 'merge-ready': {
