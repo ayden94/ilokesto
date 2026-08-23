@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-import { LaneLedgerError, withRuntimeLockedStoredLaneTransaction } from '../../scripts/workflow/lane-ledger.mjs';
+import { LaneLedgerError, openTestLedgerStore, withTestLockedStoredLaneSideEffectTransaction } from '../../scripts/workflow/lane-ledger.mjs';
 import { planExecuteLaneStep } from '../../scripts/workflow/execute-lane-reconcile.mjs';
 import { runWorkflowSideEffect } from '../../scripts/workflow/workflow-side-effect.mjs';
 import {
@@ -87,10 +87,10 @@ async function advance(current, receipts) {
   for (const nextReceipt of receipts) transition(current, nextReceipt);
 }
 
-function authorize(current, expectedRevision) {
+function authorize(current, expectedRevision, operation) {
   const result = runCli(current.root, [
     'authorize', current.laneId, '--expected-revision', String(expectedRevision), '--repository', REPOSITORY,
-    '--issues', '101', '--operations', 'merge,cleanup,root-sync', '--squash-method', 'squash',
+    '--issues', operation === 'root-sync' ? '' : '101', '--operations', operation, '--squash-method', 'squash',
   ]);
   assert.equal(result.status, 0, result.stderr);
   return project(current).authority.receipt_id;
@@ -100,7 +100,15 @@ function runtimeLedger(current) {
   return {
     withLockedLane(laneId, callback) {
       assert.equal(laneId, current.laneId);
-      return withRuntimeLockedStoredLaneTransaction(current.root, laneId, 'side-effect', callback);
+      const store = openTestLedgerStore(current.root);
+      const close = (value) => { store.close(); return value; };
+      const fail = (error) => { store.close(); throw error; };
+      try {
+        const result = withTestLockedStoredLaneSideEffectTransaction(store, laneId, callback);
+        return result && typeof result.then === 'function' ? Promise.resolve(result).then(close, fail) : close(result);
+      } catch (error) {
+        return fail(error);
+      }
     },
   };
 }
@@ -150,7 +158,7 @@ test('public CLI completes same-PR fix-back then real merge cleanup and root-syn
   assert.equal(item.pr_number, 101);
   assert.equal(item.head_sha, SHA_B);
 
-  const authorityReceiptId = authorize(current, 13);
+  const mergeAuthorityReceiptId = authorize(current, 13, 'merge');
   const effectCalls = [];
   const merged = await runPersistedSideEffect(current, {
     operation: 'merge',
@@ -171,11 +179,12 @@ test('public CLI completes same-PR fix-back then real merge cleanup and root-syn
   assert.deepEqual(effectCalls.map(([name]) => name), ['inspectMerge', 'merge']);
 
   const bound = issue(101);
-  transition(current, receipt(current.laneId, 'cleanup.started', 15, {
+  const cleanupAuthorityReceiptId = authorize(current, 15, 'cleanup');
+  transition(current, receipt(current.laneId, 'cleanup.started', 16, {
     attempt: 2,
     pr_number: 101,
     head_sha: SHA_B,
-    payload: { issue_number: 101, authority_receipt_id: authorityReceiptId, merge_sha: SHA_C, branch: bound.branch, worktree: bound.worktree, tracked_baseline: [], untracked_baseline: [] },
+    payload: { issue_number: 101, authority_receipt_id: cleanupAuthorityReceiptId, merge_sha: SHA_C, branch: bound.branch, worktree: bound.worktree, tracked_baseline: [], untracked_baseline: [] },
   }));
   const cleaned = await runPersistedSideEffect(current, {
     operation: 'cleanup',
@@ -195,6 +204,7 @@ test('public CLI completes same-PR fix-back then real merge cleanup and root-syn
   assert.equal(cleaned.result.receipt.event, 'cleanup.completed');
   assert.equal(cleaned.projection.items['issue-101'].state, 'done');
 
+  authorize(current, 18, 'root-sync');
   const synced = await runPersistedSideEffect(current, {
     operation: 'root-sync',
     receiptId: 'f3-root-sync-completed',
@@ -212,7 +222,7 @@ test('public CLI completes same-PR fix-back then real merge cleanup and root-syn
   });
   assert.equal(synced.result.receipt.event, 'root_sync.completed');
   assert.equal(synced.projection.root_sync, 'completed');
-  transition(current, receipt(current.laneId, 'workflow.completed', 18, { item_id: null, payload: { root_sync_receipt_id: 'f3-root-sync-completed' } }));
+  transition(current, receipt(current.laneId, 'workflow.completed', 20, { item_id: null, payload: { root_sync_receipt_id: 'f3-root-sync-completed' } }));
   assert.equal(current.ledger.projection.workflow_state, 'done');
   assert.equal(current.ledger.projection.items['issue-101'].state, 'done');
   assert.deepEqual(effectCalls.map(([name]) => name), ['inspectMerge', 'merge', 'inspectCleanup', 'cleanup', 'inspectRootSync', 'rootSync']);
@@ -271,7 +281,7 @@ test('public CLI rejects stale, incomplete, duplicate-PR, unauthorized, and chil
   await context.test('unauthorized merge and child-contract terminal state', async (caseContext) => {
     const unauthorized = await runtime(caseContext, 'lane-unauthorized-merge');
     await advance(unauthorized, lifecycleBeforeAuthority(unauthorized.laneId));
-    rejectTransition(unauthorized, receipt(unauthorized.laneId, 'merge.completed', 8, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: 'missing', review_receipt_id: `${unauthorized.laneId}-8-review-completed`, checks: checks(), merge_sha: SHA_B, method: 'squash' } }), 'ERR_AUTHORITY_MISSING');
+    rejectTransition(unauthorized, receipt(unauthorized.laneId, 'merge.completed', 8, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: 'missing', review_receipt_id: `${unauthorized.laneId}-8-review-completed`, checks: checks(), merge_sha: SHA_B, method: 'squash' } }), 'ERR_ILLEGAL_TRANSITION');
     const blocked = await runtime(caseContext, 'lane-child-contract');
     transition(blocked, receipt(blocked.laneId, 'workflow.started', 1, { item_id: null }));
     const projection = transition(blocked, receipt(blocked.laneId, 'item.blocked', 2, { attempt: 0, dispatch_id: null, payload: { error_state: 'blocked-child-contract-error', error_code: 'ERR_INVALID_RECEIPT', evidence: [evidence('child-contract-error')] } }));
@@ -375,7 +385,7 @@ test('execute-lane restart reconciliation covers push PR merge and cleanup crash
 
   const effects = await runtime(context, 'lane-restart-effects');
   await advance(effects, lifecycleBeforeAuthority(effects.laneId));
-  const authorityReceiptId = authorize(effects, 8);
+  authorize(effects, 8, 'merge');
   const calls = [];
   const reconciledMerge = await runPersistedSideEffect(effects, {
     operation: 'merge',
@@ -393,10 +403,11 @@ test('execute-lane restart reconciliation covers push PR merge and cleanup crash
   assert.equal(reconciledMerge.result.receipt.event, 'merge.completed');
   assert.deepEqual(calls.map(([name]) => name), ['inspectMerge']);
 
-  transition(effects, receipt(effects.laneId, 'cleanup.started', 10, {
+  const cleanupAuthorityReceiptId = authorize(effects, 10, 'cleanup');
+  transition(effects, receipt(effects.laneId, 'cleanup.started', 11, {
     pr_number: 101,
     head_sha: SHA_A,
-    payload: { issue_number: 101, authority_receipt_id: authorityReceiptId, merge_sha: SHA_B, branch: bound.branch, worktree: bound.worktree, tracked_baseline: [], untracked_baseline: [] },
+    payload: { issue_number: 101, authority_receipt_id: cleanupAuthorityReceiptId, merge_sha: SHA_B, branch: bound.branch, worktree: bound.worktree, tracked_baseline: [], untracked_baseline: [] },
   }));
   const reconciledCleanup = await runPersistedSideEffect(effects, {
     operation: 'cleanup',
@@ -436,14 +447,15 @@ test('production side-effect authority and cleanup lease failures make zero unau
 
   const cleanup = await runtime(context, 'lane-side-effect-stale-cleanup');
   await advance(cleanup, lifecycleBeforeAuthority(cleanup.laneId));
-  const authorityReceiptId = authorize(cleanup, 8);
-  transition(cleanup, receipt(cleanup.laneId, 'merge.completed', 9, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: authorityReceiptId, review_receipt_id: `${cleanup.laneId}-8-review-completed`, checks: checks(), merge_sha: SHA_B, method: 'squash' } }));
-  transition(cleanup, receipt(cleanup.laneId, 'cleanup.started', 10, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: authorityReceiptId, merge_sha: SHA_B, branch: issue(101).branch, worktree: issue(101).worktree, tracked_baseline: [], untracked_baseline: [] } }));
+  authorize(cleanup, 8, 'merge');
+  await runPersistedSideEffect(cleanup, { operation: 'merge', receiptId: 'f3-lease-merge', effects: { async inspectMerge() { return { head_sha: SHA_A, checks: checks(), merged: true, merge_sha: SHA_B }; }, async merge() { throw new Error('merge must not repeat'); } } });
+  const cleanupAuthorityReceiptId = authorize(cleanup, 10, 'cleanup');
+  transition(cleanup, receipt(cleanup.laneId, 'cleanup.started', 11, { pr_number: 101, head_sha: SHA_A, payload: { issue_number: 101, authority_receipt_id: cleanupAuthorityReceiptId, merge_sha: SHA_B, branch: issue(101).branch, worktree: issue(101).worktree, tracked_baseline: [], untracked_baseline: [] } }));
   const cleanupPath = join(cleanup.root, '.omo', 'lanes', `${cleanup.laneId}.json`);
   const cleanupBefore = await readFile(cleanupPath, 'utf8');
   const cleanupCalls = [];
   await assert.rejects(
-    runWorkflowSideEffect({ operation: 'cleanup', lane_id: cleanup.laneId, item_id: 'issue-101', expected_revision: 11, authority_receipt_id: authorityReceiptId }, {
+    runWorkflowSideEffect({ operation: 'cleanup', lane_id: cleanup.laneId, item_id: 'issue-101', expected_revision: 12, authority_receipt_id: cleanupAuthorityReceiptId }, {
       ledger: runtimeLedger(cleanup),
       effects: {
         async inspectCleanup(input) {
@@ -459,7 +471,7 @@ test('production side-effect authority and cleanup lease failures make zero unau
   assert.equal(await readFile(cleanupPath, 'utf8'), cleanupBefore);
 
   await assert.rejects(
-    runWorkflowSideEffect({ operation: 'cleanup', lane_id: cleanup.laneId, item_id: 'issue-101', expected_revision: 11, authority_receipt_id: authorityReceiptId }, {
+    runWorkflowSideEffect({ operation: 'cleanup', lane_id: cleanup.laneId, item_id: 'issue-101', expected_revision: 12, authority_receipt_id: cleanupAuthorityReceiptId }, {
       ledger: runtimeLedger(cleanup),
       effects: {
         async inspectCleanup(input) {
@@ -480,9 +492,9 @@ test('production side-effect authority and cleanup lease failures make zero unau
 });
 
 test('production side-effect seam covers dirty cleanup and merge crash reconciliation without network', async () => {
-  const authority = { repository: REPOSITORY, lane_id: 'lane-side-effect', issues: [101], operations: ['merge', 'cleanup'], consumed_operations: [], receipt_id: 'authority-side-effect' };
   const calls = [];
   const run = async (state, operation, effects) => {
+    const authority = { repository: REPOSITORY, lane_id: 'lane-side-effect', issues: [101], operations: [operation], consumed_operations: [], receipt_id: `authority-${operation}` };
     const projection = { lane_id: 'lane-side-effect', revision: state === 'merge-ready' ? 9 : 11, repository: REPOSITORY, base_branch: 'main', workflow_state: 'running', root_sync: 'pending', authority, items: { 'issue-101': { state, attempt: 1, dispatch_id: 'dispatch-101', issue_number: 101, ...issue(101), pr_number: 101, head_sha: SHA_A, merge_sha: state === 'cleanup-pending' ? SHA_B : undefined, review: { receipt_id: 'review-side-effect', checks: checks(), outcome: 'merge' } } } };
     return runWorkflowSideEffect({ operation, lane_id: projection.lane_id, item_id: 'issue-101', expected_revision: projection.revision, authority_receipt_id: authority.receipt_id }, { ledger: { async withLockedLane(laneId, callback) { assert.equal(laneId, projection.lane_id); return callback({ projection, append(receiptValue) { calls.push(receiptValue.event); return { receipt: receiptValue }; } }); } }, effects, now: () => '2026-08-20T10:30:00.000Z', receiptId: () => `${operation}-result` });
   };
@@ -493,9 +505,9 @@ test('production side-effect seam covers dirty cleanup and merge crash reconcili
   assert.deepEqual(calls, ['merge.completed', 'cleanup.blocked']);
 });
 
-test('repeated third-attempt blocker is a stable retry-exhausted planner outcome', () => {
-  const projection = { lane_id: 'lane-repeat', revision: 20, repository: REPOSITORY, base_branch: 'main', workflow_state: 'running', root_sync: 'pending', authority: null, items: { 'issue-101': { state: 'in-review', attempt: 3, dispatch_id: 'dispatch-101', issue_number: 101, ...issue(101), pr_number: 101, head_sha: SHA_A, pending_review: { receipt_id: 'review-repeat', checks: checks() } } } };
+test('a repeated blocker signature is an immediate stable retry-exhausted planner outcome', () => {
+  const projection = { lane_id: 'lane-repeat', revision: 20, repository: REPOSITORY, base_branch: 'main', workflow_state: 'running', root_sync: 'pending', authority: null, items: { 'issue-101': { state: 'in-review', attempt: 4, dispatch_id: 'dispatch-101', issue_number: 101, ...issue(101), pr_number: 101, head_sha: SHA_A, pending_review: { receipt_id: 'review-repeat', checks: checks() } } } };
   const facts = { root: { tracked: [], untracked: [], head_sha: SHA_A }, items: { 'issue-101': { base: { head_sha: SHA_A, contains_merge_shas: true }, remote_branch: { exists: true, head_sha: SHA_A }, worktree: { exists: true, branch: issue(101).branch, tracked: [], untracked: [] }, pr: { number: 101, issue_number: 101, branch: issue(101).branch, head_sha: SHA_A, checks: checks(), merged: false, merge_sha: null }, review_result: { outcome: 'block', blocker_signatures: ['code:repeat'] } } } };
   const actions = planExecuteLaneStep({ projection, receipts: [{ event: 'review.completed', item_id: 'issue-101', payload: { outcome: 'block', blocker_signatures: ['code:repeat'] } }], facts });
-  assert.deepEqual(actions[0], { action: 'append', event: 'item.blocked', item_id: 'issue-101', expected_revision: 20, error_state: 'blocked-retry-exhausted', error_code: 'ERR_SIDE_EFFECT_PRECONDITION', reason: 'repeated-blocker-after-third-attempt' });
+  assert.deepEqual(actions[0], { action: 'append', event: 'item.blocked', item_id: 'issue-101', expected_revision: 20, error_state: 'blocked-retry-exhausted', error_code: 'ERR_SIDE_EFFECT_PRECONDITION', reason: 'repeated-blocker-signature' });
 });

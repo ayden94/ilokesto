@@ -148,7 +148,7 @@ export function reviewPayload(outcome = 'merge', headSha = SHA_A) {
     checks: checks(headSha),
     blocker_signatures: outcome === 'block' ? ['code:repeat'] : [],
     fix_back_eligible: outcome === 'block',
-    remaining_fix_back_attempts: outcome === 'block' ? 2 : 0,
+    remaining_fix_back_attempts: outcome === 'block' ? 3 : 0,
     non_fixable_evidence: [],
   };
 }
