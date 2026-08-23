@@ -77,7 +77,7 @@ test('supervisor grants orchestration tools and restricts edits to bounded workf
   }
   for (const path of [
     '.omo/lanes/lane-a.json',
-    '.omo/lanes/.locks/lane-a.lock/owner.json',
+    '.omo/lanes/.locks/lane-a.lock',
     '.omo/notepads/workflow-ledger-handover/learnings.md',
     '.omo/boulder.json',
     'packages/store/src/index.ts',

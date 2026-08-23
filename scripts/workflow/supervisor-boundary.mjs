@@ -8,12 +8,11 @@ import { fileURLToPath } from 'node:url';
 
 import { readCanonicalInboxText } from './canonical-inbox.mjs';
 import { LaneLedgerError, discoverWorkspaceRoot } from './lane-ledger.mjs';
+import { isPositiveSafeInteger, parseIssueBranch, parseIssueWorktree, parsePositiveSafeInteger } from './issue-branch.mjs';
 
 const SHA = /^[a-f0-9]{40}$/u;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
-const BRANCH = /^issue-[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 const BASE_BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]*$/u;
-const WORKTREE = /^\.worktrees\/issue-[A-Za-z0-9][A-Za-z0-9._-]*$/u;
 const ISSUE_URL = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/issues\/(\d+)$/u;
 const PR_URL = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)\/pull\/(\d+)$/u;
 
@@ -22,8 +21,9 @@ function fail(message, options) {
 }
 
 function exactInteger(value, label) {
-  if (!/^[1-9]\d*$/u.test(value ?? '')) fail(`${label} must be a positive integer`);
-  return Number(value);
+  const parsed = parsePositiveSafeInteger(value);
+  if (parsed === null) fail(`${label} must be a positive safe integer`);
+  return parsed;
 }
 
 function validateIdentity(value, pattern, label) {
@@ -135,7 +135,7 @@ function branchPush(workspace, args, adapter) {
   if (args.length !== 3) fail('branch-push arguments are invalid');
   const [repository, branch, expectedHead] = args;
   validateIdentity(repository, REPOSITORY, 'repository');
-  validateIdentity(branch, BRANCH, 'branch');
+  if (parseIssueBranch(branch) === null) fail('branch is invalid');
   validateIdentity(expectedHead, SHA, 'expected head');
   assertRepository(workspace, repository, adapter);
   if (localHead(workspace, branch, adapter) !== expectedHead) fail('local branch differs from expected head');
@@ -152,8 +152,8 @@ function baseWorktree(workspace, args, adapter) {
   validateIdentity(repository, REPOSITORY, 'repository');
   validateIdentity(baseBranch, BASE_BRANCH, 'base branch');
   validateIdentity(expectedRemoteHead, SHA, 'remote head');
-  validateIdentity(branch, BRANCH, 'branch');
-  validateIdentity(worktree, WORKTREE, 'worktree');
+  if (parseIssueBranch(branch) === null) fail('branch is invalid');
+  if (parseIssueWorktree(worktree) === null) fail('worktree is invalid');
   if (worktree !== `.worktrees/${branch}`) fail('worktree does not match branch');
   assertRepository(workspace, repository, adapter);
   if (remoteHead(workspace, baseBranch, adapter) !== expectedRemoteHead) fail('remote base differs from expected head');
@@ -186,9 +186,10 @@ function prEffect(operation, workspace, args, adapter) {
   validateIdentity(repository, REPOSITORY, 'repository');
   const prNumber = create ? null : exactInteger(prValue, 'PR number');
   const baseBranch = validateIdentity(baseValue, BASE_BRANCH, 'base branch');
-  const branch = validateIdentity(branchValue, BRANCH, 'branch');
+  const branch = branchValue;
   const expectedHead = validateIdentity(headValue, SHA, 'expected head');
   const issueNumber = exactInteger(issueValue, 'issue number');
+  if (parseIssueBranch(branch, issueNumber) === null) fail('branch issue number does not match PR issue');
   const { title, body } = readPrFiles(workspace, issueNumber, titleValue, bodyValue);
   assertBranchAtHead(workspace, repository, branch, expectedHead, adapter);
   if (create) {
@@ -205,7 +206,7 @@ function prEffect(operation, workspace, args, adapter) {
 
 function inspectPr(operation, workspace, repository, selector, baseBranch, branch, expectedHead, issueNumber, adapter) {
   const pr = parseJson(adapter.run('gh', ['pr', 'view', selector, '--repo', repository, '--json', 'number,baseRefName,headRefName,headRefOid,body,url'], workspace), 'PR view');
-  if (!Number.isInteger(pr.number) || pr.baseRefName !== baseBranch || pr.headRefName !== branch || pr.headRefOid !== expectedHead
+  if (!isPositiveSafeInteger(pr.number) || pr.baseRefName !== baseBranch || pr.headRefName !== branch || pr.headRefOid !== expectedHead
     || !new RegExp(`(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\\s+#${String(issueNumber)}\\b`, 'iu').test(pr.body ?? '')) fail('PR identity differs after mutation');
   return { operation, repository, pr_number: pr.number, base_branch: baseBranch, branch, head_sha: expectedHead, issue_number: issueNumber, url: pr.url };
 }
@@ -221,8 +222,9 @@ function issueCreate(workspace, args, adapter) {
   const url = adapter.run('gh', ['issue', 'create', '--repo', repository, '--title', title, '--body', body], workspace);
   const match = ISSUE_URL.exec(url);
   if (!match || match[1] !== repository) fail('issue create returned an invalid URL');
+  const issueNumber = exactInteger(match[2], 'created issue number');
   const issue = parseJson(adapter.run('gh', ['issue', 'view', match[2], '--repo', repository, '--json', 'number,url,title'], workspace), 'issue view');
-  if (issue.number !== Number(match[2]) || issue.url !== url || issue.title !== title) fail('created issue identity differs');
+  if (!isPositiveSafeInteger(issue.number) || issue.number !== issueNumber || issue.url !== url || issue.title !== title) fail('created issue identity differs');
   return { operation: 'issue-create', repository, issue_number: issue.number, url };
 }
 

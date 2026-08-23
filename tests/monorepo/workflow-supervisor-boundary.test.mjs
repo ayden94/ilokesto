@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
 import { LaneLedgerError } from '../../scripts/workflow/lane-ledger.mjs';
+import { parseIssueBranch, parseIssueBranchRef, parseIssueWorktree } from '../../scripts/workflow/issue-branch.mjs';
 import { runSupervisorBoundary } from '../../scripts/workflow/supervisor-boundary.mjs';
 import { laneCreation, receipt } from './workflow-e2e-fixtures.mjs';
 
@@ -57,6 +58,17 @@ function assertBoundaryError(error) {
   return error instanceof LaneLedgerError && error.code === 'ERR_SIDE_EFFECT_PRECONDITION';
 }
 
+test('issue branch parsers reject unsafe decimal text before canonical number binding', () => {
+  const largestSafeBranch = `issue-${String(Number.MAX_SAFE_INTEGER)}-test`;
+  assert.equal(parseIssueBranch(largestSafeBranch, Number.MAX_SAFE_INTEGER)?.issueNumber, Number.MAX_SAFE_INTEGER);
+
+  const unsafeBranch = 'issue-9007199254740993-test';
+  assert.equal(parseIssueBranch(unsafeBranch), null);
+  assert.equal(parseIssueBranch(unsafeBranch, 9007199254740992), null);
+  assert.equal(parseIssueBranchRef(`refs/heads/${unsafeBranch}`), null);
+  assert.equal(parseIssueWorktree(`.worktrees/${unsafeBranch}`), null);
+});
+
 test('ledger CLI create and transition consume one direct canonical inbox file without stdin', async (context) => {
   const laneId = 'lane-direct-receipt';
   const root = await workspace(context, laneId);
@@ -94,6 +106,22 @@ test('ledger CLI rejects stdin-only create and unexpected receipt flags', async 
   const extraFlag = runCli(root, ['create', laneId, path, '--root', root]);
   assert.equal(extraFlag.status, 1);
   assert.match(extraFlag.stderr, /^ERR_INVALID_SCHEMA:/u);
+});
+
+test('ledger CLI rejects unsafe authorization issue numbers during argument parsing', async (context) => {
+  const root = await workspace(context, 'lane-unsafe-authority');
+  const result = runCli(root, [
+    'authorize',
+    'lane-unsafe-authority',
+    '--expected-revision', '1',
+    '--repository', 'ilokesto/ilokesto',
+    '--issues', '9007199254740992',
+    '--operations', 'merge',
+    '--squash-method', 'squash',
+  ]);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^ERR_INVALID_SCHEMA: authorize issue scope does not match its operation/u);
 });
 
 test('ledger CLI receipt input rejects traversal absolute nested symlink and FIFO paths', async (context) => {
@@ -226,4 +254,47 @@ test('supervisor boundary rejects extra PR flags path escapes and mismatched ori
     assertBoundaryError,
   );
   assert.equal(wrongOrigin.calls.length, 2);
+});
+
+test('supervisor boundary accepts only lowercase kebab issue branches bound to the exact PR issue', async (context) => {
+  const root = await workspace(context, 'lane-branch-contract');
+  const sha = 'e'.repeat(40);
+  await Promise.all([
+    writeFile(join(root, '.omo', 'inbox', 'title.txt'), 'Branch contract'),
+    writeFile(join(root, '.omo', 'inbox', 'body.md'), 'Closes #101\n'),
+  ]);
+  const noCalls = fakeAdapter(() => { throw new Error('adapter must not run'); });
+  for (const branch of ['issue-no-number', 'issue-101', 'issue-101-Upper', 'issue-101-two_parts', 'issue-102-test']) {
+    assert.throws(
+      () => runSupervisorBoundary(['pr-create', 'ilokesto/ilokesto', 'main', branch, sha, '101', '.omo/inbox/title.txt', '.omo/inbox/body.md'], { workspace: root, adapter: noCalls }),
+      assertBoundaryError,
+      branch,
+    );
+  }
+  assert.deepEqual(noCalls.calls, []);
+});
+
+test('PR create rejects unsafe issue precision collisions before adapter mutation', async (context) => {
+  const root = await workspace(context, 'lane-pr-unsafe-issue');
+  const sha = 'f'.repeat(40);
+  await Promise.all([
+    writeFile(join(root, '.omo', 'inbox', 'unsafe-title.txt'), 'Reject unsafe issue identity'),
+    writeFile(join(root, '.omo', 'inbox', 'unsafe-body.md'), 'Closes #9007199254740992\n'),
+  ]);
+  const adapter = fakeAdapter(() => { throw new Error('adapter must not run'); });
+
+  assert.throws(
+    () => runSupervisorBoundary([
+      'pr-create',
+      'ilokesto/ilokesto',
+      'main',
+      'issue-9007199254740993-test',
+      sha,
+      '9007199254740992',
+      '.omo/inbox/unsafe-title.txt',
+      '.omo/inbox/unsafe-body.md',
+    ], { workspace: root, adapter }),
+    assertBoundaryError,
+  );
+  assert.deepEqual(adapter.calls, []);
 });
