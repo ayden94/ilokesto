@@ -3,7 +3,7 @@ import type { Accessor } from 'solid-js';
 
 import type { ReducerAction } from '../../types/ReduceFn.js';
 
-export type Selector<T, S> = (state: T) => S;
+export type Selector<T, S> = (state: Readonly<T>) => S;
 export type SetStateAction<T> = Parameters<Store<T>['setState']>[0];
 export type StateWriter<T> = (nextState: SetStateAction<T>) => void;
 export type ActionWriter<Action> = (action: Action) => void;
@@ -19,21 +19,21 @@ export type SolidReducerResult<S, Action> = Readonly<{
 }>;
 
 export type UseState<T> = {
-  (): SolidStateResult<T, T>;
+  (): SolidStateResult<Readonly<T>, T>;
   <S>(selector: Selector<T, S>): SolidStateResult<S, T>;
   writeOnly: () => StateWriter<T>;
   readOnly: {
-    (): T;
+    (): Readonly<T>;
     <S>(selector: Selector<T, S>): S;
   };
 };
 
 export type UseReducer<T, Action extends ReducerAction> = {
-  (): SolidReducerResult<T, Action>;
+  (): SolidReducerResult<Readonly<T>, Action>;
   <S>(selector: Selector<T, S>): SolidReducerResult<S, Action>;
   writeOnly: () => ActionWriter<Action>;
   readOnly: {
-    (): T;
+    (): Readonly<T>;
     <S>(selector: Selector<T, S>): S;
   };
 };

@@ -3,7 +3,7 @@ import type { ComputedRef } from 'vue';
 
 import type { ReducerAction } from '../../types/ReduceFn.js';
 
-export type Selector<T, S> = (state: T) => S;
+export type Selector<T, S> = (state: Readonly<T>) => S;
 export type SetStateAction<T> = Parameters<Store<T>['setState']>[0];
 export type StateWriter<T> = (nextState: SetStateAction<T>) => void;
 export type ActionWriter<Action> = (action: Action) => void;
@@ -19,21 +19,21 @@ export type VueReducerResult<S, Action> = Readonly<{
 }>;
 
 export type UseState<T> = {
-  (): VueStateResult<T, T>;
+  (): VueStateResult<Readonly<T>, T>;
   <S>(selector: Selector<T, S>): VueStateResult<S, T>;
   writeOnly: () => StateWriter<T>;
   readOnly: {
-    (): T;
+    (): Readonly<T>;
     <S>(selector: Selector<T, S>): S;
   };
 };
 
 export type UseReducer<T, Action extends ReducerAction> = {
-  (): VueReducerResult<T, Action>;
+  (): VueReducerResult<Readonly<T>, Action>;
   <S>(selector: Selector<T, S>): VueReducerResult<S, Action>;
   writeOnly: () => ActionWriter<Action>;
   readOnly: {
-    (): T;
+    (): Readonly<T>;
     <S>(selector: Selector<T, S>): S;
   };
 };

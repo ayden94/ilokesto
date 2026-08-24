@@ -19,7 +19,8 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  *
  * Returns a function that must be called inside `setup()` or an active
  * `effectScope()`. Returns `{ state, setState }` or `{ state, dispatch }`.
- * Use `.writeOnly()` or `.readOnly()` for lifecycle-independent access.
+ * Selectors and `.readOnly()` receive `Readonly<T>` snapshots; use `.writeOnly()`
+ * for lifecycle-independent updates.
  */
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,

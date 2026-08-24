@@ -5,7 +5,7 @@ description: "adapter별 selector와 snapshot 동작입니다."
 
 # Selector 동작
 
-selector는 adapter-level projection function입니다. underlying store state를 바꾸지 않고 reactive reader가 받을 값을 결정합니다.
+selector는 adapter-level projection function입니다. `Readonly<T>` state를 받고 underlying store state를 바꾸지 않으며 reactive reader가 받을 값을 결정합니다. 전체 state reactive 결과와 lifecycle 밖의 `readOnly()` snapshot도 `Readonly<T>`를 유지하지만 writer API는 mutable next-state와 updater 계약을 유지합니다.
 
 ## 공통 shallow 비교
 

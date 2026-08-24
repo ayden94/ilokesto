@@ -17,7 +17,8 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  *
  * Returns a hook compatible with `useSyncExternalStore`. Call it with a
  * selector to subscribe to a slice; call without arguments to read the full
- * state. Use `.writeOnly()` or `.readOnly()` for lifecycle-independent access.
+ * read-only state. Selectors and `.readOnly()` receive `Readonly<T>` snapshots;
+ * use `.writeOnly()` for lifecycle-independent updates.
  */
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,

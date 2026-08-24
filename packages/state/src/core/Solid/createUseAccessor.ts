@@ -5,7 +5,7 @@ import type { ReducerAction } from '../../types/ReduceFn.js';
 import { createDispatch } from '../shared/createDispatch.js';
 import { identity } from '../shared/identity.js';
 import { shallow } from '../shared/shallow.js';
-import type { ActionWriter, Selector, StateWriter } from './types.js';
+import type { Selector } from './types.js';
 
 function createSelection<T, S>(store: Store<T>, selector: Selector<T, S>) {
   if (!getOwner()) {
@@ -15,7 +15,7 @@ function createSelection<T, S>(store: Store<T>, selector: Selector<T, S>) {
   }
 
   const [selection, setSelection] = createSignal(
-    selector(store.getState() as T),
+    selector(store.getState()),
     { equals: Object.is },
   );
   const unsubscribe = store.subscribeSelector(
@@ -36,7 +36,7 @@ export function createUseAccessor<T, Action extends ReducerAction>(store: Store<
 
   return Object.assign(
     <S = T>(selector?: Selector<T, S>) => {
-      const select = (selector ?? identity<T>) as Selector<T, S>;
+      const select = (selector ?? identity<Readonly<T>>) as Selector<T, S>;
       const state = createSelection(store, select);
 
       if (isReduce) {
@@ -48,14 +48,14 @@ export function createUseAccessor<T, Action extends ReducerAction>(store: Store<
 
       return {
         state,
-        setState: write as StateWriter<T>,
+        setState: write,
       } as const;
     },
     {
       writeOnly: () => (isReduce ? dispatch : write),
       readOnly: <S = T>(selector?: Selector<T, S>): S => {
-        const select = (selector ?? identity<T>) as Selector<T, S>;
-        return select(store.getState() as T);
+        const select = (selector ?? identity<Readonly<T>>) as Selector<T, S>;
+        return select(store.getState());
       },
     },
   );

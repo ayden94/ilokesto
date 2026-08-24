@@ -6,17 +6,12 @@ import type { ReducerAction } from '../../types/ReduceFn.js';
 import { createDispatch } from '../shared/createDispatch.js';
 import { identity } from '../shared/identity.js';
 import { shallow } from '../shared/shallow.js';
-import type {
-  ActionWriter,
-  Selector,
-  UseReducer,
-  UseState,
-} from './types.js';
+import type { Selector, UseReducer, UseState } from './types.js';
 
 function createReadable<T, S>(store: Store<T>, selector: Selector<T, S>): Readable<S> {
   return {
     subscribe(run: Subscriber<S>): Unsubscriber {
-      const initialSelection = selector(store.getState() as T);
+      const initialSelection = selector(store.getState());
       const unsubscribe = store.subscribeSelector(selector, run, shallow);
 
       run(initialSelection);
@@ -28,17 +23,17 @@ function createReadable<T, S>(store: Store<T>, selector: Selector<T, S>): Readab
 export function createStore<T, Action extends ReducerAction>(store: Store<T>, isReduce: boolean) {
   const write = store.setState.bind(store);
   const dispatch = createDispatch<T, Action>(store);
-  const subscribe = (run: Subscriber<T>): Unsubscriber => {
-    const initialState = store.getState() as T;
-    const unsubscribe = store.subscribeSelector(identity<T>, run, shallow);
+  const subscribe = (run: Subscriber<Readonly<T>>): Unsubscriber => {
+    const initialState = store.getState();
+    const unsubscribe = store.subscribeSelector(identity<Readonly<T>>, run, shallow);
 
     run(initialState);
     return unsubscribe;
   };
   const select = <S>(selector: Selector<T, S>) => createReadable(store, selector);
   const readOnly = <S = T>(selector?: Selector<T, S>): S => {
-    const currentSelector = (selector ?? identity<T>) as Selector<T, S>;
-    return currentSelector(store.getState() as T);
+    const currentSelector = (selector ?? identity<Readonly<T>>) as Selector<T, S>;
+    return currentSelector(store.getState());
   };
 
   if (isReduce) {

@@ -19,8 +19,8 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  *
  * Returns a function that must be called inside an injection context or with
  * an explicit `{ destroyRef }`. Returns `{ state, setState, subscribe }` or
- * `{ state, dispatch, subscribe }`. Use `.writeOnly()` or `.readOnly()` for
- * lifecycle-independent access.
+ * `{ state, dispatch, subscribe }`. Selectors and `.readOnly()` receive
+ * `Readonly<T>` snapshots; use `.writeOnly()` for lifecycle-independent updates.
  */
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,
