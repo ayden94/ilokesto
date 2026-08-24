@@ -18,27 +18,36 @@ const angular = createAngular<State>(initialState);
 const angularSelection = angular((state) => state.angular).state;
 angularSelection().toFixed();
 angular.readOnly().angular.toFixed();
-angular.writeOnly()((state) => ({ ...state, angular: state.angular + 1 }));
+const angularFullResult = angular();
+angularFullResult.state().angular.toFixed();
+angularFullResult.setState((state) => ({ ...state, angular: state.angular + 1 }));
 
 const react = createReact<State>(initialState);
 const [reactSelection] = react((state) => state.react);
 reactSelection.toFixed();
 react.readOnly().react.toFixed();
-react.writeOnly()((state) => ({ ...state, react: state.react + 1 }));
+const [reactFullState, reactSetState] = react();
+reactFullState.react.toFixed();
+reactSetState((state) => ({ ...state, react: state.react + 1 }));
 
 const solid = createSolid<State>(initialState);
 const solidSelection = solid((state) => state.solid).state;
 solidSelection().toFixed();
 solid.readOnly().solid.toFixed();
-solid.writeOnly()((state) => ({ ...state, solid: state.solid + 1 }));
+const solidFullResult = solid();
+solidFullResult.state().solid.toFixed();
+solidFullResult.setState((state) => ({ ...state, solid: state.solid + 1 }));
 
 const svelte = createSvelte<State>(initialState);
 svelte.select((state) => state.svelte);
 svelte.readOnly().svelte.toFixed();
-svelte.writeOnly()((state) => ({ ...state, svelte: state.svelte + 1 }));
+svelte.subscribe((state) => state.svelte.toFixed());
+svelte.setState((state) => ({ ...state, svelte: state.svelte + 1 }));
 
 const vue = createVue<State>(initialState);
 const vueSelection = vue((state) => state.vue).state;
 vueSelection.value.toFixed();
 vue.readOnly().vue.toFixed();
-vue.writeOnly()((state) => ({ ...state, vue: state.vue + 1 }));
+const vueFullResult = vue();
+vueFullResult.state.value.vue.toFixed();
+vueFullResult.setState((state) => ({ ...state, vue: state.vue + 1 }));

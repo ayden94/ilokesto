@@ -18,9 +18,9 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  * Create a Vue composable from plain state or a reducer.
  *
  * Returns a function that must be called inside `setup()` or an active
- * `effectScope()`. Returns `{ state, setState }` or `{ state, dispatch }`.
- * Selectors and `.readOnly()` receive `Readonly<T>` snapshots; use `.writeOnly()`
- * for lifecycle-independent updates.
+ * `effectScope()`. Without a selector, `state` is a `ComputedRef` of a
+ * read-only snapshot: object state is `Readonly<T>`, while callable state keeps
+ * its call signature. Selectors and `.readOnly()` use the same snapshot.
  */
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,

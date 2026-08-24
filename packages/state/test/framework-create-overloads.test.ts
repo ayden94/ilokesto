@@ -6,14 +6,15 @@ import { create as createReact } from '../src/core/React';
 import { create as createSolid } from '../src/core/Solid';
 import { create as createSvelte } from '../src/core/Svelte';
 import { create as createVue } from '../src/core/Vue';
+import type { ReadonlySnapshot } from '../src/core/shared/readonlySnapshot';
 import type { ReducerAction } from '../src/types/ReduceFn';
 
 type StateAdapter<State> = Readonly<{
-  readOnly: () => Readonly<State>;
+  readOnly: () => ReadonlySnapshot<State>;
 }>;
 
 type ReducerAdapter<State, Action> = Readonly<{
-  readOnly: () => Readonly<State>;
+  readOnly: () => ReadonlySnapshot<State>;
   writeOnly: () => (action: Action) => void;
 }>;
 
@@ -83,6 +84,7 @@ describe('framework create() overload detection', () => {
 
         // Then
         expect(adapter.readOnly()).toBe(initialState);
+        expect(adapter.readOnly()()).toBe(1);
       });
 
       test('Given a reducer and initial state, When create receives two arguments, Then dispatch uses the reducer', () => {

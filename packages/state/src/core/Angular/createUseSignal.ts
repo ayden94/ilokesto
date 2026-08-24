@@ -4,6 +4,7 @@ import { DestroyRef, inject, signal } from '@angular/core';
 import type { ReducerAction } from '../../types/ReduceFn.js';
 import { createDispatch } from '../shared/createDispatch.js';
 import { identity } from '../shared/identity.js';
+import { readonlySnapshot, type ReadonlySnapshot } from '../shared/readonlySnapshot.js';
 import { shallow } from '../shared/shallow.js';
 import type { AngularOptions, Selector } from './types.js';
 
@@ -23,9 +24,9 @@ function resolveDestroyRef(options?: AngularOptions): DestroyRef {
 
 function createSelection<T, S>(store: Store<T>, selector: Selector<T, S>, options?: AngularOptions) {
   const destroyRef = resolveDestroyRef(options);
-  const selection = signal(selector(store.getState()));
+  const selection = signal(selector(readonlySnapshot(store.getState())));
   const unsubscribe = store.subscribeSelector(
-    selector,
+    (state) => selector(readonlySnapshot(state)),
     (nextSelection) => {
       selection.set(nextSelection);
     },
@@ -47,7 +48,7 @@ export function createUseSignal<T, Action extends ReducerAction>(store: Store<T>
       const state =
         typeof selectorOrOptions === 'function'
           ? createSelection(store, selectorOrOptions, maybeOptions)
-          : createSelection(store, identity<Readonly<T>>, selectorOrOptions);
+          : createSelection(store, identity<ReadonlySnapshot<T>>, selectorOrOptions);
 
       if (isReduce) {
         return {
@@ -66,8 +67,8 @@ export function createUseSignal<T, Action extends ReducerAction>(store: Store<T>
     {
       writeOnly: () => (isReduce ? dispatch : write),
       readOnly: <S = T>(selector?: Selector<T, S>): S => {
-        const select = (selector ?? identity<Readonly<T>>) as Selector<T, S>;
-        return select(store.getState());
+        const select = (selector ?? identity<ReadonlySnapshot<T>>) as Selector<T, S>;
+        return select(readonlySnapshot(store.getState()));
       },
       subscribe,
     },

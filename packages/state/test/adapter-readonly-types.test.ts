@@ -10,18 +10,23 @@ type InvalidFixtureContract = Readonly<{
 
 const fixtureRoot = join(import.meta.dir, 'fixtures', 'adapter-readonly-types');
 const invalidFixtureContract: InvalidFixtureContract = {
-  diagnosticCount: 10,
+  diagnosticCount: 15,
   expectedMarkers: [
     'angularSelectorMutation',
     'angularReadResultMutation',
+    'angularFullResultMutation',
     'reactSelectorMutation',
     'reactReadResultMutation',
+    'reactFullResultMutation',
     'solidSelectorMutation',
     'solidReadResultMutation',
+    'solidFullResultMutation',
     'svelteSelectorMutation',
     'svelteReadResultMutation',
+    'svelteFullResultMutation',
     'vueSelectorMutation',
     'vueReadResultMutation',
+    'vueFullResultMutation',
   ],
 };
 
@@ -51,6 +56,16 @@ test('Given source adapter contracts, when valid selectors and lifecycle-free re
   expect(result.diagnostics).toBe('');
 });
 
+test('Given source adapter contracts, when callable state is read, selected, or observed without a selector, then every adapter preserves its call signature', () => {
+  // Given / When
+  const result = compileAdapterFixture('source-callable-valid');
+
+  // Then
+  expect(result.success, result.diagnostics).toBeTrue();
+  expect(result.exitCode).toBe(0);
+  expect(result.diagnostics).toBe('');
+});
+
 test('Given source adapter contracts, when selectors or lifecycle-free reads mutate state, then every adapter rejects them', () => {
   // Given / When / Then
   expectReadonlyMutationErrors('source-invalid');
@@ -59,6 +74,16 @@ test('Given source adapter contracts, when selectors or lifecycle-free reads mut
 test('Given generated adapter declarations, when valid public-subpath consumers compile, then every adapter accepts them', () => {
   // Given / When
   const result = compileAdapterFixture('dist-valid');
+
+  // Then
+  expect(result.success, result.diagnostics).toBeTrue();
+  expect(result.exitCode).toBe(0);
+  expect(result.diagnostics).toBe('');
+});
+
+test('Given generated adapter declarations, when callable public-subpath state is read, selected, or observed without a selector, then every adapter preserves its call signature', () => {
+  // Given / When
+  const result = compileAdapterFixture('dist-callable-valid');
 
   // Then
   expect(result.success, result.diagnostics).toBeTrue();
