@@ -17,6 +17,7 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
   const store = getStore(initialState);
 
   let timeout: ReturnType<typeof setTimeout> | null = null;
+  let scheduleGeneration = 0;
   let updates: Array<StoreSetStateAction<T>> = [];
   let savedNext: Dispatch<StoreSetStateAction<T>> | null = null;
   let unregisterTimeout: (() => void) | null = null;
@@ -29,6 +30,7 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
       return;
     }
 
+    const currentGeneration = ++scheduleGeneration;
     timeout = setTimeout(() => {
       let currentState = store.getState() as T;
       const pendingNext = savedNext;
@@ -42,11 +44,13 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
           }
         });
       } finally {
-        updates = [];
-        timeout = null;
-        savedNext = null;
-        unregisterTimeout?.();
-        unregisterTimeout = null;
+        if (scheduleGeneration === currentGeneration) {
+          updates = [];
+          timeout = null;
+          savedNext = null;
+          unregisterTimeout?.();
+          unregisterTimeout = null;
+        }
       }
 
       if (pendingNext) {

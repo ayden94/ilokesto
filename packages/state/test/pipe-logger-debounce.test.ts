@@ -53,6 +53,33 @@ function expectPipeConfigurationError(action: () => void, code: PipeConfiguratio
   throw new TypeError('Expected pipe configuration error');
 }
 
+function captureExpectedTimerError(expectedError: Error, action: () => void): boolean {
+  let caughtExpectedError = false;
+  const originalSetTimeout = globalThis.setTimeout;
+  const catchExpectedError = (callback: () => void, wait?: number) => {
+    return originalSetTimeout(() => {
+      try {
+        callback();
+      } catch (error) {
+        if (error !== expectedError) {
+          throw error;
+        }
+
+        caughtExpectedError = true;
+      }
+    }, wait);
+  };
+  Reflect.set(globalThis, 'setTimeout', catchExpectedError);
+
+  try {
+    action();
+  } finally {
+    Reflect.set(globalThis, 'setTimeout', originalSetTimeout);
+  }
+
+  return caughtExpectedError;
+}
+
 test('Given logger and debounce, when curried forms are used via pipe, then it preserves logger and debounce contracts', () => {
   // Given
   callBunFakeTimer('useFakeTimers');
@@ -151,37 +178,49 @@ test('Given a debounced Store, when a function updater throws during flush, then
   callBunFakeTimer('useFakeTimers');
   const store = pipe.use(debounce(25)).create({ count: 0 });
   const expectedError = new Error('Expected updater failure');
-  let caughtExpectedError = false;
-  const originalSetTimeout = globalThis.setTimeout;
-  const catchUpdaterErrors = (callback: () => void, wait?: number) => {
-    return originalSetTimeout(() => {
-      try {
-        callback();
-      } catch (error) {
-        if (error !== expectedError) {
-          throw error;
-        }
-
-        caughtExpectedError = true;
-      }
-    }, wait);
-  };
-  Reflect.set(globalThis, 'setTimeout', catchUpdaterErrors);
 
   try {
     // When
-    store.setState(() => {
-      throw expectedError;
+    const caughtExpectedError = captureExpectedTimerError(expectedError, () => {
+      store.setState(() => {
+        throw expectedError;
+      });
+      callBunFakeTimer('advanceTimersByTime', [25]);
+      store.setState({ count: 1 });
+      callBunFakeTimer('advanceTimersByTime', [25]);
     });
-    callBunFakeTimer('advanceTimersByTime', [25]);
-    store.setState({ count: 1 });
-    callBunFakeTimer('advanceTimersByTime', [25]);
 
     // Then
     expect(caughtExpectedError).toBe(true);
     expect(store.getState()).toEqual({ count: 1 });
   } finally {
-    Reflect.set(globalThis, 'setTimeout', originalSetTimeout);
+    callBunFakeTimer('clearAllTimers');
+    callBunFakeTimer('useRealTimers');
+  }
+});
+
+test('Given a debounced Store, when a flushing updater disposes, reuses, and throws, then the new schedule still flushes', () => {
+  // Given
+  callBunFakeTimer('useFakeTimers');
+  const store = pipe.use(debounce(25)).create({ count: 0 });
+  const expectedError = new Error('Expected updater failure');
+
+  try {
+    // When
+    const caughtExpectedError = captureExpectedTimerError(expectedError, () => {
+      store.setState(() => {
+        dispose(store);
+        store.setState({ count: 1 });
+        throw expectedError;
+      });
+      callBunFakeTimer('advanceTimersByTime', [25]);
+      callBunFakeTimer('advanceTimersByTime', [25]);
+    });
+
+    // Then
+    expect(caughtExpectedError).toBe(true);
+    expect(store.getState()).toEqual({ count: 1 });
+  } finally {
     callBunFakeTimer('clearAllTimers');
     callBunFakeTimer('useRealTimers');
   }
