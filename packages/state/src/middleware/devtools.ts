@@ -48,11 +48,12 @@ const applyDevtools = <T>(initialState: T | Store<T>, name: string) => {
   let isDispatchAction = false;
 
   const runDispatchAction = (action: () => void): void => {
+    const wasDispatchAction = isDispatchAction;
     isDispatchAction = true;
     try {
       action();
     } finally {
-      isDispatchAction = false;
+      isDispatchAction = wasDispatchAction;
     }
   };
 

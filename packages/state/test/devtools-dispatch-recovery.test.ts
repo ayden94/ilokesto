@@ -76,3 +76,34 @@ test('Given DevTools ROLLBACK and a once-throwing downstream middleware, when RO
     ]);
   });
 });
+
+test('Given a synchronous listener that dispatches ROLLBACK during DevTools RESET, when RESET completes then an ordinary update follows, then only the ordinary update is sent', () => {
+  // Given
+  withBrowserFakes<CounterState>((_, connections) => {
+    const store = pipe.use(devtools('nested-dispatch-recovery')).create<CounterState>({ count: 0 });
+    const connection = connections[0];
+    let shouldRollback = true;
+    store.setState({ count: 1 });
+    connection.sends.length = 0;
+    store.subscribe(() => {
+      if (shouldRollback) {
+        shouldRollback = false;
+        connection.listener?.({
+          payload: { type: 'ROLLBACK' },
+          state: JSON.stringify({ count: 2 }),
+          type: 'DISPATCH',
+        });
+      }
+    });
+
+    // When
+    connection.listener?.({ payload: { type: 'RESET' }, type: 'DISPATCH' });
+    store.setState({ count: 3 });
+
+    // Then
+    expect(store.getState()).toEqual({ count: 3 });
+    expect(connection.sends).toEqual([
+      { action: 'nested-dispatch-recovery:anonymous action', state: { count: 3 } },
+    ]);
+  });
+});
