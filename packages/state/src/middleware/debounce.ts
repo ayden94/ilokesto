@@ -89,9 +89,10 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
  * `persist`, `persist` must be declared after `debounce` in the pipe chain.
  *
  * @param wait - Debounce delay in milliseconds. Must be a finite non-negative
- *   number. Defaults to `300`.
+ *   number; `0` is valid. Defaults to `300`.
  * @returns Pipe middleware registered with `@ilokesto/state/debounce` metadata.
- * @throws {RangeError} If `wait` is not a finite non-negative number.
+ * @throws {RangeError} If `wait` is not a finite non-negative number. Throws
+ *   during the factory call, before middleware or timer setup.
  *
  * @example
  * ```ts

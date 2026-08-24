@@ -275,8 +275,9 @@ counterStore.undo();
 order. Delayed updates do not provide the synchronous commit boundary history needs. Pipe rejects
 that conflict and never reorders middleware to make a chain valid.
 
-`debounce()` coalesces updates into one commit after its wait period. Its wait must be a finite
-non-negative number of milliseconds; `0` is valid.
+`debounce()` coalesces updates into one commit after its wait period, which defaults to `300`
+milliseconds. Its wait must be finite and non-negative; `0` is valid. Invalid waits throw
+`RangeError` before middleware or timer setup.
 
 `throttle()` uses leading-drop behavior: the first update passes through immediately, then later
 updates are dropped until the wait period ends.
