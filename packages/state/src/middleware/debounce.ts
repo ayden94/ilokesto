@@ -31,21 +31,23 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
 
     timeout = setTimeout(() => {
       let currentState = store.getState() as T;
-
-      updates.forEach((update) => {
-        if (typeof update === 'function') {
-          currentState = (update as (prev: Readonly<T>) => T)(currentState);
-        } else {
-          currentState = update;
-        }
-      });
-
       const pendingNext = savedNext;
-      updates = [];
-      timeout = null;
-      savedNext = null;
-      unregisterTimeout?.();
-      unregisterTimeout = null;
+
+      try {
+        updates.forEach((update) => {
+          if (typeof update === 'function') {
+            currentState = (update as (prev: Readonly<T>) => T)(currentState);
+          } else {
+            currentState = update;
+          }
+        });
+      } finally {
+        updates = [];
+        timeout = null;
+        savedNext = null;
+        unregisterTimeout?.();
+        unregisterTimeout = null;
+      }
 
       if (pendingNext) {
         pendingNext(currentState);
@@ -71,7 +73,8 @@ const applyDebounce = <T>(initialState: T | Store<T>, wait = 300): Store<T> => {
  *
  * Coalesces all updates within the wait period into a single commit.
  * Function updaters are applied sequentially against the latest state at
- * flush time; value updates overwrite previous ones.
+ * flush time; value updates overwrite previous ones. If an updater throws,
+ * its error surfaces and later updates remain schedulable.
  *
  * @param wait - Debounce delay in milliseconds. Defaults to `300`.
  * @returns Pipe middleware registered with `@ilokesto/state/debounce` metadata.

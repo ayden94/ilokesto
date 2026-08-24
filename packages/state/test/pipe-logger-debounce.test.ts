@@ -146,6 +146,47 @@ test('Given duplicate logger or debounce pipe middleware, when a chain is built,
   }
 });
 
+test('Given a debounced Store, when a function updater throws during flush, then later updates still flush', () => {
+  // Given
+  callBunFakeTimer('useFakeTimers');
+  const store = pipe.use(debounce(25)).create({ count: 0 });
+  const expectedError = new Error('Expected updater failure');
+  let caughtExpectedError = false;
+  const originalSetTimeout = globalThis.setTimeout;
+  const catchUpdaterErrors = (callback: () => void, wait?: number) => {
+    return originalSetTimeout(() => {
+      try {
+        callback();
+      } catch (error) {
+        if (error !== expectedError) {
+          throw error;
+        }
+
+        caughtExpectedError = true;
+      }
+    }, wait);
+  };
+  Reflect.set(globalThis, 'setTimeout', catchUpdaterErrors);
+
+  try {
+    // When
+    store.setState(() => {
+      throw expectedError;
+    });
+    callBunFakeTimer('advanceTimersByTime', [25]);
+    store.setState({ count: 1 });
+    callBunFakeTimer('advanceTimersByTime', [25]);
+
+    // Then
+    expect(caughtExpectedError).toBe(true);
+    expect(store.getState()).toEqual({ count: 1 });
+  } finally {
+    Reflect.set(globalThis, 'setTimeout', originalSetTimeout);
+    callBunFakeTimer('clearAllTimers');
+    callBunFakeTimer('useRealTimers');
+  }
+});
+
 test('Given a debounced Store via pipe, when timers expire and disposal interrupts later updates, then expiry unregisters cleanup and the Store remains reusable', () => {
   // Given
   callBunFakeTimer('useFakeTimers');
