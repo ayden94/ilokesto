@@ -372,7 +372,8 @@ counterStore.getState().count;
 - `@ilokesto/state/svelte` → Svelte 어댑터
 - `@ilokesto/state/solid` → Solid 어댑터
 - `@ilokesto/state/middleware` → 미들웨어 헬퍼
-- `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, pipe 타입
+- `@ilokesto/state/utils` → `pipe`, `definePipeableMiddleware`, pipe 타입
+- `@ilokesto/state/adaptor` → `adaptor` (optional `immer` peer dependency 필요)
 
 ## 마이그레이션: 통합 shallow Selector 구독
 

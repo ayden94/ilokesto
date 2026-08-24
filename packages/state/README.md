@@ -374,7 +374,8 @@ This is a breaking change. Callable and variadic pipe syntax has been removed. R
 - `@ilokesto/state/svelte` → Svelte adapter
 - `@ilokesto/state/solid` → Solid adapter
 - `@ilokesto/state/middleware` → middleware helpers
-- `@ilokesto/state/utils` → `adaptor`, `pipe`, `definePipeableMiddleware`, and pipe types
+- `@ilokesto/state/utils` → `pipe`, `definePipeableMiddleware`, and pipe types
+- `@ilokesto/state/adaptor` → `adaptor` (requires the optional `immer` peer dependency)
 
 ## Migration: unified shallow selector subscriptions
 
