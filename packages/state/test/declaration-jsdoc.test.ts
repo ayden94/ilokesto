@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import ts from 'typescript';
 
 type PublicDeclaration = Readonly<{
@@ -10,51 +11,67 @@ type PublicDeclaration = Readonly<{
 
 const projectRoot = join(import.meta.dir, '..');
 const publicDeclarations = [
-  { exportName: 'create', relativePath: 'dist/core/React/index.d.ts' },
-  { exportName: 'throttle', relativePath: 'dist/middleware/throttle.d.ts' },
-  { exportName: 'adaptor', relativePath: 'dist/utils/adaptor.d.ts' },
+  { exportName: 'create', relativePath: 'core/React/index.d.ts' },
+  { exportName: 'create', relativePath: 'core/Vue/index.d.ts' },
+  { exportName: 'create', relativePath: 'core/Angular/index.d.ts' },
+  { exportName: 'create', relativePath: 'core/Svelte/index.d.ts' },
+  { exportName: 'create', relativePath: 'core/Solid/index.d.ts' },
+  { exportName: 'persist', relativePath: 'middleware/persist/index.d.ts' },
+  { exportName: 'definePipeableMiddleware', relativePath: 'utils/pipe/metadata.d.ts' },
+  { exportName: 'throttle', relativePath: 'middleware/throttle.d.ts' },
+  { exportName: 'adaptor', relativePath: 'utils/adaptor.d.ts' },
 ] as const satisfies readonly PublicDeclaration[];
 
-test('Given a fresh state build, When public declarations are emitted, Then framework and middleware utility exports retain JSDoc', () => {
+test('Given an isolated declaration build, When public declarations are emitted, Then framework and middleware utility exports retain JSDoc', () => {
   // Given
-  const build = Bun.spawnSync({
-    cmd: ['pnpm', 'build'],
-    cwd: projectRoot,
-    stderr: 'pipe',
-    stdout: 'pipe',
-  });
+  const declarationDirectory = mkdtempSync(join(tmpdir(), 'ilokesto-state-declarations-'));
 
-  // When
-  expect(build.exitCode).toBe(0);
-  const declarations = publicDeclarations.map((declaration) => {
-    const declarationPath = join(projectRoot, declaration.relativePath);
-    const sourceFile = ts.createSourceFile(
-      declarationPath,
-      readFileSync(declarationPath, 'utf8'),
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TS,
-    );
-    const functions = sourceFile.statements.filter(
-      (statement): statement is ts.FunctionDeclaration =>
-        ts.isFunctionDeclaration(statement) &&
-        statement.name?.text === declaration.exportName &&
-        statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) === true,
-    );
+  try {
+    const build = Bun.spawnSync({
+      cmd: [
+        'pnpm',
+        'exec',
+        'tsc',
+        '--outDir',
+        declarationDirectory,
+        '--declarationDir',
+        declarationDirectory,
+      ],
+      cwd: projectRoot,
+    });
 
-    if (functions.length === 0) {
-      throw new Error(`Missing exported declaration: ${declaration.relativePath}#${declaration.exportName}`);
+    // When
+    expect(build.exitCode).toBe(0);
+    const declarations = publicDeclarations.map((declaration) => {
+      const declarationPath = join(declarationDirectory, declaration.relativePath);
+      const sourceFile = ts.createSourceFile(
+        declarationPath,
+        readFileSync(declarationPath, 'utf8'),
+        ts.ScriptTarget.Latest,
+        true,
+        ts.ScriptKind.TS,
+      );
+      const functions = sourceFile.statements.filter(
+        (statement): statement is ts.FunctionDeclaration =>
+          ts.isFunctionDeclaration(statement) &&
+          statement.name?.text === declaration.exportName &&
+          statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword) === true,
+      );
+
+      if (functions.length === 0) {
+        throw new Error(`Missing exported declaration: ${declaration.relativePath}#${declaration.exportName}`);
+      }
+
+      return functions;
+    });
+
+    // Then
+    for (const declarationsForExport of declarations) {
+      for (const declaration of declarationsForExport) {
+        expect(ts.getJSDocCommentsAndTags(declaration).length).toBeGreaterThan(0);
+      }
     }
-
-    return functions;
-  });
-
-  // Then
-  for (const declarationsForExport of declarations) {
-    expect(
-      declarationsForExport.some(
-        (declaration) => ts.getJSDocCommentsAndTags(declaration).length > 0,
-      ),
-    ).toBeTrue();
+  } finally {
+    rmSync(declarationDirectory, { force: true, recursive: true });
   }
 }, { timeout: 180_000 });
