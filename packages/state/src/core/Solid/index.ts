@@ -7,13 +7,6 @@ export type { UseReducer, UseState } from './types.js';
 import { createFrameworkAdapter } from '../shared/createFrameworkAdapter.js';
 import { createUseAccessor } from './createUseAccessor.js';
 
-export function create<T, Action extends ReducerAction>(
-  reduceFn: ReduceFn<T, Action>,
-  initialState: T | Store<T>,
-): UseReducer<T, Action>;
-
-export function create<T>(initialState: T | Store<T>): UseState<T>;
-
 /**
  * Create a Solid accessor from plain state or a reducer.
  *
@@ -23,6 +16,13 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  * remains exact `T`, including its declared own-property modifiers. Selectors
  * and `.readOnly()` use the same snapshot.
  */
+export function create<T, Action extends ReducerAction>(
+  reduceFn: ReduceFn<T, Action>,
+  initialState: T | Store<T>,
+): UseReducer<T, Action>;
+
+export function create<T>(initialState: T | Store<T>): UseState<T>;
+
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,
   secondArg?: T | Store<T>,

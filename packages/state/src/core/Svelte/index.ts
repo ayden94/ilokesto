@@ -7,13 +7,6 @@ export type { UseReducer, UseState } from './types.js';
 import { createFrameworkAdapter } from '../shared/createFrameworkAdapter.js';
 import { createStore } from './createStore.js';
 
-export function create<T, Action extends ReducerAction>(
-  reduceFn: ReduceFn<T, Action>,
-  initialState: T | Store<T>,
-): UseReducer<T, Action>;
-
-export function create<T>(initialState: T | Store<T>): UseState<T>;
-
 /**
  * Create a Svelte store from plain state or a reducer.
  *
@@ -24,6 +17,13 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  * modifiers. For reducer state, returns a readable store with `dispatch`
  * instead of `set`/`update`.
  */
+export function create<T, Action extends ReducerAction>(
+  reduceFn: ReduceFn<T, Action>,
+  initialState: T | Store<T>,
+): UseReducer<T, Action>;
+
+export function create<T>(initialState: T | Store<T>): UseState<T>;
+
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,
   secondArg?: T | Store<T>,
