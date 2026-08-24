@@ -156,7 +156,8 @@ export function persist<DecodedState, const Steps extends readonly MigrationFn[]
  * become live state.
  *
  * Supports `localStorage`, `sessionStorage`, and cookies. Cookie writes
- * include `path=/` so they are visible across all routes.
+ * include `path=/` so they are visible across all routes. When used with
+ * `debounce`, `persist` must be declared after `debounce` in the pipe chain.
  *
  * @param options - Persistence configuration. Must include a storage key,
  *   a `decode` function, and optionally `migrate`, `skipHydration`, and

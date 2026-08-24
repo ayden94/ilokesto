@@ -144,8 +144,8 @@ export function definePipeableMiddleware<
   const Adds extends readonly PipeCapability[] = readonly [],
   const Duplicate extends PipeDuplicatePolicy = 'reject',
   const Conflicts extends readonly string[] = readonly string[],
-  const Before extends readonly string[] = readonly [],
-  const After extends readonly string[] = readonly [],
+  const Before extends readonly string[] = readonly string[],
+  const After extends readonly string[] = readonly string[],
 >(
   middleware: PipeAnyMiddleware<Requires, Adds>,
   metadata: PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate, Conflicts, Before, After>,
@@ -160,8 +160,8 @@ export function definePipeableMiddleware<
   const Adds extends readonly PipeCapability[] = readonly [],
   const Duplicate extends PipeDuplicatePolicy = 'reject',
   const Conflicts extends readonly string[] = readonly string[],
-  const Before extends readonly string[] = readonly [],
-  const After extends readonly string[] = readonly [],
+  const Before extends readonly string[] = readonly string[],
+  const After extends readonly string[] = readonly string[],
 >(
   middleware: PipeMiddleware<State, Requires, Adds>,
   metadata: PipeMiddlewareMetadata<Id, Requires, Adds, Duplicate, Conflicts, Before, After>,
