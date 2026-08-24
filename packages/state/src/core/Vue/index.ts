@@ -19,8 +19,9 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  *
  * Returns a function that must be called inside `setup()` or an active
  * `effectScope()`. Without a selector, `state` is a `ComputedRef` of a
- * read-only snapshot: object state is `Readonly<T>`, while callable state keeps
- * its call signature. Selectors and `.readOnly()` use the same snapshot.
+ * read-only snapshot: object state is `Readonly<T>`, while callable state
+ * remains exact `T`, including its declared own-property modifiers. Selectors
+ * and `.readOnly()` use the same snapshot.
  */
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,

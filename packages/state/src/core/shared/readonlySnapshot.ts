@@ -1,15 +1,15 @@
 /**
- * A read-only state snapshot that retains a callable state's call signature.
+ * A state snapshot that preserves callable types exactly.
  *
- * `Readonly<T>` maps callable types to their own properties and erases their
- * call signature. Intersecting the reconstructed signature with `Readonly<T>`
- * keeps callable own properties read-only without freezing runtime values.
+ * `Readonly<T>` erases call signatures. TypeScript cannot map arbitrary
+ * generic or overloaded call signatures while preserving them, so callable
+ * state remains `T`, including its declared own-property modifiers.
  */
-export type ReadonlySnapshot<T> = T extends (
-  ...arguments_: infer Arguments
-) => infer Result
-  ? ((...arguments_: Arguments) => Result) & Readonly<T>
-  : Readonly<T>;
+type FunctionLike =
+  | ((...arguments_: never[]) => unknown)
+  | (abstract new (...arguments_: never[]) => unknown);
+
+export type ReadonlySnapshot<T> = T extends FunctionLike ? T : Readonly<T>;
 
 export function readonlySnapshot<T>(state: Readonly<T>): ReadonlySnapshot<T> {
   return state as ReadonlySnapshot<T>;

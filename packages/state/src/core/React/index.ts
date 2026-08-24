@@ -18,7 +18,8 @@ export function create<T>(initialState: T | Store<T>): UseState<T>;
  * Returns a hook compatible with `useSyncExternalStore`. Call it with a
  * selector to subscribe to a slice; call without arguments to receive a
  * read-only first tuple item. Object state is `Readonly<T>`; callable state
- * retains its call signature. Selectors and `.readOnly()` use the same snapshot.
+ * remains exact `T`, including its declared own-property modifiers. Selectors
+ * and `.readOnly()` use the same snapshot.
  */
 export function create<T, Action extends ReducerAction>(
   firstArg: Store<T> | T | ReduceFn<T, Action>,

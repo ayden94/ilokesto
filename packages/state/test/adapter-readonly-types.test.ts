@@ -66,6 +66,16 @@ test('Given source adapter contracts, when callable state is read, selected, or 
   expect(result.diagnostics).toBe('');
 });
 
+test('Given source adapter contracts, when generic and overloaded callable state is read, selected, or observed without a selector, then every adapter preserves exact signatures', () => {
+  // Given / When
+  const result = compileAdapterFixture('source-callable-signatures-valid');
+
+  // Then
+  expect(result.success, result.diagnostics).toBeTrue();
+  expect(result.exitCode).toBe(0);
+  expect(result.diagnostics).toBe('');
+});
+
 test('Given source adapter contracts, when selectors or lifecycle-free reads mutate state, then every adapter rejects them', () => {
   // Given / When / Then
   expectReadonlyMutationErrors('source-invalid');
@@ -84,6 +94,16 @@ test('Given generated adapter declarations, when valid public-subpath consumers 
 test('Given generated adapter declarations, when callable public-subpath state is read, selected, or observed without a selector, then every adapter preserves its call signature', () => {
   // Given / When
   const result = compileAdapterFixture('dist-callable-valid');
+
+  // Then
+  expect(result.success, result.diagnostics).toBeTrue();
+  expect(result.exitCode).toBe(0);
+  expect(result.diagnostics).toBe('');
+});
+
+test('Given generated adapter declarations, when generic and overloaded callable public-subpath state is read, selected, or observed without a selector, then every adapter preserves exact signatures', () => {
+  // Given / When
+  const result = compileAdapterFixture('dist-callable-signatures-valid');
 
   // Then
   expect(result.success, result.diagnostics).toBeTrue();
