@@ -61,4 +61,4 @@ timer가 실행되기 전까지 `getState()`는 이전에 commit된 state를 반
 
 ## Cleanup
 
-`debounce`는 대기 중인 timer를 소유합니다. Store가 더 이상 필요 없으면 `@ilokesto/state/middleware`의 `dispose(store)`를 호출해 취소하세요. Disposal은 해당 store에만 적용되며 반복 호출해도 안전합니다.
+`debounce`는 대기 중인 timer를 소유합니다. Store가 더 이상 필요 없으면 `@ilokesto/state/middleware`의 `dispose(store)`를 호출해 취소하세요. Disposal은 해당 store에만 적용되며 반복 호출해도 안전합니다. Cleanup 하나가 실패해도 등록된 모든 cleanup을 시도하며, 하나라도 실패하면 각 원래 thrown value가 담긴 `AggregateError`를 throw합니다.

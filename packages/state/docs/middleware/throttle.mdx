@@ -34,7 +34,7 @@ dispose(store);
 
 ## Cleanup ownership
 
-`throttle` owns the pending timer for the store it prepares. Call `dispose(store)` when that specific store is no longer needed to cancel the timer and reopen the gate. Disposal is scoped to the supplied store, does not invalidate it or unsubscribe consumers, and is safe to call repeatedly.
+`throttle` owns the pending timer for the store it prepares. Call `dispose(store)` when that specific store is no longer needed to cancel the timer and reopen the gate. Disposal is scoped to the supplied store, does not invalidate it or unsubscribe consumers, and is safe to call repeatedly. It still attempts every registered cleanup after a failure, then throws an `AggregateError` containing each original thrown value when any cleanup fails.
 
 ## Composition constraints
 

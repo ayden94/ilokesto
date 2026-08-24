@@ -65,3 +65,5 @@ Put validation before persistence when invalid state should never be stored. Put
 ## Store disposal
 
 Timer-based middleware and middleware with external subscriptions register cleanup on the store they prepare. Call `dispose(store)` from `@ilokesto/state/middleware` when that specific store is no longer needed. It cancels pending debounce or throttle work and releases middleware-owned resources such as DevTools subscriptions. Disposal does not unsubscribe consumers or invalidate the Store; it is scoped to the supplied store, is safe to call repeatedly, and runs a newly registered cleanup only on a later call.
+
+Disposal attempts every registered cleanup even when one throws. If one or more cleanups throw, `dispose` rethrows an `AggregateError` whose `errors` contain the original errors or other thrown values.

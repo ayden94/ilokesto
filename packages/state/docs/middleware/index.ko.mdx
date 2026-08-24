@@ -65,3 +65,5 @@ invalid state가 절대 저장되면 안 된다면 validation을 persistence보�
 ## Store 정리
 
 Timer 기반 middleware와 외부 subscription을 가진 middleware는 자신이 준비한 store에 cleanup을 등록합니다. 해당 store가 더 이상 필요 없으면 `@ilokesto/state/middleware`의 `dispose(store)`를 호출하세요. 대기 중인 debounce/throttle 작업을 취소하고 DevTools subscription 같은 middleware 소유 resource를 해제합니다. disposal은 consumer를 unsubscribe하거나 Store를 무효화하지 않습니다. 전달한 store에만 적용되고 여러 번 안전하게 호출할 수 있으며, 나중에 새 cleanup이 등록된 경우에만 이후 호출에서 실행합니다.
+
+Disposal은 cleanup 하나가 throw해도 등록된 모든 cleanup을 시도합니다. 하나 이상의 cleanup이 throw하면 `dispose`는 원래 error 또는 다른 thrown value가 `errors`에 담긴 `AggregateError`를 다시 throw합니다.

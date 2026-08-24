@@ -61,11 +61,11 @@ const store = pipe
 
 ## Custom middleware
 
-`.use()`에 전달하는 모든 값은 `definePipeableMiddleware()`로 등록되어야 합니다. 각 middleware에 `id`를 주고 metadata로 `adds`, `requires`, `before`, `after`, `conflicts`, optional `duplicate` policy를 선언하세요. 앞선 바깥 middleware가 추가한 capability는 이후 안쪽 middleware에서 사용할 수 있습니다. Chain에 없는 middleware와의 관계는 무시하지만, 존재하는 관계, conflict, duplicate ID, cycle은 재정렬 없이 거부됩니다.
+`.use()`에 전달하는 모든 값은 `definePipeableMiddleware()`로 등록되어야 합니다. 각 middleware에 `id`를 주고 metadata로 `adds`, `requires`, `before`, `after`, `conflicts`, optional `duplicate` policy를 선언하세요. 앞선 바깥 middleware가 추가한 capability는 이후 안쪽 middleware에서 사용할 수 있습니다. Chain에 없는 middleware와의 관계는 무시합니다. 존재하는 `before` 또는 `after` 관계에서는 pipe가 선언한 방향을 검증하고, 위반된(반대) 순서만 거부합니다. 유효한 관계는 선언한 순서를 유지합니다. Conflict, duplicate ID, cycle도 재정렬 없이 거부됩니다.
 
-## Configuration error
+## Configuration errors
 
-`PipeConfigurationError`는 실패한 middleware의 `id`, 관련 `ids`, 그리고 `DUPLICATE_CAPABILITY`, `DUPLICATE_MIDDLEWARE`, `INVALID_METADATA`, `INVALID_MIDDLEWARE_RESULT`, `INVALID_STORE_INPUT`, `MISSING_CAPABILITY`, `MIDDLEWARE_CONFLICT`, `MIDDLEWARE_CYCLE`, `MIDDLEWARE_ORDER` 중 하나인 code를 노출합니다.
+`PipeConfigurationError`는 문맥에 따른 기본 `id`, 관련 `ids`, 그리고 `DUPLICATE_CAPABILITY`, `DUPLICATE_MIDDLEWARE`, `INVALID_METADATA`, `INVALID_MIDDLEWARE_RESULT`, `INVALID_STORE_INPUT`, `MISSING_CAPABILITY`, `MIDDLEWARE_CONFLICT`, `MIDDLEWARE_CYCLE`, `MIDDLEWARE_ORDER` 중 하나인 code를 노출합니다. 기본 ID는 middleware나 capability를 가리킬 수 있고 적용할 identifier가 없으면 비어 있습니다. `ids`에는 관련된 문맥 identifier가 들어가며 비어 있을 수도 있습니다.
 
 `history()`는 동기 commit이 필요하므로 어느 순서든 `debounce()` 또는 `throttle()`과 같은 chain에 둘 수 없고 이 조합은 `MIDDLEWARE_CONFLICT`를 사용합니다. `debounce()`와 `persist()`를 함께 쓸 때는 `pipe.use(debounce(...)).use(persist(...))`처럼 debounce를 먼저 선언하세요. 반대 순서는 persistence가 deferred commit을 놓치므로 `MIDDLEWARE_ORDER`를 사용합니다.
 

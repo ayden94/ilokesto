@@ -61,4 +61,4 @@ Until the timer fires, `getState()` still returns the previous committed state. 
 
 ## Cleanup
 
-`debounce` owns its pending timer. When the store is no longer needed, call `dispose(store)` from `@ilokesto/state/middleware` to cancel it. Disposal is scoped to that store and is safe to repeat.
+`debounce` owns its pending timer. When the store is no longer needed, call `dispose(store)` from `@ilokesto/state/middleware` to cancel it. Disposal is scoped to that store and is safe to repeat. It still attempts every registered cleanup after a failure, then throws an `AggregateError` containing each original thrown value when any cleanup fails.

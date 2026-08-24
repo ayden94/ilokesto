@@ -61,11 +61,11 @@ Read the chain from top to bottom: register validation, register logging, then c
 
 ## Custom middleware
 
-Every value passed to `.use()` must be registered with `definePipeableMiddleware()`. Give each middleware an `id`; use metadata to declare `adds`, `requires`, `before`, `after`, `conflicts`, and the optional `duplicate` policy. Capabilities added by an earlier outer middleware are available to later inner middleware. A relationship to middleware absent from the chain is ignored, but present relationships, conflicts, duplicate IDs, and cycles are rejected without reordering.
+Every value passed to `.use()` must be registered with `definePipeableMiddleware()`. Give each middleware an `id`; use metadata to declare `adds`, `requires`, `before`, `after`, `conflicts`, and the optional `duplicate` policy. Capabilities added by an earlier outer middleware are available to later inner middleware. A relation to middleware absent from the chain is ignored. For a present `before` or `after` relation, pipe validates the declared direction and rejects only violated (reversed) order; valid relations keep their declared order. Conflicts, duplicate IDs, and cycles are also rejected without reordering.
 
 ## Configuration errors
 
-`PipeConfigurationError` exposes the failing middleware `id`, related `ids`, and a code: `DUPLICATE_CAPABILITY`, `DUPLICATE_MIDDLEWARE`, `INVALID_METADATA`, `INVALID_MIDDLEWARE_RESULT`, `INVALID_STORE_INPUT`, `MISSING_CAPABILITY`, `MIDDLEWARE_CONFLICT`, `MIDDLEWARE_CYCLE`, or `MIDDLEWARE_ORDER`.
+`PipeConfigurationError` exposes a contextual primary `id`, related `ids`, and a code: `DUPLICATE_CAPABILITY`, `DUPLICATE_MIDDLEWARE`, `INVALID_METADATA`, `INVALID_MIDDLEWARE_RESULT`, `INVALID_STORE_INPUT`, `MISSING_CAPABILITY`, `MIDDLEWARE_CONFLICT`, `MIDDLEWARE_CYCLE`, or `MIDDLEWARE_ORDER`. The primary ID can name a middleware or a capability, and is empty when no identifier applies; `ids` contains the related contextual identifiers and can also be empty.
 
 `history()` cannot share a chain with `debounce()` or `throttle()` in either order because history needs synchronous commits; those combinations use `MIDDLEWARE_CONFLICT`. When using `debounce()` and `persist()`, declare debounce first: `pipe.use(debounce(...)).use(persist(...))`. The reverse uses `MIDDLEWARE_ORDER` because persistence would miss the deferred commit.
 

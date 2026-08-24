@@ -34,7 +34,7 @@ dispose(store);
 
 ## Cleanup 소유권
 
-`throttle`은 자신이 준비한 store의 pending timer를 소유합니다. 해당 store가 더 이상 필요 없으면 `dispose(store)`를 호출해 timer를 취소하고 gate를 다시 여세요. Disposal은 전달한 store에만 적용되고 store를 무효화하거나 consumer를 unsubscribe하지 않으며 반복 호출해도 안전합니다.
+`throttle`은 자신이 준비한 store의 pending timer를 소유합니다. 해당 store가 더 이상 필요 없으면 `dispose(store)`를 호출해 timer를 취소하고 gate를 다시 여세요. Disposal은 전달한 store에만 적용되고 store를 무효화하거나 consumer를 unsubscribe하지 않으며 반복 호출해도 안전합니다. Cleanup 하나가 실패해도 등록된 모든 cleanup을 시도하며, 하나라도 실패하면 각 원래 thrown value가 담긴 `AggregateError`를 throw합니다.
 
 ## 조합 제약
 
