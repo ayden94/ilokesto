@@ -222,6 +222,9 @@ console.log(currentCount);
 
 - `pipe` to compose a store from plain state and registered middleware
 - `definePipeableMiddleware()` to register custom pipe middleware metadata
+
+### `@ilokesto/state/adaptor`
+
 - `adaptor()` to create immutable object updaters with immer
 
 `pipe` is builder-only. Start with `pipe.use(...)`, add middleware in outer-to-inner order, then call `.create(initialState)`. The first `.use()` is outermost during updates, while middleware setup runs left to right when `.create()` creates the Store.
