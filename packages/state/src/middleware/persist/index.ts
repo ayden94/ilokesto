@@ -3,7 +3,6 @@ import { getStore } from '../../lib/getStore.js';
 import { definePipeableMiddleware } from '../../utils/pipe/metadata.js';
 import type { PipeableMiddleware } from '../../utils/pipe/metadata.js';
 import type {
-  PipeAnyMiddleware,
   PipeCapability,
   PipeMiddleware,
   PipeMiddlewareMetadata,
@@ -16,14 +15,6 @@ import type {
   SafePersistConfig,
 } from './Persist.js';
 import { getSafeStorage, parseOptions, setStorage } from './persistUtils.js';
-
-type PersistMetadata = PipeMiddlewareMetadata<
-  '@ilokesto/state/persist',
-  readonly [],
-  readonly [],
-  'reject',
-  readonly []
->;
 
 type PersistCapability = PipeCapability<
   '@ilokesto/state/persist-controls',
@@ -47,7 +38,9 @@ type SafeCurriedPersist<State> = PipeableMiddleware<
     readonly [],
     readonly [PersistCapability],
     'reject',
-    readonly []
+    readonly [],
+    readonly [],
+    readonly ['@ilokesto/state/debounce']
   >,
   'persist-decoder'
 >;
@@ -181,7 +174,7 @@ export function persist<DecodedState, const Steps extends readonly MigrationFn[]
       ),
     {
       adds: [persistCapability],
-      after: [],
+      after: ['@ilokesto/state/debounce'],
       before: [],
       conflicts: [],
       duplicate: 'reject',
