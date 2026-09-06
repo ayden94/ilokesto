@@ -43,6 +43,11 @@ All package source lives under `packages/` in one pnpm workspace. Changesets ver
 
 `store` is intentionally small and framework-agnostic. Higher-level packages build on it rather than duplicating state primitives.
 
+The next major foundation exports `ReadableStore`/`StoreApi` structural contracts
+and `createStore`. Commits stay immediate; notifications drain synchronously in FIFO
+order using captured commit values. Subscription ownership and delivery failures
+are defined in `DECISIONS/005-state-foundation.md`.
+
 ### 3. `overlay` is the shared React layer
 
 Both `modal` and `toast` are built on `overlay`. This keeps lifecycle, provider scoping, and adapter behavior consistent across layered UI components.
@@ -55,12 +60,16 @@ The `modal` / `globalModalStore` facade is the backward-compatible exception: pr
 
 `state`, `form`, and future packages provide React/Vue/Solid/Svelte/Angular adapters in their own package directories. The core stays framework-agnostic.
 
+State's root now owns vanilla construction and composition. Framework `bind(store)`
+and `bindReducer(handle)` connect existing state without recreating it or
+re-registering reducers. Existing `create` helpers use this same foundation.
+
 ### 5. Docs live with source
 
-Each package owns its `docs/` folder. The central `ilokesto/docs` site consumes those folders via root package-scoped workflows. This keeps documentation close to the code it describes.
+Each package owns its `docs/` folder. The private `apps/docs` Next.js/Fumadocs workspace consumes these originals, keeping code, content, and site changes in one review. English and Korean public URL paths remain unchanged. See `DECISIONS/004-docs-in-monorepo.md` for the production transition.
 
 ## Cross-cutting automation
 
 - **Release**: Root Changesets versioning and the gated release job in `.github/workflows/ci.yml` create release PRs and publish packages after verification. `fetcher` publishes on `beta`; stable packages publish on `latest`.
-- **Docs sync**: Root package-scoped workflows open PRs in `ilokesto/docs` when `packages/<name>/docs/` changes on `main`.
+- **Documentation**: Root build, typecheck, and tests include `apps/docs`. Existing package-scoped sync workflows continue updating `ilokesto/docs` until production is switched, then are removed.
 - **CI**: Root CI installs one lockfile, builds in dependency order, and preserves package-specific quality gates.

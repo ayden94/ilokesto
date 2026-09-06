@@ -19,7 +19,7 @@ import { For } from '@ilokesto/utilinent';
 
 | Prop | Type | 설명 |
 | --- | --- | --- |
-| `each` | `T[] | null | undefined` | 렌더링할 array입니다. 비었거나 없으면 fallback을 렌더링합니다. |
+| `each` | `T[] \| null \| undefined` | 렌더링할 array입니다. 비었거나 없으면 fallback을 렌더링합니다. |
 | `children` | `(item, index) => ReactNode` | 각 item의 render function입니다. |
 | `fallback` | `ReactNode` | Empty-state UI입니다. 기본값은 `null`입니다. |
 

@@ -36,6 +36,9 @@ try {
   writeFileSync(
     path.join(consumerDirectory, 'package.json'),
     JSON.stringify({
+      packageManager: JSON.parse(
+        readFileSync(path.resolve(packageDirectory, '../../package.json'), 'utf8'),
+      ).packageManager,
       dependencies: {
         '@ilokesto/form': `file:${formTarball}`,
         '@ilokesto/store': `file:${storeTarball}`,

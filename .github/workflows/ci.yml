@@ -95,16 +95,16 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --filter @ilokesto/modal exec playwright install --with-deps chromium
 
-      - name: Build packages
+      - name: Build workspace packages and documentation
         run: pnpm build
 
       - name: Test workspace build graph
         run: pnpm test:monorepo
 
-      - name: Typecheck packages
+      - name: Typecheck workspace packages and documentation
         run: pnpm typecheck
 
-      - name: Test packages
+      - name: Test workspace packages and documentation
         run: pnpm test
 
       - name: Verify form distribution

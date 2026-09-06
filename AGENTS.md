@@ -27,6 +27,7 @@ ilokesto/
 │   ├── lanes/
 │   └── search-runs/
 ├── .worktrees/             # Isolated implementation worktrees
+├── apps/docs/             # Private official documentation site
 ├── packages/               # Publishable @ilokesto packages
 ├── DECISIONS/              # Architecture Decision Records
 ├── AGENTS.md
@@ -42,7 +43,7 @@ ilokesto/
 
 - **Independent versions**: Packages share Git history but retain separate versions and changelogs.
 - **One release control plane**: Changesets, lockfile, CI, and publishing are rooted here.
-- **Docs live with source**: Package docs remain beside source and root workflows sync them to `ilokesto/docs`.
+- **Docs live with source**: Package docs remain beside source and `apps/docs` consumes the originals. Legacy sync workflows remain until production switches; see `DECISIONS/004-docs-in-monorepo.md`.
 - **Shared patterns over shared code**: Prefer conventions documented here before adding cross-package abstractions.
 
 ## OpenCode agent, command, and skill structure

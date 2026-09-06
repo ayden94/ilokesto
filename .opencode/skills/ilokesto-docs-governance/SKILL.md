@@ -15,7 +15,8 @@ This skill captures the documentation rules that `ilokesto-docs-release-reviewer
 ## Docs Live With Source
 
 - Each package keeps documentation in `packages/<name>/docs/`.
-- Root workflows sync package docs to `ilokesto/docs` via `.github/workflows/sync-docs.yml`.
+- The private `apps/docs` workspace consumes package originals. Site-wide changes belong there.
+- Legacy `.github/workflows/sync-docs-*.yml` and `_sync-docs.yml` keep the existing production repository updated until deployment switches; see `DECISIONS/004-docs-in-monorepo.md`.
 - Package docs are excluded from npm publish tarballs via `packages/<name>/.npmignore`.
 
 ## Fumadocs Structure
@@ -40,11 +41,12 @@ docs/
 - The two must stay in sync for public API, examples, and migration notes.
 - README is the canonical documentation until a separate docs site covers a topic.
 
-## Sync Workflow
+## Site Validation and Legacy Sync
 
-- Push changes to `main` to trigger `.github/workflows/sync-docs.yml`.
-- The workflow opens a PR in `ilokesto/docs`.
-- Do not edit `ilokesto/docs` directly unless fixing site-wide layout.
+- Run `pnpm docs:test`, `pnpm docs:typecheck`, and `pnpm docs:build` from the root.
+- Validate English and Korean routes, search, and package navigation.
+- Do not edit generated content or maintain duplicate package MDX inside the app.
+- Keep legacy sync active until the production transition is approved and verified.
 
 ## Docs Sync Checklist
 
@@ -52,4 +54,4 @@ docs/
 - [ ] `meta.json` exists and declares navigation.
 - [ ] English and Korean MDX files are in sync.
 - [ ] `packages/<name>/.npmignore` excludes `docs/`.
-- [ ] No direct edits to `ilokesto/docs`.
+- [ ] Site changes live in `apps/docs`; package content remains in `packages/<name>/docs`.

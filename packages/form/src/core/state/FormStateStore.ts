@@ -1,4 +1,4 @@
-import { Store } from '@ilokesto/store';
+import { createStore, type StoreApi } from '@ilokesto/store';
 
 import { FieldStateFactory } from './FieldStateFactory';
 import { FormStateReader } from './FormStateReader';
@@ -14,7 +14,7 @@ import type { FieldPath, FieldPathInput, FieldState, FormError, FormState, PathK
  */
 export class FormStateStore<TValues> {
   /** subscribe/getState/setState를 제공하는 외부 store 구현체. */
-  private readonly store: Store<FormState<TValues>>;
+  private readonly store: StoreApi<FormState<TValues>>;
   /** field state와 values를 읽고 복원하는 전담 객체. */
   private readonly reader: FormStateReader<TValues>;
   /** immer 기반으로 FormState를 갱신하는 전담 객체. */
@@ -31,7 +31,7 @@ export class FormStateStore<TValues> {
    * FormStateInitializer는 nested object/array를 순회해 leaf field와 array key 정보를 만든다.
    */
   public constructor(defaultValues: TValues) {
-    this.store = new Store<FormState<TValues>>(FormStateInitializer.initialize(defaultValues));
+    this.store = createStore<FormState<TValues>>(FormStateInitializer.initialize(defaultValues));
     this.reader = new FormStateReader(() => this.store.getState());
     this.writer = new FormStateWriter(this.store);
   }

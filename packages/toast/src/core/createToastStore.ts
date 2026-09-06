@@ -1,11 +1,11 @@
-import { Store } from "@ilokesto/store";
+import { createStore } from "@ilokesto/store";
 import type { ToastId, ToastItem, ToastState, ToastStoreApi } from "../types/toast";
 
 export function createToastStore(): ToastStoreApi {
-  const store = new Store<ToastState>({ items: [], pausedAt: null });
+  const store = createStore<ToastState>({ items: [], pausedAt: null });
 
   function add(item: ToastItem): void {
-    store.setState((prev) => {
+    store.update((prev) => {
       const existingIndex = prev.items.findIndex((current) => current.id === item.id);
 
       if (existingIndex === -1) {

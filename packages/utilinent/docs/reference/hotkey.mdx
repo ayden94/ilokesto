@@ -18,8 +18,8 @@ import { Hotkey } from '@ilokesto/utilinent';
 
 | Prop | Type | Description |
 | --- | --- | --- |
-| `combo` | `string | "*"` | The key code to match. |
+| `combo` | `string \| "*"` | The key code to match. |
 | `onPress` | `(event) => void` | Invoked when the key is pressed. |
 | `enabled` | `boolean` | When `false`, the handler is not invoked. |
-| `event` | `"keydown" | "keyup"` | Listener event. Defaults to `keydown`. |
+| `event` | `"keydown" \| "keyup"` | Listener event. Defaults to `keydown`. |
 | `ignoreEditable` | `boolean` | Ignore events from editable elements. |

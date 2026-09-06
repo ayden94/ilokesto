@@ -20,7 +20,7 @@ import { ErrorBoundary } from '@ilokesto/utilinent';
 | Prop | Type | 설명 |
 | --- | --- | --- |
 | `children` | `ReactNode` | 보호할 subtree입니다. |
-| `fallback` | `ReactNode | ({ error, reset }) => ReactNode` | 하위 컴포넌트가 throw할 때 렌더링됩니다. |
+| `fallback` | `ReactNode \| ({ error, reset }) => ReactNode` | 하위 컴포넌트가 throw할 때 렌더링됩니다. |
 | `onError` | `(error, info) => void` | 에러가 잡혔을 때 호출됩니다. |
 | `resetKeys` | `readonly unknown[]` | 이 값들이 변경되면 boundary가 reset됩니다. |
 

@@ -1,4 +1,4 @@
-import { Store } from "@ilokesto/store";
+import { createStore } from "@ilokesto/store";
 import type {
   DisplayOptions,
   OverlayId,
@@ -24,7 +24,7 @@ function createOverlayItem(options: DisplayOptions, id: OverlayId): OverlayItem 
 }
 
 export function createOverlayStore(): OverlayStoreApi {
-  const store = new Store<OverlayState>({ items: [] });
+  const store = createStore<OverlayState>({ items: [] });
   const pendingSettlers = new Map<OverlayId, PendingSettler>();
   const pendingRequests = new Map<OverlayId, OverlayRequest>();
   let counter = 0;
@@ -71,7 +71,7 @@ export function createOverlayStore(): OverlayStoreApi {
     const request: OverlayRequest = { id, promise };
     pendingRequests.set(id, request);
 
-    store.setState((prev) => ({
+    store.update((prev) => ({
       ...prev,
       items: [...prev.items, item],
     }));
