@@ -1,4 +1,4 @@
-import type { Store } from '@ilokesto/store';
+import type { StoreApi } from '@ilokesto/store';
 import { produce } from 'immer';
 
 import { FieldStateFactory } from './FieldStateFactory';
@@ -7,7 +7,7 @@ import { FormPath } from '../path/index';
 import { ValueHelper } from '../value/index';
 import type { FieldPath, FormError, FormState, PathKey, ResetOptions, SetValueOptions } from '../types';
 
-type WritableFormStore<TValues> = Pick<Store<FormState<TValues>>, 'getState' | 'setState'>;
+type WritableFormStore<TValues> = Pick<StoreApi<FormState<TValues>>, 'getState' | 'setState'>;
 
 /**
  * FormState의 모든 쓰기 작업을 담당한다.

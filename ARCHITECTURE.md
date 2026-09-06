@@ -43,6 +43,11 @@ All package source lives under `packages/` in one pnpm workspace. Changesets ver
 
 `store` is intentionally small and framework-agnostic. Higher-level packages build on it rather than duplicating state primitives.
 
+The next major foundation exports `ReadableStore`/`StoreApi` structural contracts
+and `createStore`. Commits stay immediate; notifications drain synchronously in FIFO
+order using captured commit values. Subscription ownership and delivery failures
+are defined in `DECISIONS/005-state-foundation.md`.
+
 ### 3. `overlay` is the shared React layer
 
 Both `modal` and `toast` are built on `overlay`. This keeps lifecycle, provider scoping, and adapter behavior consistent across layered UI components.
@@ -54,6 +59,10 @@ The `modal` / `globalModalStore` facade is the backward-compatible exception: pr
 ### 4. Framework adapters live in consumer packages
 
 `state`, `form`, and future packages provide React/Vue/Solid/Svelte/Angular adapters in their own package directories. The core stays framework-agnostic.
+
+State's root now owns vanilla construction and composition. Framework `bind(store)`
+and `bindReducer(handle)` connect existing state without recreating it or
+re-registering reducers. Existing `create` helpers use this same foundation.
 
 ### 5. Docs live with source
 
