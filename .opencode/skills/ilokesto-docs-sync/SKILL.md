@@ -12,7 +12,7 @@ metadata:
 
 ## Trigger
 
-Load this skill when the user wants to sync a package's `docs/` folder to the central `ilokesto/docs` repository.
+Load this skill when connecting package documentation to `apps/docs`, or maintaining legacy synchronization during the production transition.
 
 ## Implementer routing
 
@@ -21,18 +21,21 @@ Load this skill when the user wants to sync a package's `docs/` folder to the ce
 
 ## Context to read
 
-- `.github/workflows/sync-docs.yml` (root workflow)
+- `apps/docs/README.md`
+- `DECISIONS/004-docs-in-monorepo.md`
+- `.github/workflows/_sync-docs.yml` and `sync-docs-*.yml` (legacy workflows)
 - `ARCHITECTURE.md` docs section
 - `packages/<name>/docs/` structure
 
 ## Must do
 
 - Ensure each package's `docs/` folder follows the Fumadocs structure (`meta.json`, `*.mdx`, `*.ko.mdx`).
-- Push changes to `main` to trigger the root `sync-docs.yml` workflow.
-- Verify a PR appears in `ilokesto/docs` after the workflow runs.
+- Run `pnpm docs:test`, `pnpm docs:typecheck`, and `pnpm docs:build` locally.
+- Keep package content canonical in `packages/<name>/docs/`; site code belongs in `apps/docs`.
+- Preserve legacy sync until production uses this monorepo. External deployment changes require approval.
 
 ## Must not do
 
-- Do not edit `ilokesto/docs` directly unless fixing site-wide layout.
+- Do not maintain a duplicate editable package-doc tree in `apps/docs`.
 - Do not include docs in npm publish tarballs (check `packages/<name>/.npmignore`).
 - Do not run `npm publish` or `pnpm publish` locally.

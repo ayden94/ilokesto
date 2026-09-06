@@ -3,6 +3,11 @@
   "private": true,
   "packageManager": "pnpm@10.17.1",
   "scripts": {
+    "docs:dev": "pnpm --filter @ilokesto/docs dev",
+    "docs:build": "pnpm --filter @ilokesto/docs build",
+    "docs:start": "pnpm --filter @ilokesto/docs start",
+    "docs:typecheck": "pnpm --filter @ilokesto/docs typecheck",
+    "docs:test": "pnpm --filter @ilokesto/docs test",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --filter '!@ilokesto/state' --if-present run test && pnpm --filter @ilokesto/state test",

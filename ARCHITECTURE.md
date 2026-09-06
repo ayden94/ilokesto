@@ -57,10 +57,10 @@ The `modal` / `globalModalStore` facade is the backward-compatible exception: pr
 
 ### 5. Docs live with source
 
-Each package owns its `docs/` folder. The central `ilokesto/docs` site consumes those folders via root package-scoped workflows. This keeps documentation close to the code it describes.
+Each package owns its `docs/` folder. The private `apps/docs` Next.js/Fumadocs workspace consumes these originals, keeping code, content, and site changes in one review. English and Korean public URL paths remain unchanged. See `DECISIONS/004-docs-in-monorepo.md` for the production transition.
 
 ## Cross-cutting automation
 
 - **Release**: Root Changesets versioning and the gated release job in `.github/workflows/ci.yml` create release PRs and publish packages after verification. `fetcher` publishes on `beta`; stable packages publish on `latest`.
-- **Docs sync**: Root package-scoped workflows open PRs in `ilokesto/docs` when `packages/<name>/docs/` changes on `main`.
+- **Documentation**: Root build, typecheck, and tests include `apps/docs`. Existing package-scoped sync workflows continue updating `ilokesto/docs` until production is switched, then are removed.
 - **CI**: Root CI installs one lockfile, builds in dependency order, and preserves package-specific quality gates.

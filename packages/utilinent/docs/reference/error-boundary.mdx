@@ -20,7 +20,7 @@ import { ErrorBoundary } from '@ilokesto/utilinent';
 | Prop | Type | Description |
 | --- | --- | --- |
 | `children` | `ReactNode` | The subtree to guard. |
-| `fallback` | `ReactNode | ({ error, reset }) => ReactNode` | Rendered when a descendant throws. |
+| `fallback` | `ReactNode \| ({ error, reset }) => ReactNode` | Rendered when a descendant throws. |
 | `onError` | `(error, info) => void` | Called when an error is caught. |
 | `resetKeys` | `readonly unknown[]` | When these values change, the boundary resets. |
 
